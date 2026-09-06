@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN_MANAGEMENT
+  OFFICE_SCHEDULING
+  SALES
+  SENIOR_INSTALLER
+  CREW_MOBILE
+  READ_ONLY
+}
+
+enum JobType {
+  RESIDENTIAL
+  COMMERCIAL
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(READ_ONLY)
+  isSuperUser  Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions       Session[]
+  twoFactorCodes TwoFactorCode[]
+  pendingLogins  PendingLogin[]
+  auditLogs      AuditLog[]
+  assignedJobs   Job[]           @relation("AssignedUser")
+}
+
+// A short-lived marker created right after password verification, before the
+// 2FA code is confirmed. The cookie holding its raw token proves "this browser
+// just passed the password check for this user" without granting a session —
+// createSession() is only ever called after verifyTwoFactorCode() succeeds.
+model PendingLogin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  ip         String?
+  userAgent  String?
+
+  @@index([userId])
+}
+
+// Tracks every login attempt (success or failure), keyed on both the
+// submitted email and the source IP, so lockouts can't be bypassed by
+// switching IP or by spraying many accounts from one IP.
+model LoginAttempt {
+  id             String   @id @default(cuid())
+  emailAttempted String
+  ip             String
+  success        Boolean
+  createdAt      DateTime @default(now())
+
+  @@index([emailAttempted, createdAt])
+  @@index([ip, createdAt])
+}
+
+model TwoFactorCode {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs  Job[]
+  leads Lead[]
+}
+
+model Lead {
+  id          String    @id @default(cuid())
+  reference   String    @unique
+  title       String
+  description String?
+  source      String?
+  status      String    @default("New")
+  clientId    String?
+  client      Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  convertedAt DateTime?
+}
+
+model Job {
+  number         String   @id
+  title          String
+  description    String?
+  address        String?
+  clientId       String?
+  client         Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  type           JobType  @default(RESIDENTIAL)
+  status         String   @default("New")
+  priority       String?
+  dueDate        DateTime?
+  assignedUserId String?
+  assignedUser   User?    @relation("AssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  supplier       String?
+  archived       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

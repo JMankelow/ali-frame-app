@@ -9,9 +9,14 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.2.0",
+    "@prisma/client": "^7.10.0",
     "next": "16.3.3",
+    "prisma": "^8.0.0-rc.12",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "resend": "^6.25.0",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
