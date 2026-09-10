@@ -22,15 +22,20 @@ enum JobType {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String    @unique
-  passwordHash String
-  role         Role      @default(READ_ONLY)
-  isSuperUser  Boolean   @default(false)
-  isActive     Boolean   @default(true)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  passwordHash      String
+  role              Role     @default(READ_ONLY)
+  isSuperUser       Boolean  @default(false)
+  isActive          Boolean  @default(true)
+  // True for every account until its first successful sign-in. An admin creates
+  // the account with a temporary password; on first login the user is forced to
+  // set their own password before they can do anything else (still followed by
+  // the normal email 2FA step, same as every login after that).
+  mustResetPassword Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   sessions       Session[]
   twoFactorCodes TwoFactorCode[]
@@ -138,20 +143,20 @@ model Lead {
 }
 
 model Job {
-  number         String   @id
+  number         String    @id
   title          String
   description    String?
   address        String?
   clientId       String?
-  client         Client?  @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  type           JobType  @default(RESIDENTIAL)
-  status         String   @default("New")
+  client         Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  type           JobType   @default(RESIDENTIAL)
+  status         String    @default("New")
   priority       String?
   dueDate        DateTime?
   assignedUserId String?
-  assignedUser   User?    @relation("AssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
+  assignedUser   User?     @relation("AssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
   supplier       String?
-  archived       Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  archived       Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }

@@ -52,7 +52,7 @@ export async function createSession(userId: string) {
 
 export type SessionUser = Pick<
   User,
-  "id" | "name" | "email" | "role" | "isSuperUser" | "isActive"
+  "id" | "name" | "email" | "role" | "isSuperUser" | "isActive" | "mustResetPassword"
 >;
 
 /**
@@ -82,8 +82,8 @@ export async function getSessionUser(): Promise<SessionUser | null> {
     .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
     .catch(() => {});
 
-  const { id, name, email, role, isSuperUser, isActive } = session.user;
-  return { id, name, email, role, isSuperUser, isActive };
+  const { id, name, email, role, isSuperUser, isActive, mustResetPassword } = session.user;
+  return { id, name, email, role, isSuperUser, isActive, mustResetPassword };
 }
 
 export async function destroySession() {
