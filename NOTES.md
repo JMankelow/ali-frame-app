@@ -12,6 +12,45 @@ and Jo. Security is the top priority on this build (see `feedback_security_check
 memory / `JTBC Documents\Security\SECURITY_CHECKLIST.md` — apply that checklist to everything
 here, don't wait to be asked).
 
+## Verified end-to-end against the real Render Postgres database (2026-09-11)
+
+Jo created a real `ali-frame-db` Postgres instance on Render (JT Business account, Singapore
+region, Starter tier). `npx prisma db push` created all tables. Ran the whole flow live:
+
+- `/setup?token=...` created Jo's real admin account (`jo@aliframe.co.nz`), then routed through
+  2FA (console-logged code, since Resend isn't configured yet) before reaching `/dashboard`.
+- Created a test staff account via `/users`, got a one-time temp password, signed out, signed
+  in as that account — confirmed it was forced to `/reset-password` **after** 2FA succeeded,
+  then landed on `/dashboard` normally.
+- Confirmed the `/users` nav link is hidden for a non-super-user **and**, more importantly,
+  that hitting `/users` directly while signed in as that account is rejected server-side
+  (`requireSuperUser()` throws) — proves the real enforcement point works, not just the hidden
+  link. (Currently surfaces as a raw Next.js dev error overlay, not a friendly "access denied"
+  page — cosmetic issue to fix, not a security one; noted below.)
+- Created a real Job and a real Lead through their pages, confirmed they show up immediately
+  (real Postgres reads, not mocked data).
+- Cleaned up: deleted the test Job/Lead/staff-user rows afterward so no fake data is sitting in
+  the real database. **Flipped Jo's own account back to `mustResetPassword: true`** — I chose a
+  placeholder password to run this test, so she is forced to set her own real password the next
+  time she actually signs in. Nobody but her will ever know her real password.
+
+Local `.env` now has the real `DATABASE_URL` (Render's *external* connection string — switch to
+the *internal* one once the app itself is also deployed on Render) and a real `SETUP_TOKEN`.
+`RESEND_API_KEY`/`EMAIL_FROM` are still blank (dev console-log fallback in use) — needed before
+this can go further for real.
+
+Also added `dev-launcher.bat` (committed) — running `next dev` from a short (8.3) Windows path
+crashes with a libuv assertion (`fs-event.c` file-watcher bug); this batch file hardcodes the
+real long path via `cd /d` so Turbopack's watcher never sees the short-path form. If you ever
+see `Assertion failed: !_wcsnicmp(filename, dir, dirlen)`, this is why — always launch via this
+script (or an equivalent that cd's to the real path) rather than passing a short path to `next
+dev` directly.
+
+**Known cosmetic issue to fix before real rollout:** unauthorized access (e.g. a non-super-user
+hitting `/users`) currently throws a raw `AuthError` that Next.js renders as its dev error
+overlay / a generic 500 in production. Works correctly as a security boundary, but should
+redirect to a friendly "access denied" or back to `/dashboard` instead.
+
 ## Current state (as of 2026-09-11)
 
 **Done — the auth/security library layer** (`src/lib/`):
@@ -56,19 +95,16 @@ here, don't wait to be asked).
 - Everything beyond Jobs/Leads/Users (Site Measure, Quote Comparison, Prepare Price, Quote
   Wording, Check Measure tools, Files, Cashflow, Reports…) — stays on the old HTML prototype for
   now, linked from the sidebar as "Other tools (prototype)".
-- **Not deployed anywhere yet.** No GitHub remote, no `render.yaml`, no Render Postgres/Web
-  Service, no `.env` locally. This is the actual next blocker — see "What's needed from Jo" below.
-- Not tested end-to-end against a real database at all (no Postgres available in this dev
-  environment — no Docker, no local `psql`) — `npm run build` proves it compiles and the
-  server/client boundaries are correct, but nobody has actually clicked through setup → login →
-  2FA → dashboard against a live database yet.
+- **Not deployed anywhere yet.** No GitHub remote, no `render.yaml`, no Render Web Service (the
+  Postgres database itself now exists and is verified working — see below).
+
+**Verified working end-to-end against the real Render Postgres database** — see the section
+above. This was the last open question and it's answered: the whole auth flow, Jobs, and Leads
+all work against a live database, not just in theory.
 
 ## What's needed from Jo before this can go further
 
-1. **A Postgres database** — create one on Render (Starter tier or above, so backups actually
-   exist) and hand over the connection string. This is the hard blocker: there is no
-   Docker/local Postgres available in this dev environment, so nothing can be tested end-to-end
-   without it.
+1. ~~A Postgres database~~ — **done**, `ali-frame-db` on Render, verified working.
 2. **A Resend account** (resend.com) + API key + a verified "from" address — needed for real
    2FA emails. Not blocking for local testing (the dev console-log fallback covers that), but
    blocking for anything real.
