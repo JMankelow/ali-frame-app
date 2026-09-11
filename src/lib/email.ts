@@ -27,7 +27,7 @@ export async function sendTwoFactorCodeEmail(to: string, code: string) {
     return;
   }
 
-  await getResend().emails.send({
+  const result = await getResend().emails.send({
     from,
     to,
     subject: `Your Ali-Frame login code: ${code}`,
@@ -36,4 +36,12 @@ export async function sendTwoFactorCodeEmail(to: string, code: string) {
       `This code expires in 10 minutes and can only be used once. ` +
       `If you did not try to sign in, you can ignore this email.`,
   });
+
+  // The Resend SDK does NOT throw on a rejected send (e.g. sandbox-mode
+  // restrictions, invalid recipient) — it returns { data: null, error }.
+  // Without this check, a 2FA email can silently fail to send while the app
+  // behaves as if it succeeded, leaving the user stuck with no way to sign in.
+  if (result.error) {
+    throw new Error(`Failed to send 2FA email: ${result.error.message}`);
+  }
 }
