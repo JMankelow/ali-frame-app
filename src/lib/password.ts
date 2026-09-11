@@ -9,14 +9,7 @@ const ARGON2_OPTIONS = {
   parallelism: 1,
 };
 
-export const MIN_PASSWORD_LENGTH = 12;
-
-export function validatePasswordStrength(password: string): string | null {
-  if (password.length < MIN_PASSWORD_LENGTH) {
-    return `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`;
-  }
-  return null;
-}
+export { MIN_PASSWORD_LENGTH, validatePasswordStrength } from "@/lib/passwordPolicy";
 
 export async function hashPassword(password: string): Promise<string> {
   return hash(password, ARGON2_OPTIONS);

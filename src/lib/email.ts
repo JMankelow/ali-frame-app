@@ -12,7 +12,20 @@ function getResend(): Resend {
 
 export async function sendTwoFactorCodeEmail(to: string, code: string) {
   const from = process.env.EMAIL_FROM;
-  if (!from) throw new Error("EMAIL_FROM is not set");
+
+  // Local-dev convenience only: if Resend isn't configured yet, print the
+  // code instead of emailing it, so the full login flow can be built and
+  // tested before Jo has signed up for a Resend account. This path is only
+  // ever reachable when RESEND_API_KEY/EMAIL_FROM are unset; production must
+  // have both set (Render env vars), or sendTwoFactorCodeEmail throws below —
+  // there is no way to silently skip sending a real code once those are set.
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] 2FA code for ${to}: ${code}`);
+    return;
+  }
 
   await getResend().emails.send({
     from,
