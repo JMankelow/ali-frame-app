@@ -51,7 +51,85 @@ hitting `/users`) currently throws a raw `AuthError` that Next.js renders as its
 overlay / a generic 500 in production. Works correctly as a security boundary, but should
 redirect to a friendly "access denied" or back to `/dashboard` instead.
 
-## Current state (as of 2026-09-11)
+## File storage switched from SharePoint to Cloudflare R2 (2026-09-13)
+
+Spent a long session trying to wire up SharePoint/Microsoft Graph (`Sites.Selected` permission
+model) for file storage. Got as far as an Azure AD app registration + admin consent, but the
+final step — granting the app access to the specific SharePoint site via Graph Explorer — kept
+failing with a 403 (`insufficient privileges, or you need to consent to one of the permissions
+on the Modify Permissions tab`), and no code for it was ever written. **Abandoned that approach**
+in favor of **Cloudflare R2** (S3-compatible object storage, `@aws-sdk/client-s3` +
+`@aws-sdk/s3-request-presigner`) — far less integration surface: no Azure AD, no admin consent,
+no per-site permission grants, just an account ID + access key + secret + bucket name as env
+vars. The Azure app registration Jo created can be deleted/ignored; nothing depends on it.
+
+**Built and deployed on this pass:**
+- `src/lib/storage.ts` — R2 client (S3-compatible, `region: "auto"`,
+  `endpoint: https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`). Files never pass through our
+  server: `getUploadUrl()`/`getDownloadUrl()` hand back short-lived (5 min) presigned URLs the
+  browser PUTs/GETs directly against R2. `getObjectBuffer()` reads bytes server-side only for
+  attaching a file to an outgoing email (Site Measure sheets).
+- `FileAsset` Prisma model — metadata only (job, file name/type, uploader, size, R2 storage key);
+  pushed to the real production database with `prisma db push` (additive, no data touched).
+- `/files` — list all files (job/type/uploader/date), upload form (job + type + file picker),
+  download (fresh presigned URL per click, logged to `AuditLog`), delete (removes from R2 + DB).
+  Upload is a 2-step flow: `requestUpload()` (server checks the job exists, hands back a
+  presigned PUT URL) → browser PUTs the bytes straight to R2 → `confirmUpload()` (server records
+  the `FileAsset` row). Gated by `requireUser()` only, same as Jobs/Leads for now.
+- `/site-measure` — ported the prototype's Site Measure tool **field-for-field**: job select →
+  "Open Template" → pen colors (Red/Black/Blue/Green/Yellow) → per-page header fields (date,
+  customer, phone, email, site address, notes, hardware, cladding, colour, access equipment,
+  rubbish removal) pre-filled from the job/client → 4 openings per page, each with its own
+  freehand sketch canvas (Pointer Events, not separate mouse/touch handlers like the prototype —
+  simpler and covers touch too) + all the Yes/No and dropdown fields (fall protection, location,
+  glazing type, restrictor stays, glass, architraves, facings, scribers, silicone, head flashing,
+  sill tray) + an extra notes textarea. "+ Add New Page" adds another page. **Real** difference
+  from the prototype (which only faked sending): "Save Sheet & Email to Supplier" uploads every
+  opening that actually has a sketch on it to R2 as a `FileAsset` (type "Site Measure"), then
+  emails those sketches as real attachments via Resend to the job's actual supplier contact
+  (`src/lib/supplierContacts.ts`, ported from the prototype's `SUPPLIER_CONTACTS`). The recipient
+  is only ever looked up from that contact list for the job's own supplier — the email action
+  never takes an arbitrary address from the caller, so it can't become an open relay.
+  **Known simplification** (flagged, not hidden): each page has a fixed 4 openings; the
+  prototype's "+ Add Item" (more than 4 per page) wasn't ported — straightforward to add if Jo
+  wants it, just add another page instead for now.
+- Nav updated: Site Measure and Files links added to the sidebar between Leads and Users.
+
+**Verified in this session** (temporary test user + test job/client, both deleted afterward):
+logged in, opened the Site Measure template for a test job, confirmed pre-filled customer/phone/
+address, drew freehand strokes in two pen colors and confirmed they render correctly, confirmed
+the "draw at least one opening first" validation, and confirmed both `/site-measure` and `/files`
+fail **gracefully** (clear error message, not a crash) when R2 isn't configured yet — found and
+fixed a real bug in the process (see below). **Not yet verified:** an actual successful upload to
+a real R2 bucket, or an actual delivered email with attachments — both need Jo's real R2
+credentials first (see below), since there's no way to test those without them.
+
+**Bug found and fixed during this verification:** `files/actions.ts` exported the `FILE_TYPES`
+constant alongside its server actions — Next.js rejects this ("a 'use server' file can only
+export async functions, found object"), which broke every page that imports anything from that
+file (crashed with a full-page error). Fixed by moving `FILE_TYPES` into its own
+`files/fileTypes.ts` (no `"use server"`), matching the existing `passwordPolicy.ts`/`password.ts`
+split for the same class of problem. **If a new `"use server"` action file ever needs to export a
+plain constant, split it into a sibling file the same way rather than exporting it directly.**
+
+### What's needed from Jo to make file storage actually work
+
+1. Go to **dash.cloudflare.com** → **R2 Object Storage** (sign up if not already using R2 — a
+   Cloudflare account with just DNS on it doesn't automatically have R2 enabled).
+2. Create a bucket, e.g. named `ali-frame-files`.
+3. Create an **API token** scoped to R2 (Object Read & Write permission, ideally scoped to just
+   that bucket) — this gives an Access Key ID + Secret Access Key.
+4. Find the **Account ID** (shown on the R2 overview page / in the dashboard URL — a 32-character
+   hex string, not an email or account name).
+5. Set these as **Render environment variables** on the `ali-frame-app` web service (Render
+   dashboard → Environment, never committed to git): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+   `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`. (Also add them to the local `.env` for local testing
+   — see `.env.example` for the exact names.)
+
+Once those four are set, `/files` and `/site-measure` should work end-to-end for real — nothing
+else in the code needs to change.
+
+## Current state (as of 2026-09-13)
 
 **Done — the auth/security library layer** (`src/lib/`):
 - `password.ts` — Argon2id hashing (`@node-rs/argon2`). `passwordPolicy.ts` holds
@@ -92,11 +170,12 @@ redirect to a friendly "access denied" or back to `/dashboard` instead.
 - Logout server action, clears the DB session row + cookie.
 
 **Not started:**
-- Everything beyond Jobs/Leads/Users (Site Measure, Quote Comparison, Prepare Price, Quote
-  Wording, Check Measure tools, Files, Cashflow, Reports…) — stays on the old HTML prototype for
-  now, linked from the sidebar as "Other tools (prototype)".
-- **Not deployed anywhere yet.** No GitHub remote, no `render.yaml`, no Render Web Service (the
-  Postgres database itself now exists and is verified working — see below).
+- Everything beyond Jobs/Leads/Users/Site Measure/Files (Quote Comparison, Prepare Price, Quote
+  Wording, Check Measure tools, Cashflow, Reports…) — stays on the old HTML prototype for now,
+  linked from the sidebar as "Other tools (prototype)".
+- Site Measure and Files are code-complete and deployed but **not yet verified against real R2
+  storage** — see "File storage switched from SharePoint to Cloudflare R2" above for exactly what
+  Jo needs to set up before they'll actually work.
 
 **Verified working end-to-end against the real Render Postgres database** — see the section
 above. This was the last open question and it's answered: the whole auth flow, Jobs, and Leads
