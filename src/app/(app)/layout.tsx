@@ -31,6 +31,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <a href="/dashboard">Dashboard</a>
           <a href="/jobs">Jobs</a>
           <a href="/leads">Leads</a>
+          <a href="/site-measure">Site Measure</a>
           <a href="/files">Files</a>
           {user.isSuperUser && <a href="/users">Users</a>}
           <a href="/settings">Settings</a>

@@ -45,3 +45,44 @@ export async function sendTwoFactorCodeEmail(to: string, code: string) {
     throw new Error(`Failed to send 2FA email: ${result.error.message}`);
   }
 }
+
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+}
+
+export async function sendSiteMeasureEmail(params: {
+  to: string;
+  jobNumber: string;
+  jobTitle: string;
+  fromName: string;
+  pageCount: number;
+  attachments: EmailAttachment[];
+}) {
+  const from = process.env.EMAIL_FROM;
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(
+      `[DEV ONLY — no email sent] Site measure sheet for ${params.jobNumber} would go to ${params.to} ` +
+        `with ${params.attachments.length} attachment(s)`
+    );
+    return;
+  }
+
+  const result = await getResend().emails.send({
+    from,
+    to: params.to,
+    subject: `Site Measure Sheet — ${params.jobNumber} ${params.jobTitle}`,
+    text:
+      `Attached is the completed ${params.pageCount}-page Ali-Frame Measure Sheet for ` +
+      `job ${params.jobNumber} (${params.jobTitle}), sent by ${params.fromName}.\n\n` +
+      `Please get in touch if anything on the sketches or opening details needs clarifying.`,
+    attachments: params.attachments,
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to send site measure email: ${result.error.message}`);
+  }
+}

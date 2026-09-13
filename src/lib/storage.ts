@@ -56,3 +56,15 @@ export async function getDownloadUrl(storageKey: string, fileName: string): Prom
 export async function deleteObject(storageKey: string): Promise<void> {
   await getClient().send(new DeleteObjectCommand({ Bucket: getBucket(), Key: storageKey }));
 }
+
+/** Reads an object's bytes server-side — used to attach a just-uploaded file to an outgoing email. */
+export async function getObjectBuffer(storageKey: string): Promise<Buffer> {
+  const result = await getClient().send(new GetObjectCommand({ Bucket: getBucket(), Key: storageKey }));
+  const body = result.Body;
+  if (!body) throw new Error(`No body returned for ${storageKey}`);
+  const chunks: Buffer[] = [];
+  for await (const chunk of body as AsyncIterable<Buffer>) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}

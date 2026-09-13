@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { buildStorageKey, getUploadUrl, getDownloadUrl, deleteObject } from "@/lib/storage";
-
-export const FILE_TYPES = ["Plan", "Photos", "Supplier Quote", "Site Measure", "Correspondence", "Other"] as const;
+import { FILE_TYPES } from "./fileTypes";
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50MB
 

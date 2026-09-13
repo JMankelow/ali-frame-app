@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { requestUpload, confirmUpload, FILE_TYPES } from "./actions";
+import { requestUpload, confirmUpload } from "./actions";
+import { FILE_TYPES } from "./fileTypes";
 
 export function UploadForm({ jobNumbers }: { jobNumbers: string[] }) {
   const [status, setStatus] = useState<string>("");
