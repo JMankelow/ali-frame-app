@@ -15,16 +15,28 @@ export function isNavGroup(item: NavLeaf | NavGroup): item is NavGroup {
 }
 
 function salesSection(): NavGroup {
+  const quotesGroup = (): NavGroup => ({
+    label: "Quotes",
+    items: [
+      { label: "Quote Register", href: "/quotes" },
+      { label: "Prepare Price", href: "/prepare-price" },
+      { label: "Convert Schedule", href: "/quotes" },
+      { label: "Quote Comparison", href: "/quote-comparison" },
+      { label: "Quote Wording", href: "/quote-wording" },
+    ],
+  });
+
   return {
     label: "Sales",
     items: [
+      { label: "Calendar", href: "/calendar" },
       {
         label: "Commercial",
         items: [
           { label: "Leads", href: "/leads" },
           { label: "Estimates", href: "/estimates" },
           { label: "Site Measures", href: "/site-measure" },
-          { label: "Quotes", href: "/quotes" },
+          quotesGroup(),
         ],
       },
       {
@@ -33,7 +45,7 @@ function salesSection(): NavGroup {
           { label: "Leads", href: "/leads" },
           { label: "Estimates", href: "/estimates" },
           { label: "Site Measures", href: "/site-measure" },
-          { label: "Quotes", href: "/quotes" },
+          quotesGroup(),
         ],
       },
     ],

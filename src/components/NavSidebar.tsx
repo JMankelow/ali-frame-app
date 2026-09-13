@@ -35,18 +35,33 @@ function NavGroupView({
   pathname,
   pins,
   isSuperUser,
+  depth,
 }: {
   group: NavGroup;
   pathname: string;
   pins: Pins;
   isSuperUser: boolean;
+  depth: number;
 }) {
+  // Depth 1 (e.g. Commercial/Residential under Sales) gets the normal indent
+  // step. Anything nested deeper (e.g. Quotes under Residential) stays flush
+  // with its sibling leaf items instead of compounding another indent level —
+  // only its own children indent in from there.
+  const className = depth >= 2 ? "navGroup navSubGroup navFlat" : "navGroup navSubGroup";
+
   return (
-    <details className="navGroup navSubGroup" open>
+    <details className={className} open>
       <summary>{group.label}</summary>
       {group.items.map((item, i) =>
         isNavGroup(item) ? (
-          <NavGroupView key={item.label + i} group={item} pathname={pathname} pins={pins} isSuperUser={isSuperUser} />
+          <NavGroupView
+            key={item.label + i}
+            group={item}
+            pathname={pathname}
+            pins={pins}
+            isSuperUser={isSuperUser}
+            depth={depth + 1}
+          />
         ) : item.superUserOnly && !isSuperUser ? null : (
           <NavItem key={item.href + item.label} item={item} pathname={pathname} pins={pins} />
         )
@@ -65,7 +80,14 @@ export function NavSidebar({ isSuperUser, pins }: { isSuperUser: boolean; pins: 
           <summary>{group.label}</summary>
           {group.items.map((item, i) =>
             isNavGroup(item) ? (
-              <NavGroupView key={item.label + i} group={item} pathname={pathname} pins={pins} isSuperUser={isSuperUser} />
+              <NavGroupView
+                key={item.label + i}
+                group={item}
+                pathname={pathname}
+                pins={pins}
+                isSuperUser={isSuperUser}
+                depth={1}
+              />
             ) : item.superUserOnly && !isSuperUser ? null : (
               <NavItem key={item.href + item.label} item={item} pathname={pathname} pins={pins} />
             )

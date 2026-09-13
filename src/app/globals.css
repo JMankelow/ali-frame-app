@@ -26,13 +26,14 @@ a{color:inherit}
 .authError{background:#ffe4e6;color:#9f1239;border-radius:12px;padding:10px 12px;font-size:13px;margin-top:12px}
 
 /* Authenticated app shell */
-.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.app{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
 aside{background:var(--nav);color:#fff;padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
 .side-logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#111);display:grid;place-items:center;font-weight:900}
 .brand h1{font-size:16px;line-height:1.1;margin:0}
 .brand span{display:block;font-size:12px;color:#b7c4d8;font-weight:500;margin-top:4px}
 .nav a,.nav button{width:100%;border:0;background:transparent;color:#dbe7ff;text-align:left;padding:12px;border-radius:10px;margin:3px 0;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;text-decoration:none}
+.nav a>span:first-child{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nav a.active,.nav a:hover,.nav button:hover{background:#13213c;color:#fff}
 .navUnsorted{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
 .navUnsorted-label{color:#8ba3c7;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:0 12px;margin-bottom:6px}
@@ -48,9 +49,12 @@ aside{background:var(--nav);color:#fff;padding:22px 16px;position:sticky;top:0;h
 .navGroup[open]>summary::after{transform:rotate(90deg)}
 .navGroup a,.navGroup button{padding-left:24px;font-size:13px}
 .navSubGroup{margin:2px 0 2px 24px}
+.navSubGroup.navFlat{margin-left:0}
+.navSubGroup.navFlat summary{padding-left:16px}
+.navSubGroup.navFlat a,.navSubGroup.navFlat button{padding-left:32px}
 .navSubGroup summary{font-size:12px;padding:9px 12px;color:#8ba3c7;text-transform:none;letter-spacing:0;font-weight:800}
 .navSubGroup a,.navSubGroup button{padding-left:16px;font-size:13px}
-.pinToggle{opacity:.35;font-size:12px;flex-shrink:0;background:none;border:0;padding:0;color:inherit;cursor:pointer}
+.nav .pinToggle{width:auto;flex:0 0 auto;opacity:.35;font-size:12px;background:none;border:0;padding:0;color:inherit;cursor:pointer}
 .pinToggle:hover{opacity:.8}
 .pinToggle.pinned{opacity:1}
 
