@@ -49,3 +49,10 @@ export async function archiveJob(number: string) {
   await logAudit({ userId: user.id, action: "job_archived", entityType: "Job", entityId: number });
   revalidatePath("/jobs");
 }
+
+export async function reactivateJob(number: string) {
+  const user = await requireUser();
+  await prisma.job.update({ where: { number }, data: { archived: false } });
+  await logAudit({ userId: user.id, action: "job_reactivated", entityType: "Job", entityId: number });
+  revalidatePath("/jobs");
+}

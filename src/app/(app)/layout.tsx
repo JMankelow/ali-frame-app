@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { logout } from "./actions";
+import { AppShell } from "@/components/AppShell";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN_MANAGEMENT: "Admin / Management",
@@ -18,50 +19,22 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!user) redirect("/login");
 
   return (
-    <div className="app">
-      <aside>
-        <div className="brand">
-          <div className="side-logo">AF</div>
-          <div>
-            <h1>Ali-Frame</h1>
-            <span>Job Management System</span>
-          </div>
-        </div>
-        <nav className="nav">
-          <a href="/dashboard">Dashboard</a>
-          <a href="/jobs">Jobs</a>
-          <a href="/leads">Leads</a>
-          <a href="/site-measure">Site Measure</a>
-          <a href="/files">Files</a>
-          {user.isSuperUser && <a href="/users">Users</a>}
-          <a href="/settings">Settings</a>
-        </nav>
-        <div className="navUnsorted">
-          <div className="navUnsorted-label">Not yet migrated</div>
-          <a
-            href="https://claude.ai/code/artifact/c92f8bb2-9536-4b09-8104-2c8cd55ffb78"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Other tools (prototype) ↗
-          </a>
-        </div>
-      </aside>
-      <main>
-        <div className="topbar">
-          <div>
-            <span className="userBadge">
-              {user.name} — {ROLE_LABELS[user.role] ?? user.role}
-            </span>
-          </div>
-          <form action={logout}>
-            <button type="submit" className="btn light">
-              Sign out
-            </button>
-          </form>
-        </div>
-        {children}
-      </main>
-    </div>
+    <AppShell
+      isSuperUser={user.isSuperUser}
+      userBadge={
+        <span className="userBadge">
+          {user.name} — {ROLE_LABELS[user.role] ?? user.role}
+        </span>
+      }
+      signOutForm={
+        <form action={logout}>
+          <button type="submit" className="btn light">
+            Sign out
+          </button>
+        </form>
+      }
+    >
+      {children}
+    </AppShell>
   );
 }

@@ -10,7 +10,9 @@ export function AuthCard({
   return (
     <div className="authOverlay">
       <div className="authCard">
-        <div className="authLogo">ALI-FRAME</div>
+        <div className="authLogoBox">
+          <img src="/aliframe-logo-full.svg" alt="Ali-Frame Windows & Doors" />
+        </div>
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
         {children}

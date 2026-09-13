@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { archiveJob } from "./actions";
+import { archiveJob, reactivateJob } from "./actions";
 import { JobForm } from "./JobForm";
 
 const STATUS_COLOR: Record<string, string> = {
@@ -10,19 +10,34 @@ const STATUS_COLOR: Record<string, string> = {
   Complete: "green",
 };
 
-export default async function JobsPage() {
+export default async function JobsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string; archived?: string }>;
+}) {
   await requireUser();
+  const { type, archived } = await searchParams;
+  const showArchived = archived === "1";
+  const jobType = type === "Residential" || type === "Commercial" ? type.toUpperCase() : null;
+
   const jobs = await prisma.job.findMany({
-    where: { archived: false },
+    where: {
+      archived: showArchived,
+      ...(jobType ? { type: jobType as "RESIDENTIAL" | "COMMERCIAL" } : {}),
+    },
     orderBy: { createdAt: "desc" },
   });
+
+  const heading = showArchived ? "Inactive Jobs" : type ? `${type} Jobs` : "Jobs";
 
   return (
     <div>
       <div className="topbar">
         <div>
-          <h2>Jobs</h2>
-          <div className="subtitle">{jobs.length} active job(s) — shared, real-time for everyone signed in.</div>
+          <h2>{heading}</h2>
+          <div className="subtitle">
+            {jobs.length} {showArchived ? "inactive" : "active"} job(s) — shared, real-time for everyone signed in.
+          </div>
         </div>
       </div>
 
@@ -51,11 +66,19 @@ export default async function JobsPage() {
                 </td>
                 <td>{job.supplier ?? "—"}</td>
                 <td>
-                  <form action={archiveJob.bind(null, job.number)}>
-                    <button type="submit" className="btn light">
-                      Archive
-                    </button>
-                  </form>
+                  {showArchived ? (
+                    <form action={reactivateJob.bind(null, job.number)}>
+                      <button type="submit" className="btn light">
+                        Reactivate
+                      </button>
+                    </form>
+                  ) : (
+                    <form action={archiveJob.bind(null, job.number)}>
+                      <button type="submit" className="btn light">
+                        Archive
+                      </button>
+                    </form>
+                  )}
                 </td>
               </tr>
             ))}
