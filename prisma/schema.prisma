@@ -42,6 +42,7 @@ model User {
   pendingLogins  PendingLogin[]
   auditLogs      AuditLog[]
   assignedJobs   Job[]           @relation("AssignedUser")
+  uploadedFiles  FileAsset[]
 }
 
 // A short-lived marker created right after password verification, before the
@@ -159,4 +160,25 @@ model Job {
   archived       Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+
+  files FileAsset[]
+}
+
+// Metadata row for a file stored in Cloudflare R2 — the actual bytes never
+// touch our database or our server (client uploads/downloads via short-lived
+// presigned URLs generated in src/lib/storage.ts), only this record does.
+model FileAsset {
+  id           String   @id @default(cuid())
+  jobNumber    String
+  job          Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  fileName     String
+  fileType     String
+  storageKey   String   @unique
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([jobNumber, createdAt])
 }
