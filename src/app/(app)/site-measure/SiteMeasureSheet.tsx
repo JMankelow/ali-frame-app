@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { OpeningCanvas } from "./OpeningCanvas";
 import { requestUpload, confirmUpload } from "../files/actions";
 import { sendSiteMeasureSheetEmail } from "./actions";
@@ -187,10 +187,14 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
   const job = useMemo(() => jobs.find((j) => j.number === selectedJobNumber) ?? null, [jobs, selectedJobNumber]);
   const contacts = useMemo(() => (job?.supplier ? SUPPLIER_CONTACTS[job.supplier] ?? [] : []), [job]);
 
-  function registerCanvas(id: string, el: HTMLCanvasElement | null) {
+  // Stable identity across re-renders — OpeningCanvas passes this straight into a
+  // ref callback, and a ref callback that changes identity every render gets
+  // called with (null) then (element) on every single re-render, churning the
+  // Map unnecessarily (see the snapshot comment in handleSaveAndEmail below).
+  const registerCanvas = useCallback((id: string, el: HTMLCanvasElement | null) => {
     if (el) canvasesRef.current.set(id, el);
     else canvasesRef.current.delete(id);
-  }
+  }, []);
 
   function openTemplate() {
     if (!selectedJobNumber) return setError("Select a job first.");
@@ -218,7 +222,15 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
       const storageKeys: string[] = [];
       let uploaded = 0;
 
-      for (const [canvasId, canvas] of canvasesRef.current.entries()) {
+      // Snapshot the canvases up front — iterating the live Map directly is
+      // unsafe here: each await below triggers a re-render, and OpeningCanvas's
+      // ref callback re-fires on every re-render (new inline function identity),
+      // which removes and re-adds its entry mid-iteration. That reordering made
+      // the loop revisit the same canvas endlessly (confirmed in testing: one
+      // drawn opening produced 28 duplicate uploads instead of 1).
+      const canvasesToUpload = Array.from(canvasesRef.current.entries());
+
+      for (const [canvasId, canvas] of canvasesToUpload) {
         if (canvas.dataset.hasStrokes !== "1") continue;
         const blob = await canvasToBlob(canvas);
         if (!blob) continue;

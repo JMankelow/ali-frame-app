@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface Point {
   x: number;
@@ -52,6 +52,18 @@ export function OpeningCanvas({
   const currentRef = useRef<Stroke | null>(null);
   const colorRef = useRef(color);
   colorRef.current = color;
+
+  // Stable identity so the <canvas> ref callback below doesn't change on every
+  // re-render — an inline arrow function there would make React call it with
+  // (null) then (element) on every render, repeatedly churning the parent's
+  // canvas registry.
+  const setCanvasRef = useCallback(
+    (el: HTMLCanvasElement | null) => {
+      canvasRef.current = el;
+      registerRef(id, el);
+    },
+    [id, registerRef]
+  );
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -135,10 +147,7 @@ export function OpeningCanvas({
     <div>
       <div style={{ border: "1px solid var(--line)", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
         <canvas
-          ref={(el) => {
-            canvasRef.current = el;
-            registerRef(id, el);
-          }}
+          ref={setCanvasRef}
           id={id}
           width={600}
           height={420}
