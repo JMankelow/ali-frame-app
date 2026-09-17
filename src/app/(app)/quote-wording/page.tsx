@@ -1,7 +1,17 @@
 import { requireUser } from "@/lib/session";
-import { ComingSoon } from "@/components/ComingSoon";
+import { QuoteWordingTool } from "./QuoteWordingTool";
 
-export default async function Page() {
+export default async function QuoteWordingPage() {
   await requireUser();
-  return <ComingSoon title="Quote Wording" />;
+  return (
+    <div>
+      <div className="topbar">
+        <div>
+          <h2>Quote Wording</h2>
+          <div className="subtitle">Build copy-ready quote wording to paste into NextMinute.</div>
+        </div>
+      </div>
+      <QuoteWordingTool />
+    </div>
+  );
 }
