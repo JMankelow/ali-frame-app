@@ -5,6 +5,7 @@ import { OpeningCanvas } from "./OpeningCanvas";
 import { requestUpload, confirmUpload } from "../files/actions";
 import { sendSiteMeasureSheetEmail } from "./actions";
 import { SUPPLIER_CONTACTS } from "@/lib/supplierContacts";
+import { JobPicker } from "@/components/JobPicker";
 
 export interface JobOption {
   number: string;
@@ -292,14 +293,7 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
         <div className="form">
           <div>
             <label>Job</label>
-            <select value={selectedJobNumber} onChange={(e) => setSelectedJobNumber(e.target.value)}>
-              <option value="">Select a job...</option>
-              {jobs.map((j) => (
-                <option key={j.number} value={j.number}>
-                  {j.number} - {j.title}
-                </option>
-              ))}
-            </select>
+            <JobPicker jobs={jobs} value={selectedJobNumber} onChange={setSelectedJobNumber} />
           </div>
         </div>
         <div className="actions" style={{ marginTop: 12 }}>

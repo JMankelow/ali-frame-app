@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { getFileDownloadUrl, deleteFile } from "./actions";
 
@@ -43,7 +44,11 @@ export function FileRow({
   return (
     <tr>
       <td>{name}</td>
-      <td>{jobNumber}</td>
+      <td>
+        <Link href={`/jobs/${jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+          {jobNumber}
+        </Link>
+      </td>
       <td>{fileType}</td>
       <td>{uploadedByName}</td>
       <td>{date}</td>

@@ -11,7 +11,7 @@ export default async function FilesPage() {
       include: { uploadedBy: true },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.job.findMany({ where: { archived: false }, orderBy: { number: "asc" }, select: { number: true } }),
+    prisma.job.findMany({ where: { archived: false }, orderBy: { number: "asc" }, select: { number: true, title: true } }),
   ]);
 
   return (
@@ -58,7 +58,7 @@ export default async function FilesPage() {
         </table>
       </div>
 
-      <UploadForm jobNumbers={jobs.map((j) => j.number)} />
+      <UploadForm jobs={jobs} />
     </div>
   );
 }

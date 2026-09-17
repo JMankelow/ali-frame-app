@@ -3,11 +3,13 @@
 import { useRef, useState } from "react";
 import { requestUpload, confirmUpload } from "./actions";
 import { FILE_TYPES } from "./fileTypes";
+import { JobPicker, type JobPickerOption } from "@/components/JobPicker";
 
-export function UploadForm({ jobNumbers }: { jobNumbers: string[] }) {
+export function UploadForm({ jobs }: { jobs: JobPickerOption[] }) {
   const [status, setStatus] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [busy, setBusy] = useState(false);
+  const [jobNumber, setJobNumber] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -16,7 +18,6 @@ export function UploadForm({ jobNumbers }: { jobNumbers: string[] }) {
     setStatus("");
 
     const form = e.currentTarget;
-    const jobNumber = String(new FormData(form).get("jobNumber") ?? "");
     const fileType = String(new FormData(form).get("fileType") ?? "Other");
     const fileInput = form.elements.namedItem("file") as HTMLInputElement;
     const file = fileInput?.files?.[0];
@@ -60,6 +61,7 @@ export function UploadForm({ jobNumbers }: { jobNumbers: string[] }) {
 
       setStatus("Uploaded.");
       formRef.current?.reset();
+      setJobNumber("");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -74,14 +76,7 @@ export function UploadForm({ jobNumbers }: { jobNumbers: string[] }) {
         <div className="form">
           <div>
             <label>Job</label>
-            <select name="jobNumber" required>
-              <option value="">Select a job...</option>
-              {jobNumbers.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
+            <JobPicker jobs={jobs} value={jobNumber} onChange={setJobNumber} />
           </div>
           <div>
             <label>File Type</label>

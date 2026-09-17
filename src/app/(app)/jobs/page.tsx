@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { archiveJob, reactivateJob } from "./actions";
@@ -57,7 +58,11 @@ export default async function JobsPage({
           <tbody>
             {jobs.map((job) => (
               <tr key={job.number}>
-                <td>{job.number}</td>
+                <td>
+                  <Link href={`/jobs/${job.number}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                    {job.number}
+                  </Link>
+                </td>
                 <td>{job.title}</td>
                 <td>{job.address ?? "—"}</td>
                 <td>{job.type === "COMMERCIAL" ? "Commercial" : "Residential"}</td>
