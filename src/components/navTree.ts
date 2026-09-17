@@ -66,21 +66,46 @@ export const NAV_TREE: NavGroup[] = [
   {
     label: "Operations",
     items: [
-      { label: "Acceptances", href: "/acceptances" },
       {
-        label: "Check Measures",
+        label: "Residential",
         items: [
-          { label: "Email Client", href: "/email-client" },
-          { label: "Prepare Check Measure", href: "/prepare-check-measure" },
-          { label: "Book Check Measure", href: "/book-appointment" },
-          { label: "Prepare Final Measure", href: "/prepare-final-measure" },
+          { label: "Acceptances", href: "/acceptances" },
+          {
+            label: "Check Measures",
+            items: [
+              { label: "Email Client", href: "/email-client" },
+              { label: "Prepare Check Measure", href: "/prepare-check-measure" },
+              { label: "Book Check Measure", href: "/book-appointment" },
+              { label: "Prepare Final Measure", href: "/prepare-final-measure" },
+            ],
+          },
+          { label: "Book Appointment", href: "/book-appointment" },
+          { label: "Purchase Orders", href: "/purchase-orders" },
+          { label: "Remedial", href: "/remedial" },
+          { label: "Files", href: "/files" },
+          { label: "Calendar", href: "/calendar" },
         ],
       },
-      { label: "Book Appointment", href: "/book-appointment" },
-      { label: "Purchase Orders", href: "/purchase-orders" },
-      { label: "Remedial", href: "/remedial" },
-      { label: "Files", href: "/files" },
-      { label: "Calendar", href: "/calendar" },
+      {
+        label: "Commercial",
+        items: [
+          { label: "Acceptances", href: "/acceptances" },
+          {
+            label: "Check Measures",
+            items: [
+              { label: "Email Client", href: "/email-client" },
+              { label: "Prepare Check Measure", href: "/prepare-check-measure" },
+              { label: "Book Check Measure", href: "/book-appointment" },
+              { label: "Prepare Final Measure", href: "/prepare-final-measure" },
+            ],
+          },
+          { label: "Book Appointment", href: "/book-appointment" },
+          { label: "Files", href: "/files" },
+          { label: "Remedial", href: "/remedial" },
+          { label: "Calendar", href: "/calendar" },
+          { label: "QA Documentation", href: "/qa-documentation" },
+        ],
+      },
     ],
   },
   {

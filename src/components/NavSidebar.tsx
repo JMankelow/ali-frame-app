@@ -50,7 +50,7 @@ function NavGroupView({
   const className = depth >= 2 ? "navGroup navSubGroup navFlat" : "navGroup navSubGroup";
 
   return (
-    <details className={className} open>
+    <details className={className}>
       <summary>{group.label}</summary>
       {group.items.map((item, i) =>
         isNavGroup(item) ? (
@@ -75,8 +75,9 @@ export function NavSidebar({ isSuperUser, pins }: { isSuperUser: boolean; pins: 
 
   return (
     <nav className="nav">
+      <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />
       {NAV_TREE.map((group) => (
-        <details className="navGroup" open key={group.label}>
+        <details className="navGroup" key={group.label}>
           <summary>{group.label}</summary>
           {group.items.map((item, i) =>
             isNavGroup(item) ? (

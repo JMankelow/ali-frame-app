@@ -43,6 +43,8 @@ model User {
   auditLogs      AuditLog[]
   assignedJobs   Job[]           @relation("AssignedUser")
   uploadedFiles  FileAsset[]
+  notesAuthored  Note[]          @relation("NoteAuthor")
+  notesAssigned  Note[]          @relation("NoteAssignee")
 }
 
 // A short-lived marker created right after password verification, before the
@@ -181,4 +183,21 @@ model FileAsset {
   createdAt    DateTime @default(now())
 
   @@index([jobNumber, createdAt])
+}
+
+// A lightweight backlog: anyone signed in can leave a note (a bug, a request,
+// a "this still needs building") and assign it to someone. Doubles as the
+// running checklist of what's left to migrate off the prototype.
+model Note {
+  id           String    @id @default(cuid())
+  text         String
+  authorId     String
+  author       User      @relation("NoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?     @relation("NoteAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  status       String    @default("Open")
+  createdAt    DateTime  @default(now())
+  resolvedAt   DateTime?
+
+  @@index([status, createdAt])
 }
