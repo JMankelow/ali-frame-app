@@ -1,4 +1,4 @@
-const PROTOTYPE_URL = "https://claude.ai/code/artifact/c92f8bb2-9536-4b09-8104-2c8cd55ffb78";
+const PROTOTYPE_URL = "https://claude.ai/artifact/RqumJgPWXTGv6d8W2pvRiw";
 
 export function ComingSoon({ title, hint }: { title: string; hint?: string }) {
   return (

@@ -9,7 +9,7 @@ import { TopTabs } from "./TopTabs";
 import { usePins } from "./usePins";
 import { findSectionForPath, NAV_TREE } from "./navTree";
 
-const PROTOTYPE_URL = "https://claude.ai/code/artifact/c92f8bb2-9536-4b09-8104-2c8cd55ffb78";
+const PROTOTYPE_URL = "https://claude.ai/artifact/RqumJgPWXTGv6d8W2pvRiw";
 
 const SYNC_BUTTONS = [
   { label: "Email Triage", href: "/email-triage" },
@@ -53,6 +53,9 @@ export function AppShell({
         <div className="side-logo" style={{ width: 34, height: 34 }}>
           <img src="/icon.svg" alt="Ali-Frame" style={{ width: "100%", height: "100%", borderRadius: 8 }} />
         </div>
+        <Link href="/notes" className="syncBtn" style={{ fontWeight: 900 }}>
+          📝 Update Notes
+        </Link>
         <div style={{ flex: 1 }} />
         {SYNC_BUTTONS.map((s) => (
           <Link key={s.href} href={s.href} className="syncBtn">
