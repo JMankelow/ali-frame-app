@@ -161,6 +161,15 @@ export const NAV_TREE: NavGroup[] = [
     ],
   },
   {
+    label: "Marketing",
+    items: [
+      { label: "Branding Guidelines", href: "/marketing/branding" },
+      { label: "Logo", href: "/marketing/logo" },
+      { label: "Social Media", href: "/marketing/social-media" },
+      { label: "Pending Content", href: "/marketing/pending-content" },
+    ],
+  },
+  {
     label: "Installers",
     items: [
       { label: "Calendar", href: "/calendar" },

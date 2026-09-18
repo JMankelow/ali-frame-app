@@ -37,6 +37,11 @@ export function buildStorageKey(jobNumber: string, fileName: string): string {
   return `jobs/${jobNumber}/${randomUUID()}-${sanitizeFileName(fileName)}`;
 }
 
+/** Same idea as buildStorageKey but for files not tied to a job (e.g. Marketing assets). */
+export function buildGenericStorageKey(prefix: string, fileName: string): string {
+  return `${prefix}/${randomUUID()}-${sanitizeFileName(fileName)}`;
+}
+
 /** Short-lived URL the browser can PUT the file bytes to directly — the file never passes through our server. */
 export async function getUploadUrl(storageKey: string, contentType: string): Promise<string> {
   const command = new PutObjectCommand({ Bucket: getBucket(), Key: storageKey, ContentType: contentType });
