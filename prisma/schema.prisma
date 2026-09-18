@@ -543,3 +543,27 @@ model EmailTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// Imported from the standalone "Ali Frame Estimates" prototype (real customer
+// enquiries extracted from Outlook emails) — Jo's own stated goal was to
+// eventually merge this into the real JMS app rather than keep it separate.
+model Estimate {
+  id                   String    @id @default(cuid())
+  clientName           String
+  address              String?
+  category             String?
+  joineryDescription   String?
+  size                 String?
+  estimatedCostText    String?
+  estimatedCostLowNZD  Float?
+  estimatedCostHighNZD Float?
+  status               String    @default("Quoted")
+  dateReceived         DateTime?
+  notes                String?
+  widthMM              Float?
+  heightMM             Float?
+  cladding             String?
+  joineryType          String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+}
