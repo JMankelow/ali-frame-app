@@ -111,6 +111,7 @@ export const NAV_TREE: NavGroup[] = [
   {
     label: "Human Resources",
     items: [
+      { label: "Assets", href: "/assets" },
       { label: "Timesheets", href: "/timesheets" },
       { label: "Performance", href: "/performance" },
       { label: "Senior Performance", href: "/senior-performance" },

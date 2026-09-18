@@ -86,3 +86,65 @@ export async function sendSiteMeasureEmail(params: {
     throw new Error(`Failed to send site measure email: ${result.error.message}`);
   }
 }
+
+export async function sendVehicleChecklistEmail(params: {
+  to: string;
+  vehicleName: string;
+  items: string[];
+  dueDate: Date;
+  checklistUrl: string;
+}) {
+  const from = process.env.EMAIL_FROM;
+  const dueDateStr = params.dueDate.toLocaleDateString("en-NZ");
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] Vehicle checklist for ${params.vehicleName} would go to ${params.to}, due ${dueDateStr}`);
+    return;
+  }
+
+  const result = await getResend().emails.send({
+    from,
+    to: params.to,
+    subject: `Vehicle Checklist Due — ${params.vehicleName} (by ${dueDateStr})`,
+    text:
+      `Please complete the vehicle checklist for ${params.vehicleName} by ${dueDateStr}.\n\n` +
+      `Items to check:\n${params.items.map((i) => `- ${i}`).join("\n")}\n\n` +
+      `Complete it here: ${params.checklistUrl}`,
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to send vehicle checklist email: ${result.error.message}`);
+  }
+}
+
+export async function sendVehicleChecklistOverdueAlert(params: {
+  to: string[];
+  vehicleName: string;
+  assignedName: string;
+  dueDate: Date;
+}) {
+  const from = process.env.EMAIL_FROM;
+  const dueDateStr = params.dueDate.toLocaleDateString("en-NZ");
+  if (!process.env.RESEND_API_KEY || !from || params.to.length === 0) {
+    if (process.env.NODE_ENV === "production" && params.to.length > 0) {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] Overdue checklist alert for ${params.vehicleName} (${params.assignedName}) would go to ${params.to.join(", ")}`);
+    return;
+  }
+
+  const result = await getResend().emails.send({
+    from,
+    to: params.to,
+    subject: `Overdue: Vehicle Checklist — ${params.vehicleName}`,
+    text:
+      `The vehicle checklist for ${params.vehicleName}, assigned to ${params.assignedName}, was due ${dueDateStr} ` +
+      `and has not been completed.`,
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to send overdue checklist alert: ${result.error.message}`);
+  }
+}
