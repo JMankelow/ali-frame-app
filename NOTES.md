@@ -2,6 +2,36 @@
 
 Read this before touching the project. It replaces re-discovering state via git log.
 
+## 2026-09-18 sprint, continued — nav redesign, backup, security audit
+
+While Jo was away, shipped: (1) the two-tier top nav from her Endeavour Group reference screenshot
+— a blue utility bar (logo, Sync Xero/Simpro/EROAD + Email Triage placeholder buttons, tasks bell,
+user badge, sign out) with a black section-tab row below it (`TopTabs.tsx`); the sidebar now only
+shows the selected section's items instead of the whole tree. (2) Whole nav **groups** (e.g. Check
+Measures) are now pinnable too, not just individual pages — pins to the group's first sub-page.
+(3) A real **Backup Data** feature (`/backup`, Master User only): "Run Backup Now" plus a daily
+`/api/cron/backup` route generate a JSON snapshot of all business data (jobs, clients, leads,
+notes, timesheets, vehicles, assets, installer assessments, etc) into R2, keeping the most recent
+60. Deliberately excludes password hashes/sessions/2FA codes so a downloaded backup file can never
+be used to sign in as anyone — this is a convenience export, not a replacement for Render's own
+Postgres backups. **Needs the same `CRON_SECRET` Render Cron Job setup described in item 1 below,
+just a second cron hitting `/api/cron/backup` instead.**
+
+**Ran the security audit Jo asked for**, against her checklist. Findings: session/cookie handling,
+2FA, login lockout/no-enumeration, secrets management, R2 presigned URLs, and the schema (no
+bank/IRD/DOB fields) all PASS. Two real gaps found:
+- **Fixed already**: `timesheets/actions.ts` let any signed-in user submit an entry with a spoofed
+  `staffUserId` to log hours as a coworker, and "Approve" only checked `isSuperUser` rather than a
+  real role. Now restricted (server-side and in the UI) to Admin/Management, Office/Scheduling, or
+  the Master User — installers can only log and see their own hours.
+- **Needs Jo's call, not fixed yet**: `requireRole()` exists but isn't used anywhere else — actions
+  like `archiveJob`/`reactivateJob`, `markLeadConverted`, and `markPurchaseOrderReceived` are
+  callable by any signed-in account regardless of role. This may be fine (small team, everyone
+  trusted) or may not be — flagging rather than guessing, since narrowing it wrong could lock
+  someone out of something they're meant to do. Also confirms the **User Access permission
+  matrix** (`src/lib/permissions.ts` — `hasSectionAccess()`) still isn't wired into any page, same
+  as last known state; the schema field (`User.permissions`) is ready whenever that UI gets built.
+
 ## 2026-09-18 sprint — rapid feature build, open items
 
 Jo pushed hard to get real features live fast. Shipped this session: full nav/login redesign
