@@ -62,6 +62,8 @@ model User {
   vehiclesDriven            Vehicle[]          @relation("VehicleDriver")
   vehicleIssuesRaised       VehicleIssue[]     @relation("VehicleIssueRaisedBy")
   assetIssuesRaised         AssetIssue[]       @relation("AssetIssueRaisedBy")
+  assessmentsReceived       InstallerAssessment[] @relation("AssessmentReviewee")
+  assessmentsGiven          InstallerAssessment[] @relation("AssessmentReviewer")
 }
 
 // A short-lived marker created right after password verification, before the
@@ -180,11 +182,12 @@ model Job {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  files            FileAsset[]
-  timesheetEntries TimesheetEntry[]
-  purchaseOrders   PurchaseOrder[]
-  remedialItems    RemedialItem[]
-  acceptances      Acceptance[]
+  files                FileAsset[]
+  timesheetEntries     TimesheetEntry[]
+  purchaseOrders       PurchaseOrder[]
+  remedialItems        RemedialItem[]
+  acceptances          Acceptance[]
+  installerAssessments InstallerAssessment[]
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -379,4 +382,37 @@ model AssetIssue {
   resolvedAt  DateTime?
 
   @@index([assetId, status])
+}
+
+// Matches Jo's real "Competency and KPI 360 Review" / "Job Checklist –
+// Installer Quality & Compliance" forms, at section level (each score is the
+// 1-5 rating for that whole section, not each individual line item within
+// it — the source docs list ~4-5 line items per section). Covers both the
+// per-job assessment (jobNumber set) and the quarterly 360 review
+// (jobNumber null, reviewPeriod set instead). isSelfAssessment marks ones
+// the installer filled in about themselves rather than a supervisor/HR.
+model InstallerAssessment {
+  id                    String    @id @default(cuid())
+  revieweeId            String
+  reviewee              User      @relation("AssessmentReviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+  reviewerId            String
+  reviewer              User      @relation("AssessmentReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  jobNumber             String?
+  job                   Job?      @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
+  reviewPeriod          String?
+  isSelfAssessment      Boolean   @default(false)
+  coreInstallationScore Int?
+  healthSafetyScore     Int?
+  residentialScore      Int?
+  commercialScore       Int?
+  leadershipScore       Int?
+  administrationScore   Int?
+  overallResult         String?
+  qualityScore          Int?
+  keyWins               String?
+  keyIssues             String?
+  actionsRequired       String?
+  createdAt             DateTime  @default(now())
+
+  @@index([revieweeId, createdAt])
 }
