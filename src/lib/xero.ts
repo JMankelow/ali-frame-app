@@ -2,13 +2,16 @@ import "server-only";
 import { XeroClient } from "xero-node";
 import { prisma } from "./prisma";
 
+// "accounting.budgets.read" isn't a real Xero scope (caused an
+// invalid_scope error on Xero's own consent screen) — Budget Summary and
+// every other report we need (P&L, Balance Sheet, Aged Payables/
+// Receivables) are all covered by accounting.reports.read.
 const SCOPES = [
   "openid",
   "profile",
   "email",
   "accounting.transactions.read",
   "accounting.reports.read",
-  "accounting.budgets.read",
   "accounting.settings.read",
   "offline_access",
 ].join(" ");
