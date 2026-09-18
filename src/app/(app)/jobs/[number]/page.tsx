@@ -11,13 +11,18 @@ const STATUS_COLOR: Record<string, string> = {
   Complete: "green",
 };
 
+function money(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return v.toLocaleString("en-NZ", { style: "currency", currency: "NZD" });
+}
+
 export default async function JobDetailPage({ params }: { params: Promise<{ number: string }> }) {
   await requireUser();
   const { number } = await params;
 
   const job = await prisma.job.findUnique({
     where: { number },
-    include: { client: true, assignedUser: true },
+    include: { client: true, assignedUser: true, costing: true },
   });
   if (!job) notFound();
 
@@ -85,6 +90,59 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           </div>
         </div>
       </div>
+
+      {job.costing && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="label">Costing (from Job Tracking import)</div>
+          <div className="form" style={{ marginTop: 10 }}>
+            <div>
+              <label>Quote No</label>
+              <div>{job.costing.quoteNumber ?? "—"}</div>
+            </div>
+            <div>
+              <label>Quoted Total</label>
+              <div>{money(job.costing.quotedTotal)}</div>
+            </div>
+            <div>
+              <label>Deposit</label>
+              <div>{money(job.costing.deposit)}</div>
+            </div>
+            <div>
+              <label>Materials</label>
+              <div>Quoted {money(job.costing.materialsQuoted)} / Actual {money(job.costing.materialsActual)}</div>
+            </div>
+            <div>
+              <label>Rubbish</label>
+              <div>Quoted {money(job.costing.rubbishQuoted)} / Actual {money(job.costing.rubbishActual)}</div>
+            </div>
+            <div>
+              <label>Install</label>
+              <div>Quoted {money(job.costing.installQuoted)} / Actual {money(job.costing.installActual)}</div>
+            </div>
+            <div>
+              <label>Labour Hours</label>
+              <div>Quoted {job.costing.labourHoursQuoted ?? "—"} / Actual {job.costing.labourHoursActual ?? "—"}</div>
+            </div>
+            <div>
+              <label>Margin</label>
+              <div>
+                {money(job.costing.marginProfit)} profit ({job.costing.marginPct ?? "—"}%)
+              </div>
+            </div>
+            {job.costing.remedialFlag && (
+              <>
+                <div className="full">
+                  <label>Remedial</label>
+                  <div>
+                    Senior: {job.costing.remedialSeniorName ?? "—"} — Cost {money(job.costing.remedialCost)}, Updated{" "}
+                    {money(job.costing.remedialUpdatedCost)} ({job.costing.remedialMarginPct ?? "—"}% margin)
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="topbar" style={{ marginBottom: 8 }}>

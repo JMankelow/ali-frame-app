@@ -465,40 +465,48 @@ model XeroConnection {
 // (address/costing/status) is ever merged into another Job for the same
 // Client, per Jo's explicit instruction.
 model JobCosting {
-  id                  String    @id @default(cuid())
-  jobNumber           String    @unique
-  job                 Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
-  quoteNumber         String?
-  dateAccepted        DateTime?
-  quotedTotal         Float?
-  deposit             Float?
-  scaffolding         Float?
-  materialsQuoted     Float?
-  materialsActual     Float?
-  rubbishQuoted       Float?
-  rubbishActual       Float?
-  installQuoted       Float?
-  installActual       Float?
-  labourHoursQuoted   Float?
-  labourHoursActual   Float?
-  marginQuoted        Float?
-  marginOverheadPct   Float?
-  marginActual        Float?
-  marginProfit        Float?
-  marginPct           Float?
-  remedialFlag        Boolean?
-  remedialSeniorName  String?
-  remedialLabourHours Float?
-  remedialDamage      String?
-  remedialMaterial    String?
-  remedialCost        Float?
-  remedialUpdatedCost Float?
-  remedialProfit      Float?
-  remedialMarginPct   Float?
-  photosDocumented    Boolean?
-  qaDocumented        Boolean?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                   String    @id @default(cuid())
+  jobNumber            String    @unique
+  job                  Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  quoteNumber          String?
+  dateAccepted         DateTime?
+  quotedTotal          Float?
+  deposit              Float?
+  scaffolding          String? // "Yes"/"No" on most rows, occasionally a $ figure — kept as text to avoid losing either
+  materialsQuoted      Float?
+  materialsActual      Float?
+  rubbishQuoted        Float?
+  rubbishActual        Float?
+  installQuoted        Float?
+  installActual        Float?
+  labourHoursQuoted    Float?
+  labourHoursCM        Float? // sheet's own column is just labelled "CM" — meaning not documented in the source file
+  labourHoursActual    Float?
+  marginQuoted         Float?
+  marginOverheadAmount Float? // fixed 23% of Margin|Quoted, as a $ amount (not a %, despite the column sitting under "Margin")
+  marginActual         Float?
+  marginProfit         Float?
+  marginPct            Float?
+  remedialFlag         Boolean?
+  remedialCE           String? // sheet's own column is just labelled "C/E" — meaning not documented in the source file
+  remedialName         String?
+  remedialSeniorName   String?
+  remedialLabourHours  Float?
+  remedialLabourCost   Float?
+  remedialDamage       Float?
+  remedialMaterial     Float?
+  remedialCost         Float?
+  remedialUpdatedCost  Float?
+  remedialProfit       Float?
+  remedialMarginPct    Float?
+  photosDocumented     Boolean?
+  qaDocumented         Boolean?
+  hsDocumented         Boolean? // Commercial sheet only
+  projectManager       String? // Commercial sheet only
+  sssp                 String? // Commercial sheet only
+  commercialNotes      String? // catch-all for Commercial-only fields with no first-class column of their own yet
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 }
 
 // One shared library for the new Marketing nav section — a file and/or link
