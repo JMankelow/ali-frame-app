@@ -20,13 +20,20 @@ export function TimesheetForm({ jobs, staff, currentUserId }: { jobs: JobPickerO
         <div className="form">
           <div>
             <label htmlFor="staffUserId">Staff Member</label>
-            <select id="staffUserId" name="staffUserId" defaultValue={currentUserId}>
-              {staff.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
+            {staff.length > 1 ? (
+              <select id="staffUserId" name="staffUserId" defaultValue={currentUserId}>
+                {staff.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <>
+                <input type="hidden" name="staffUserId" value={currentUserId} />
+                <input value={staff[0]?.name ?? ""} disabled />
+              </>
+            )}
           </div>
           <div>
             <label>Job Number</label>

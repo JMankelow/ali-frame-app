@@ -3,10 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { TimesheetForm } from "./TimesheetForm";
 import { approveTimesheetEntry } from "./actions";
 
+const TIMESHEET_ADMIN_ROLES = ["ADMIN_MANAGEMENT", "OFFICE_SCHEDULING"];
+
 export default async function TimesheetsPage() {
   const user = await requireUser();
+  const isTimesheetAdmin = user.isSuperUser || TIMESHEET_ADMIN_ROLES.includes(user.role);
 
-  const [entries, jobs, staff] = await Promise.all([
+  const [entries, jobs, allStaff] = await Promise.all([
     prisma.timesheetEntry.findMany({
       include: { user: true },
       orderBy: { dateWorked: "desc" },
@@ -15,6 +18,10 @@ export default async function TimesheetsPage() {
     prisma.job.findMany({ where: { archived: false }, orderBy: { number: "asc" }, select: { number: true, title: true } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
+
+  // Installers/crew can only log their own hours (enforced again server-side
+  // in the action) — office/management can log on behalf of anyone.
+  const staff = isTimesheetAdmin ? allStaff : allStaff.filter((s) => s.id === user.id);
 
   const totalHours = entries.reduce((sum, e) => sum + e.totalHours, 0);
   const pendingCount = entries.filter((e) => e.status !== "Approved").length;
@@ -66,7 +73,7 @@ export default async function TimesheetsPage() {
                   <span className={`status ${e.status === "Approved" ? "green" : "orange"}`}>{e.status}</span>
                 </td>
                 <td>
-                  {e.status !== "Approved" && user.isSuperUser && (
+                  {e.status !== "Approved" && isTimesheetAdmin && (
                     <form action={approveTimesheetEntry.bind(null, e.id)}>
                       <button type="submit" className="btn light">
                         Approve

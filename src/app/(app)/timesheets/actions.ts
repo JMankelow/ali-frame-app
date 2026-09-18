@@ -2,12 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireRole } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface TimesheetFormState {
   error?: string;
 }
+
+// Only office/management can log or approve hours on someone else's behalf —
+// otherwise any signed-in installer could submit or self-approve hours
+// attributed to a coworker via a spoofed staffUserId form field.
+const TIMESHEET_ADMIN_ROLES = ["ADMIN_MANAGEMENT", "OFFICE_SCHEDULING"] as const;
 
 function computeHours(start: string, finish: string, breakMinutes: number): number {
   const [sh, sm] = start.split(":").map(Number);
@@ -20,6 +25,13 @@ export async function createTimesheetEntry(_prevState: TimesheetFormState, formD
   const user = await requireUser();
 
   const staffUserId = String(formData.get("staffUserId") ?? "").trim() || user.id;
+  if (staffUserId !== user.id) {
+    try {
+      await requireRole(...TIMESHEET_ADMIN_ROLES);
+    } catch {
+      return { error: "You can only log your own hours." };
+    }
+  }
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const dateWorked = String(formData.get("dateWorked") ?? "").trim();
   const workType = String(formData.get("workType") ?? "Install");
@@ -58,7 +70,7 @@ export async function createTimesheetEntry(_prevState: TimesheetFormState, formD
 }
 
 export async function approveTimesheetEntry(id: string) {
-  const user = await requireUser();
+  const user = await requireRole(...TIMESHEET_ADMIN_ROLES);
   await prisma.timesheetEntry.update({ where: { id }, data: { status: "Approved" } });
   await logAudit({ userId: user.id, action: "timesheet_approved", entityType: "TimesheetEntry", entityId: id });
   revalidatePath("/timesheets");
