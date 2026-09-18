@@ -2,6 +2,56 @@
 
 Read this before touching the project. It replaces re-discovering state via git log.
 
+## 2026-09-18 sprint — rapid feature build, open items
+
+Jo pushed hard to get real features live fast. Shipped this session: full nav/login redesign
+matching the prototype, Notes (backlog tracker, seeded with everything outstanding), Quote
+Wording, Job detail hub pages (`/jobs/[number]`), searchable JobPicker (replacing plain
+`<select>`s), and Timesheets / Purchase Orders / Remedial / Acceptances / Assets / Vehicles /
+Vehicle Checklists — all real, DB-backed, pushed straight to production as built.
+
+**Open items, in order Jo should address them:**
+1. **Render Cron Job for vehicle checklist overdue alerts** — `/api/cron/vehicle-checklists`
+   exists and works (secret-protected via `CRON_SECRET` env var), but nothing calls it yet.
+   Jo needs to add a **Render Cron Job** (a separate resource type from the web service) that
+   runs daily and hits `https://ali-frame-app.onrender.com/api/cron/vehicle-checklists?secret=...`
+   — e.g. command `curl -f "$APP_URL/api/cron/vehicle-checklists?secret=$CRON_SECRET"`. Also set
+   `CRON_SECRET` (any long random value) as an env var on both the cron job and the web service.
+2. **Vehicle WOF/Rego/Service due dates are NOT populated.** Jo sent an EROAD `ServiceReport.csv`
+   (service history, not future due dates) — some vehicles' last-known WOF was over a year ago
+   (e.g. QKJ425, last WOF 21/08/2025). Rather than guess a renewal cycle (NZ WOF rules differ by
+   vehicle age) and risk telling her a vehicle is compliant when it isn't, this was left for Jo to
+   confirm: either give exact due dates from EROAD, or confirm a rule to calculate them from last-known
+   dates. Don't populate `Vehicle.wofDueDate`/`regoDueDate`/`serviceDueDate` without that.
+3. **Job Tracking import** — Jo's real spreadsheet (`Ali Frame - Job Tracking - Version 2.xlsx`,
+   276 residential jobs with quoted/actual costs for scaffolding/materials/install/labour/margin,
+   supplier POs, remedial data) is ready to import, but needs: (a) confirmation on creating a
+   `Client` per customer, (b) new costing fields added to `Job` (quoted vs actual per category) —
+   not in the schema yet, (c) confirmation on importing "Complete" jobs only vs. everything.
+4. **Staff roles** — Tanya=Management, Renae=Operations, Dwayne=Sales & Accounts,
+   Tristam=Sales Management confirmed. Kere's role(s) still ambiguous ("HR and Field Manager" /
+   "Commercial Manager" — one person with two roles, or two people?) — confirm before creating
+   the account. Jo explicitly said **do not send any invites yet** — accounts get created but
+   invitations/temp passwords are shared with staff in stages, on her signal.
+5. **Xero integration** (Accounts tab: AP/AR, P&L, Budget vs Actual FY2027, Balance Sheet,
+   Cashflow) — blocked on Jo creating a Xero Developer app (developer.xero.com) for a Client
+   ID/Secret. Nothing built yet.
+6. **Site App Pro integration** — blocked on Jo finding actual API/developer credentials in her
+   Site App Pro account (the link she gave was just the dashboard URL, not API docs).
+7. **EROAD integration** — EROAD does have a third-party API, but access is account-manager-
+   gated, not self-serve. Jo needs to ask her EROAD account manager for API access.
+
+See `/notes` in the live app for the full running backlog (seeded with every remaining
+prototype feature — Estimates, Calendar, Invoices, Costing & Margin, WIP Report, Cashflow,
+Reports, Crew Mobile View, Security/Backup/Templates settings, Quote Register/Comparison/Prepare
+Price, QA Documentation, etc.) — check that before re-deriving what's left from scratch.
+
+**A real staff payroll export (`staff-detailed-table-*.xlsx`) was shared during this session** —
+it contains IRD tax numbers, bank account numbers, dates of birth and salary rates. None of that
+was imported or stored anywhere in this app — only names and roles (given separately, in chat)
+are used for account creation. Do not import payroll-file fields beyond name/role/email into
+this app without Jo explicitly asking for that specific field.
+
 ## What this project is
 
 A real, secure, multi-user backend for the Ali-Frame Job Management System, replacing the
