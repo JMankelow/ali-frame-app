@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { FileRow } from "../../files/FileRow";
+import { buildSharePointSearchUrl } from "@/lib/sharepoint";
 
 const STATUS_COLOR: Record<string, string> = {
   New: "blue",
@@ -46,9 +47,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
             emails and team notes.
           </div>
         </div>
-        <Link href="/jobs" className="btn light">
-          ← All Jobs
-        </Link>
+        <div className="actions">
+          <a href={buildSharePointSearchUrl(job.number)} target="_blank" rel="noopener noreferrer" className="btn light">
+            Find in SharePoint ↗
+          </a>
+          <Link href="/jobs" className="btn light">
+            ← All Jobs
+          </Link>
+        </div>
       </div>
 
       <div className="card">
