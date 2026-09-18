@@ -14,8 +14,14 @@ Measures) are now pinnable too, not just individual pages — pins to the group'
 notes, timesheets, vehicles, assets, installer assessments, etc) into R2, keeping the most recent
 60. Deliberately excludes password hashes/sessions/2FA codes so a downloaded backup file can never
 be used to sign in as anyone — this is a convenience export, not a replacement for Render's own
-Postgres backups. **Needs the same `CRON_SECRET` Render Cron Job setup described in item 1 below,
-just a second cron hitting `/api/cron/backup` instead.**
+Postgres backups. (4) A quarterly **installer 360-review reminder** (`/api/cron/installer-reviews`)
+— finds any installer whose last self- or HR-assessment is 90+ days old (or who's never had one)
+and creates a Notes/Tasks reminder for them plus one for every Admin/Management user, deduped so
+it won't repeat daily once a reminder is already open.
+
+**There are now three cron endpoints waiting on the one Render Cron Job setup Jo still needs to
+do** — see updated item 1 below (was just vehicle checklists, now also backup and installer
+reviews).
 
 **Ran the security audit Jo asked for**, against her checklist. Findings: session/cookie handling,
 2FA, login lockout/no-enumeration, secrets management, R2 presigned URLs, and the schema (no
@@ -41,12 +47,15 @@ Wording, Job detail hub pages (`/jobs/[number]`), searchable JobPicker (replacin
 Vehicle Checklists — all real, DB-backed, pushed straight to production as built.
 
 **Open items, in order Jo should address them:**
-1. **Render Cron Job for vehicle checklist overdue alerts** — `/api/cron/vehicle-checklists`
-   exists and works (secret-protected via `CRON_SECRET` env var), but nothing calls it yet.
-   Jo needs to add a **Render Cron Job** (a separate resource type from the web service) that
-   runs daily and hits `https://ali-frame-app.onrender.com/api/cron/vehicle-checklists?secret=...`
-   — e.g. command `curl -f "$APP_URL/api/cron/vehicle-checklists?secret=$CRON_SECRET"`. Also set
-   `CRON_SECRET` (any long random value) as an env var on both the cron job and the web service.
+1. **Render Cron Jobs — three endpoints now waiting on this, all using the same secret.** Set
+   `CRON_SECRET` (any long random value) as an env var on the web service, then add three
+   **Render Cron Jobs** (a separate resource type from the web service), each running daily:
+   - `curl -f "$APP_URL/api/cron/vehicle-checklists?secret=$CRON_SECRET"` — vehicle checklist
+     overdue alerts.
+   - `curl -f "$APP_URL/api/cron/backup?secret=$CRON_SECRET"` — daily business-data backup to R2.
+   - `curl -f "$APP_URL/api/cron/installer-reviews?secret=$CRON_SECRET"` — quarterly 360-review
+     reminders (safe to run daily; it only creates a reminder when one is actually due).
+   All three already exist and work when hit manually — nothing is scheduled yet.
 2. **Vehicle WOF/Rego/Service due dates are NOT populated.** Jo sent an EROAD `ServiceReport.csv`
    (service history, not future due dates) — some vehicles' last-known WOF was over a year ago
    (e.g. QKJ425, last WOF 21/08/2025). Rather than guess a renewal cycle (NZ WOF rules differ by
