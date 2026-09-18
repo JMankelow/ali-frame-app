@@ -14,6 +14,21 @@ export function isNavGroup(item: NavLeaf | NavGroup): item is NavGroup {
   return "items" in item;
 }
 
+function containsPath(items: (NavLeaf | NavGroup)[], path: string): boolean {
+  return items.some((item) =>
+    isNavGroup(item) ? containsPath(item.items, path) : item.href.split("?")[0] === path
+  );
+}
+
+/** Finds which top-level NAV_TREE group (by label) a route lives under, so the
+ * top tab bar can auto-select the right section when a page is opened directly
+ * (not just when a tab is clicked). Returns null for routes outside the tree
+ * (Dashboard, Tasks, Notes, Jobs detail pages, etc). */
+export function findSectionForPath(tree: NavGroup[], path: string): string | null {
+  const match = tree.find((group) => containsPath(group.items, path));
+  return match?.label ?? null;
+}
+
 function salesSection(): NavGroup {
   const quotesGroup = (): NavGroup => ({
     label: "Quotes",

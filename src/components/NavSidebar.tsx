@@ -70,33 +70,35 @@ function NavGroupView({
   );
 }
 
-export function NavSidebar({ isSuperUser, pins }: { isSuperUser: boolean; pins: Pins }) {
+/** The sidebar always shows Dashboard/Tasks/Notes, then whichever top-level
+ * section is currently selected in the top tab bar — not the whole nav tree
+ * at once (that was the old design; see AppShell for the tab-driven split). */
+export function NavSidebar({ isSuperUser, pins, selectedSection }: { isSuperUser: boolean; pins: Pins; selectedSection: string | null }) {
   const pathname = usePathname();
+  const activeGroup = NAV_TREE.find((g) => g.label === selectedSection);
 
   return (
     <nav className="nav">
       <NavItem item={{ label: "Dashboard", href: "/dashboard" }} pathname={pathname} pins={pins} />
       <NavItem item={{ label: "Tasks", href: "/tasks" }} pathname={pathname} pins={pins} />
       <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />
-      {NAV_TREE.map((group) => (
-        <details className="navGroup" key={group.label}>
-          <summary>{group.label}</summary>
-          {group.items.map((item, i) =>
-            isNavGroup(item) ? (
-              <NavGroupView
-                key={item.label + i}
-                group={item}
-                pathname={pathname}
-                pins={pins}
-                isSuperUser={isSuperUser}
-                depth={1}
-              />
-            ) : item.superUserOnly && !isSuperUser ? null : (
-              <NavItem key={item.href + item.label} item={item} pathname={pathname} pins={pins} />
-            )
-          )}
-        </details>
-      ))}
+      {activeGroup && (
+        <div className="navSectionLabel">{activeGroup.label}</div>
+      )}
+      {activeGroup?.items.map((item, i) =>
+        isNavGroup(item) ? (
+          <NavGroupView
+            key={item.label + i}
+            group={item}
+            pathname={pathname}
+            pins={pins}
+            isSuperUser={isSuperUser}
+            depth={1}
+          />
+        ) : item.superUserOnly && !isSuperUser ? null : (
+          <NavItem key={item.href + item.label} item={item} pathname={pathname} pins={pins} />
+        )
+      )}
     </nav>
   );
 }
