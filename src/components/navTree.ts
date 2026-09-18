@@ -184,7 +184,7 @@ export const NAV_TREE: NavGroup[] = [
     label: "Settings",
     items: [
       { label: "Users", href: "/users", superUserOnly: true },
-      { label: "Security", href: "/security" },
+      { label: "Security", href: "/security", superUserOnly: true },
       { label: "Backup Data", href: "/backup" },
       { label: "Templates", href: "/templates" },
       { label: "Admin", href: "/settings" },
