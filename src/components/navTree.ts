@@ -29,6 +29,21 @@ export function findSectionForPath(tree: NavGroup[], path: string): string | nul
   return match?.label ?? null;
 }
 
+/** A whole group (e.g. "Check Measures") has no single page of its own, so
+ * pinning it pins a shortcut to its first leaf item — the practical
+ * equivalent of "take me straight into this section". */
+export function firstHref(group: NavGroup): string | null {
+  for (const item of group.items) {
+    if (isNavGroup(item)) {
+      const nested = firstHref(item);
+      if (nested) return nested;
+    } else {
+      return item.href;
+    }
+  }
+  return null;
+}
+
 function salesSection(): NavGroup {
   const quotesGroup = (): NavGroup => ({
     label: "Quotes",

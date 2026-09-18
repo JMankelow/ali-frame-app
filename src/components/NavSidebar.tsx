@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_TREE, isNavGroup, type NavLeaf, type NavGroup } from "./navTree";
+import { NAV_TREE, isNavGroup, firstHref, type NavLeaf, type NavGroup } from "./navTree";
 import type { usePins } from "./usePins";
 
 type Pins = ReturnType<typeof usePins>;
@@ -48,10 +48,28 @@ function NavGroupView({
   // with its sibling leaf items instead of compounding another indent level —
   // only its own children indent in from there.
   const className = depth >= 2 ? "navGroup navSubGroup navFlat" : "navGroup navSubGroup";
+  const groupHref = firstHref(group);
+  const groupPinned = groupHref ? pins.isPinned(groupHref) : false;
 
   return (
     <details className={className}>
-      <summary>{group.label}</summary>
+      <summary>
+        <span>{group.label}</span>
+        {groupHref && (
+          <button
+            type="button"
+            className={`pinToggle${groupPinned ? " pinned" : ""}`}
+            title={groupPinned ? "Unpin" : "Pin to top bar"}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              pins.toggle(groupHref, group.label);
+            }}
+          >
+            📌
+          </button>
+        )}
+      </summary>
       {group.items.map((item, i) =>
         isNavGroup(item) ? (
           <NavGroupView

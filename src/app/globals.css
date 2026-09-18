@@ -56,7 +56,8 @@ aside{background:var(--nav);color:#fff;padding:22px 16px;position:sticky;top:92p
 
 /* Sidebar nav groups (collapsible sections, ported from the prototype) */
 .navGroup{margin:3px 0}
-.navGroup summary{position:relative;cursor:pointer;list-style:none;padding:12px;border-radius:10px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#8ba3c7}
+.navGroup summary{position:relative;display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;padding:12px 32px 12px 12px;border-radius:10px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#8ba3c7}
+.navGroup summary>span{flex:1;min-width:0}
 .navGroup summary::marker,.navGroup summary::-webkit-details-marker{display:none}
 .navGroup summary:hover{background:#13213c;color:#fff}
 .navGroup[open]>summary{color:#fff}
