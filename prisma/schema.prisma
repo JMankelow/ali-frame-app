@@ -64,6 +64,7 @@ model User {
   assetIssuesRaised         AssetIssue[]       @relation("AssetIssueRaisedBy")
   assessmentsReceived       InstallerAssessment[] @relation("AssessmentReviewee")
   assessmentsGiven          InstallerAssessment[] @relation("AssessmentReviewer")
+  safetyIncidentsReported   SafetyIncident[]      @relation("SafetyIncidentReportedBy")
 }
 
 // A short-lived marker created right after password verification, before the
@@ -188,6 +189,7 @@ model Job {
   remedialItems        RemedialItem[]
   acceptances          Acceptance[]
   installerAssessments InstallerAssessment[]
+  safetyIncidents      SafetyIncident[]
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -415,4 +417,24 @@ model InstallerAssessment {
   createdAt             DateTime  @default(now())
 
   @@index([revieweeId, createdAt])
+}
+
+// Basic incident/hazard register — not sourced from the prototype (it had no
+// Health & Safety view), built fresh to cover the common NZ trades-business
+// need: log incidents/near-misses/hazards, who reported them, what was done.
+model SafetyIncident {
+  id             String    @id @default(cuid())
+  type           String    @default("Incident") // Incident / Near Miss / Hazard
+  severity       String    @default("Low") // Low / Medium / High
+  description    String
+  jobNumber      String?
+  job            Job?      @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
+  reportedById   String
+  reportedBy     User      @relation("SafetyIncidentReportedBy", fields: [reportedById], references: [id], onDelete: Cascade)
+  actionTaken    String?
+  status         String    @default("Open")
+  createdAt      DateTime  @default(now())
+  resolvedAt     DateTime?
+
+  @@index([status, createdAt])
 }
