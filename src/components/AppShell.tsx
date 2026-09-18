@@ -14,7 +14,6 @@ const PROTOTYPE_URL = "https://claude.ai/artifact/RqumJgPWXTGv6d8W2pvRiw";
 const SYNC_BUTTONS = [
   { label: "Email Triage", href: "/email-triage" },
   { label: "Sync Xero", href: "/sync/xero" },
-  { label: "Sync Simpro", href: "/sync/simpro" },
   { label: "Sync EROAD", href: "/sync/eroad" },
 ];
 
