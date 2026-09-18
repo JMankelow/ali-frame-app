@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "crypto";
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let client: S3Client | null = null;
@@ -53,8 +53,22 @@ export async function getDownloadUrl(storageKey: string, fileName: string): Prom
   return getSignedUrl(getClient(), command, { expiresIn: 300 });
 }
 
+/** Lists objects under a prefix, newest first — used to show past backups without keeping a separate DB table for them. */
+export async function listObjects(prefix: string): Promise<{ key: string; size: number; lastModified: Date }[]> {
+  const result = await getClient().send(new ListObjectsV2Command({ Bucket: getBucket(), Prefix: prefix }));
+  return (result.Contents ?? [])
+    .filter((o) => o.Key)
+    .map((o) => ({ key: o.Key!, size: o.Size ?? 0, lastModified: o.LastModified ?? new Date(0) }))
+    .sort((a, b) => b.lastModified.getTime() - a.lastModified.getTime());
+}
+
 export async function deleteObject(storageKey: string): Promise<void> {
   await getClient().send(new DeleteObjectCommand({ Bucket: getBucket(), Key: storageKey }));
+}
+
+/** Writes bytes to R2 directly from the server — used for generated files (backups, PDFs) that never touch the browser as an upload. */
+export async function putObjectBuffer(storageKey: string, body: Buffer, contentType: string): Promise<void> {
+  await getClient().send(new PutObjectCommand({ Bucket: getBucket(), Key: storageKey, Body: body, ContentType: contentType }));
 }
 
 /** Reads an object's bytes server-side — used to attach a just-uploaded file to an outgoing email. */
