@@ -2,18 +2,23 @@ import "server-only";
 import { XeroClient } from "xero-node";
 import { prisma } from "./prisma";
 
-// "accounting.budgets.read" isn't a real Xero scope (caused an
-// invalid_scope error on Xero's own consent screen) — Budget Summary and
-// every other report we need (P&L, Balance Sheet, Aged Payables/
-// Receivables) are all covered by accounting.reports.read.
+// Xero replaced the old broad scopes (accounting.transactions.read,
+// accounting.reports.read, etc) with granular per-report ones for any app
+// created after 2 March 2026 — this app was created after that date, so
+// only the new names work. Confirmed against Xero's own scope docs
+// (developer.xero.com/documentation/guides/oauth2/scopes) after the broad
+// names failed with invalid_scope on Xero's consent screen.
 const SCOPES = [
   "openid",
   "profile",
   "email",
-  "accounting.transactions.read",
-  "accounting.reports.read",
-  "accounting.settings.read",
   "offline_access",
+  "accounting.settings.read",
+  "accounting.contacts.read",
+  "accounting.reports.profitandloss.read",
+  "accounting.reports.balancesheet.read",
+  "accounting.reports.budgetsummary.read",
+  "accounting.reports.aged.read",
 ].join(" ");
 
 function redirectUri(): string {
