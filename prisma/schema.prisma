@@ -43,28 +43,29 @@ model User {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  sessions       Session[]
-  twoFactorCodes TwoFactorCode[]
-  pendingLogins  PendingLogin[]
-  auditLogs      AuditLog[]
-  assignedJobs   Job[]           @relation("AssignedUser")
-  uploadedFiles  FileAsset[]
-  notesAuthored  Note[]          @relation("NoteAuthor")
-  notesAssigned  Note[]          @relation("NoteAssignee")
-  timesheetEntries TimesheetEntry[]
-  purchaseOrders   PurchaseOrder[]
-  remedialsRaised   RemedialItem[] @relation("RemedialRaisedBy")
-  remedialsAssigned RemedialItem[] @relation("RemedialAssignedTo")
-  acceptances       Acceptance[]
-  assignedAssets    Asset[]
-  vehicleChecklistsAssigned VehicleChecklist[] @relation("VehicleChecklistAssignee")
-  vehicleChecklistsCreated  VehicleChecklist[] @relation("VehicleChecklistCreatedBy")
-  vehiclesDriven            Vehicle[]          @relation("VehicleDriver")
-  vehicleIssuesRaised       VehicleIssue[]     @relation("VehicleIssueRaisedBy")
-  assetIssuesRaised         AssetIssue[]       @relation("AssetIssueRaisedBy")
+  sessions                  Session[]
+  twoFactorCodes            TwoFactorCode[]
+  pendingLogins             PendingLogin[]
+  auditLogs                 AuditLog[]
+  assignedJobs              Job[]                 @relation("AssignedUser")
+  uploadedFiles             FileAsset[]
+  notesAuthored             Note[]                @relation("NoteAuthor")
+  notesAssigned             Note[]                @relation("NoteAssignee")
+  timesheetEntries          TimesheetEntry[]
+  purchaseOrders            PurchaseOrder[]
+  remedialsRaised           RemedialItem[]        @relation("RemedialRaisedBy")
+  remedialsAssigned         RemedialItem[]        @relation("RemedialAssignedTo")
+  acceptances               Acceptance[]
+  assignedAssets            Asset[]
+  vehicleChecklistsAssigned VehicleChecklist[]    @relation("VehicleChecklistAssignee")
+  vehicleChecklistsCreated  VehicleChecklist[]    @relation("VehicleChecklistCreatedBy")
+  vehiclesDriven            Vehicle[]             @relation("VehicleDriver")
+  vehicleIssuesRaised       VehicleIssue[]        @relation("VehicleIssueRaisedBy")
+  assetIssuesRaised         AssetIssue[]          @relation("AssetIssueRaisedBy")
   assessmentsReceived       InstallerAssessment[] @relation("AssessmentReviewee")
   assessmentsGiven          InstallerAssessment[] @relation("AssessmentReviewer")
   safetyIncidentsReported   SafetyIncident[]      @relation("SafetyIncidentReportedBy")
+  marketingAssetsUploaded   MarketingAsset[]
 }
 
 // A short-lived marker created right after password verification, before the
@@ -179,6 +180,9 @@ model Job {
   assignedUserId String?
   assignedUser   User?     @relation("AssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
   supplier       String?
+  poNumber       String?
+  phone          String?
+  email          String?
   archived       Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
@@ -190,6 +194,7 @@ model Job {
   acceptances          Acceptance[]
   installerAssessments InstallerAssessment[]
   safetyIncidents      SafetyIncident[]
+  costing              JobCosting?
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -229,20 +234,20 @@ model Note {
 }
 
 model TimesheetEntry {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  jobNumber     String
-  job           Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
-  dateWorked    DateTime
-  workType      String
-  startTime     String
-  finishTime    String
-  breakMinutes  Int      @default(0)
-  totalHours    Float
-  notes         String?
-  status        String   @default("Submitted")
-  createdAt     DateTime @default(now())
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobNumber    String
+  job          Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  dateWorked   DateTime
+  workType     String
+  startTime    String
+  finishTime   String
+  breakMinutes Int      @default(0)
+  totalHours   Float
+  notes        String?
+  status       String   @default("Submitted")
+  createdAt    DateTime @default(now())
 
   @@index([jobNumber, dateWorked])
   @@index([userId, dateWorked])
@@ -296,16 +301,16 @@ model Acceptance {
 }
 
 model Vehicle {
-  id              String    @id @default(cuid())
-  name            String    @unique
-  rego            String?
-  wofDueDate      DateTime?
-  regoDueDate     DateTime?
-  serviceDueDate  DateTime?
+  id               String    @id @default(cuid())
+  name             String    @unique
+  rego             String?
+  wofDueDate       DateTime?
+  regoDueDate      DateTime?
+  serviceDueDate   DateTime?
   assignedToUserId String?
-  assignedToUser   User?    @relation("VehicleDriver", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  mechanicEmail   String?
-  createdAt       DateTime  @default(now())
+  assignedToUser   User?     @relation("VehicleDriver", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  mechanicEmail    String?
+  createdAt        DateTime  @default(now())
 
   assets     Asset[]
   checklists VehicleChecklist[]
@@ -334,20 +339,20 @@ model VehicleIssue {
 // src/app/api/cron/vehicle-checklists) emails management if still Pending
 // past its due date.
 model VehicleChecklist {
-  id           String    @id @default(cuid())
-  vehicleId    String
-  vehicle      Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  items        String
-  assignedToId String
-  assignedTo   User      @relation("VehicleChecklistAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
-  dueDate      DateTime
-  status       String    @default("Pending")
-  responses    String?
-  completedAt  DateTime?
+  id                 String    @id @default(cuid())
+  vehicleId          String
+  vehicle            Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  items              String
+  assignedToId       String
+  assignedTo         User      @relation("VehicleChecklistAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
+  dueDate            DateTime
+  status             String    @default("Pending")
+  responses          String?
+  completedAt        DateTime?
   overdueAlertSentAt DateTime?
-  createdById  String?
-  createdBy    User?     @relation("VehicleChecklistCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt    DateTime  @default(now())
+  createdById        String?
+  createdBy          User?     @relation("VehicleChecklistCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt          DateTime  @default(now())
 
   @@index([status, dueDate])
 }
@@ -394,15 +399,15 @@ model AssetIssue {
 // (jobNumber null, reviewPeriod set instead). isSelfAssessment marks ones
 // the installer filled in about themselves rather than a supervisor/HR.
 model InstallerAssessment {
-  id                    String    @id @default(cuid())
+  id                    String   @id @default(cuid())
   revieweeId            String
-  reviewee              User      @relation("AssessmentReviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
+  reviewee              User     @relation("AssessmentReviewee", fields: [revieweeId], references: [id], onDelete: Cascade)
   reviewerId            String
-  reviewer              User      @relation("AssessmentReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewer              User     @relation("AssessmentReviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
   jobNumber             String?
-  job                   Job?      @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
+  job                   Job?     @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
   reviewPeriod          String?
-  isSelfAssessment      Boolean   @default(false)
+  isSelfAssessment      Boolean  @default(false)
   coreInstallationScore Int?
   healthSafetyScore     Int?
   residentialScore      Int?
@@ -414,7 +419,7 @@ model InstallerAssessment {
   keyWins               String?
   keyIssues             String?
   actionsRequired       String?
-  createdAt             DateTime  @default(now())
+  createdAt             DateTime @default(now())
 
   @@index([revieweeId, createdAt])
 }
@@ -423,18 +428,94 @@ model InstallerAssessment {
 // Health & Safety view), built fresh to cover the common NZ trades-business
 // need: log incidents/near-misses/hazards, who reported them, what was done.
 model SafetyIncident {
-  id             String    @id @default(cuid())
-  type           String    @default("Incident") // Incident / Near Miss / Hazard
-  severity       String    @default("Low") // Low / Medium / High
-  description    String
-  jobNumber      String?
-  job            Job?      @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
-  reportedById   String
-  reportedBy     User      @relation("SafetyIncidentReportedBy", fields: [reportedById], references: [id], onDelete: Cascade)
-  actionTaken    String?
-  status         String    @default("Open")
-  createdAt      DateTime  @default(now())
-  resolvedAt     DateTime?
+  id           String    @id @default(cuid())
+  type         String    @default("Incident") // Incident / Near Miss / Hazard
+  severity     String    @default("Low") // Low / Medium / High
+  description  String
+  jobNumber    String?
+  job          Job?      @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
+  reportedById String
+  reportedBy   User      @relation("SafetyIncidentReportedBy", fields: [reportedById], references: [id], onDelete: Cascade)
+  actionTaken  String?
+  status       String    @default("Open")
+  createdAt    DateTime  @default(now())
+  resolvedAt   DateTime?
 
   @@index([status, createdAt])
+}
+
+// Single-row table (one Xero organisation per Ali-Frame instance) holding
+// the OAuth2 tokens from the connected Xero org. Access tokens expire after
+// 30 minutes — getValidXeroClient() in lib/xero.ts refreshes automatically
+// using refreshToken and rewrites this row, so nothing else needs to know
+// about expiry.
+model XeroConnection {
+  id           String   @id @default(cuid())
+  tenantId     String
+  tenantName   String
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// One row per unique customer imported from the real Job Tracking
+// spreadsheet — a Client can have many Jobs; nothing about one Job's data
+// (address/costing/status) is ever merged into another Job for the same
+// Client, per Jo's explicit instruction.
+model JobCosting {
+  id                  String    @id @default(cuid())
+  jobNumber           String    @unique
+  job                 Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  quoteNumber         String?
+  dateAccepted        DateTime?
+  quotedTotal         Float?
+  deposit             Float?
+  scaffolding         Float?
+  materialsQuoted     Float?
+  materialsActual     Float?
+  rubbishQuoted       Float?
+  rubbishActual       Float?
+  installQuoted       Float?
+  installActual       Float?
+  labourHoursQuoted   Float?
+  labourHoursActual   Float?
+  marginQuoted        Float?
+  marginOverheadPct   Float?
+  marginActual        Float?
+  marginProfit        Float?
+  marginPct           Float?
+  remedialFlag        Boolean?
+  remedialSeniorName  String?
+  remedialLabourHours Float?
+  remedialDamage      String?
+  remedialMaterial    String?
+  remedialCost        Float?
+  remedialUpdatedCost Float?
+  remedialProfit      Float?
+  remedialMarginPct   Float?
+  photosDocumented    Boolean?
+  qaDocumented        Boolean?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+// One shared library for the new Marketing nav section — a file and/or link
+// filed under one of four categories (branding guidelines, logo, social
+// media, pending content), rather than four bespoke models for four
+// still-loosely-defined tabs.
+model MarketingAsset {
+  id           String   @id @default(cuid())
+  category     String // BRANDING / LOGO / SOCIAL_MEDIA / PENDING_CONTENT
+  title        String
+  description  String?
+  storageKey   String?
+  fileName     String?
+  linkUrl      String?
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@index([category, createdAt])
 }
