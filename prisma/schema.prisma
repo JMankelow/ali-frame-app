@@ -66,6 +66,7 @@ model User {
   assessmentsGiven          InstallerAssessment[] @relation("AssessmentReviewer")
   safetyIncidentsReported   SafetyIncident[]      @relation("SafetyIncidentReportedBy")
   marketingAssetsUploaded   MarketingAsset[]
+  emailTemplatesCreated     EmailTemplate[]
 }
 
 // A short-lived marker created right after password verification, before the
@@ -526,4 +527,19 @@ model MarketingAsset {
   createdAt    DateTime @default(now())
 
   @@index([category, createdAt])
+}
+
+// Reusable email wording (matches the prototype's Email Templates note: pick
+// a template, auto-fill job/client details, choose a sender). This is the
+// template library itself — actually sending from a job/quote/PO with a
+// per-sender signature is a follow-up once general outbound email exists.
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  body        String
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
