@@ -15,10 +15,12 @@ const SCOPES = [
   "offline_access",
   "accounting.settings.read",
   "accounting.contacts.read",
+  "accounting.invoices.read",
   "accounting.reports.profitandloss.read",
   "accounting.reports.balancesheet.read",
   "accounting.reports.budgetsummary.read",
   "accounting.reports.aged.read",
+  "accounting.reports.banksummary.read",
 ].join(" ");
 
 function redirectUri(): string {

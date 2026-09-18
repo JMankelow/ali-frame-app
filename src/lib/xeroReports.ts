@@ -57,3 +57,61 @@ export async function getProfitAndLoss(fromDate: Date, toDate: Date): Promise<Pa
   if (!report) throw new Error("Xero returned no Profit and Loss report.");
   return parseReport(report);
 }
+
+export async function getBalanceSheet(date: Date): Promise<ParsedReport> {
+  const { client, tenantId } = await getValidXeroClient();
+  const response = await client.accountingApi.getReportBalanceSheet(tenantId, isoDate(date));
+  const report = response.body.reports?.[0];
+  if (!report) throw new Error("Xero returned no Balance Sheet report.");
+  return parseReport(report);
+}
+
+export async function getBudgetSummary(fromDate: Date, toDate: Date): Promise<ParsedReport> {
+  const { client, tenantId } = await getValidXeroClient();
+  const response = await client.accountingApi.getReportBudgetSummary(tenantId, isoDate(fromDate));
+  const report = response.body.reports?.[0];
+  if (!report) throw new Error("Xero returned no Budget Summary report — check a budget exists in Xero for this period.");
+  return parseReport(report);
+}
+
+export async function getBankSummary(fromDate: Date, toDate: Date): Promise<ParsedReport> {
+  const { client, tenantId } = await getValidXeroClient();
+  const response = await client.accountingApi.getReportBankSummary(tenantId, isoDate(fromDate), isoDate(toDate));
+  const report = response.body.reports?.[0];
+  if (!report) throw new Error("Xero returned no Bank Summary report.");
+  return parseReport(report);
+}
+
+export interface OutstandingInvoice {
+  invoiceNumber: string;
+  contactName: string;
+  dueDate: Date | null;
+  total: number;
+  amountDue: number;
+  daysOverdue: number;
+}
+
+/** Outstanding (not yet fully paid) invoices — Type "ACCREC" for money owed to us (Accounts Receivable), "ACCPAY" for money we owe suppliers (Accounts Payable). */
+export async function getOutstandingInvoices(type: "ACCREC" | "ACCPAY"): Promise<OutstandingInvoice[]> {
+  const { client, tenantId } = await getValidXeroClient();
+  const response = await client.accountingApi.getInvoices(
+    tenantId,
+    undefined,
+    `Type=="${type}"&&Status=="AUTHORISED"`,
+    "DueDate ASC"
+  );
+  const today = new Date();
+
+  return (response.body.invoices ?? []).map((inv) => {
+    const dueDate = inv.dueDate ? new Date(inv.dueDate) : null;
+    const daysOverdue = dueDate ? Math.floor((today.getTime() - dueDate.getTime()) / (24 * 60 * 60 * 1000)) : 0;
+    return {
+      invoiceNumber: inv.invoiceNumber ?? "—",
+      contactName: inv.contact?.name ?? "—",
+      dueDate,
+      total: inv.total ?? 0,
+      amountDue: inv.amountDue ?? 0,
+      daysOverdue,
+    };
+  });
+}
