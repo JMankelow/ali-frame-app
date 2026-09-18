@@ -75,6 +75,8 @@ export function NavSidebar({ isSuperUser, pins }: { isSuperUser: boolean; pins: 
 
   return (
     <nav className="nav">
+      <NavItem item={{ label: "Dashboard", href: "/dashboard" }} pathname={pathname} pins={pins} />
+      <NavItem item={{ label: "Tasks", href: "/tasks" }} pathname={pathname} pins={pins} />
       <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />
       {NAV_TREE.map((group) => (
         <details className="navGroup" key={group.label}>

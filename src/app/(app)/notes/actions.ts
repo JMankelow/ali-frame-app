@@ -30,6 +30,26 @@ export async function resolveNote(id: string) {
   await prisma.note.update({ where: { id }, data: { status: "Done", resolvedAt: new Date() } });
   await logAudit({ userId: user.id, action: "note_resolved", entityType: "Note", entityId: id });
   revalidatePath("/notes");
+  revalidatePath("/tasks");
+}
+
+/**
+ * Used when the assignee is the Claude pseudo-user: rather than closing the
+ * task, hands it back to whoever created it so they can check the work
+ * before it's really Done.
+ */
+export async function completeAndReturnToCreator(id: string) {
+  const user = await requireUser();
+  const note = await prisma.note.findUnique({ where: { id } });
+  if (!note) return;
+
+  await prisma.note.update({
+    where: { id },
+    data: { assignedToId: note.authorId, status: "Open" },
+  });
+  await logAudit({ userId: user.id, action: "note_returned_to_creator", entityType: "Note", entityId: id });
+  revalidatePath("/notes");
+  revalidatePath("/tasks");
 }
 
 export async function reopenNote(id: string) {

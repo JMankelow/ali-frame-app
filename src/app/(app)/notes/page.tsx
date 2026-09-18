@@ -1,18 +1,26 @@
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NoteForm } from "./NoteForm";
-import { resolveNote, reopenNote } from "./actions";
+import { resolveNote, reopenNote, completeAndReturnToCreator } from "./actions";
 
 export default async function NotesPage() {
   await requireUser();
 
-  const [notes, users] = await Promise.all([
+  const [notes, activeUsers, claudeUser] = await Promise.all([
     prisma.note.findMany({
       include: { author: true, assignedTo: true },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.user.findUnique({ where: { email: "claude@aliframe.local" }, select: { id: true, name: true } }),
   ]);
+
+  // Claude is a real (but never-login-able) User row purely so notes can be
+  // assigned to it via the normal assignedToId relation — surfaced here
+  // alongside real staff even though it's excluded from every other
+  // active-user list (isActive: false) so it never leaks into Timesheets,
+  // Remedial, etc.
+  const users = claudeUser ? [...activeUsers, claudeUser] : activeUsers;
 
   const open = notes.filter((n) => n.status !== "Done");
   const done = notes.filter((n) => n.status === "Done");
@@ -29,7 +37,9 @@ export default async function NotesPage() {
         </div>
       </div>
 
-      <div className="card">
+      <NoteForm users={users} />
+
+      <div className="card" style={{ marginTop: 16 }}>
         <div className="label">Open ({open.length})</div>
         {open.length === 0 ? (
           <div className="hint" style={{ marginTop: 8 }}>
@@ -54,11 +64,19 @@ export default async function NotesPage() {
                   <td>{n.assignedTo?.name ?? "—"}</td>
                   <td>{n.createdAt.toLocaleDateString("en-NZ")}</td>
                   <td>
-                    <form action={resolveNote.bind(null, n.id)}>
-                      <button type="submit" className="btn light">
-                        Mark Done
-                      </button>
-                    </form>
+                    {n.assignedTo?.email === "claude@aliframe.local" ? (
+                      <form action={completeAndReturnToCreator.bind(null, n.id)}>
+                        <button type="submit" className="btn primary">
+                          Complete → Return to {n.author.name}
+                        </button>
+                      </form>
+                    ) : (
+                      <form action={resolveNote.bind(null, n.id)}>
+                        <button type="submit" className="btn light">
+                          Mark Done
+                        </button>
+                      </form>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -66,8 +84,6 @@ export default async function NotesPage() {
           </table>
         )}
       </div>
-
-      <NoteForm users={users} />
 
       {done.length > 0 && (
         <div className="card" style={{ marginTop: 16 }}>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkOverdueVehicleChecklists } from "@/app/(app)/assets/checklistActions";
+import { checkOverdueVehicleChecklists } from "@/app/(app)/vehicles/checklistActions";
 
 // Hit daily by a Render Cron Job (set CRON_SECRET as a Render env var and
 // pass it as ?secret=... — Render Cron Jobs run a shell command, e.g.

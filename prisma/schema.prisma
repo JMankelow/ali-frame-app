@@ -29,6 +29,12 @@ model User {
   role              Role     @default(READ_ONLY)
   isSuperUser       Boolean  @default(false)
   isActive          Boolean  @default(true)
+  // Which top-level nav sections this user can see/use. Empty means
+  // unrestricted (full access) — the safe default so existing accounts keep
+  // working; new accounts get an explicit selection from the create-user form.
+  // Super users always have full access regardless of this list.
+  permissions       String[] @default([])
+  avatarStorageKey  String?
   // True for every account until its first successful sign-in. An admin creates
   // the account with a temporary password; on first login the user is forced to
   // set their own password before they can do anything else (still followed by
@@ -53,6 +59,9 @@ model User {
   assignedAssets    Asset[]
   vehicleChecklistsAssigned VehicleChecklist[] @relation("VehicleChecklistAssignee")
   vehicleChecklistsCreated  VehicleChecklist[] @relation("VehicleChecklistCreatedBy")
+  vehiclesDriven            Vehicle[]          @relation("VehicleDriver")
+  vehicleIssuesRaised       VehicleIssue[]     @relation("VehicleIssueRaisedBy")
+  assetIssuesRaised         AssetIssue[]       @relation("AssetIssueRaisedBy")
 }
 
 // A short-lived marker created right after password verification, before the
@@ -282,16 +291,38 @@ model Acceptance {
 }
 
 model Vehicle {
-  id            String    @id @default(cuid())
-  name          String    @unique
-  rego          String?
-  wofDueDate    DateTime?
-  regoDueDate   DateTime?
-  serviceDueDate DateTime?
-  createdAt     DateTime  @default(now())
+  id              String    @id @default(cuid())
+  name            String    @unique
+  rego            String?
+  wofDueDate      DateTime?
+  regoDueDate     DateTime?
+  serviceDueDate  DateTime?
+  assignedToUserId String?
+  assignedToUser   User?    @relation("VehicleDriver", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  mechanicEmail   String?
+  createdAt       DateTime  @default(now())
 
   assets     Asset[]
   checklists VehicleChecklist[]
+  issues     VehicleIssue[]
+}
+
+// "Notify Issue" (a driver flags something wrong) and "Request Service"
+// (a driver or manager asks for a booking) both live here as different
+// `type` values, so the same list/resolve UI covers both.
+model VehicleIssue {
+  id          String    @id @default(cuid())
+  vehicleId   String
+  vehicle     Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  type        String    @default("Issue")
+  description String
+  raisedById  String?
+  raisedBy    User?     @relation("VehicleIssueRaisedBy", fields: [raisedById], references: [id], onDelete: SetNull)
+  status      String    @default("Open")
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([vehicleId, status])
 }
 
 // Emailed to the assigned person when created; a scheduled check (see
@@ -321,11 +352,31 @@ model VehicleChecklist {
 model Asset {
   id                  String    @id @default(cuid())
   name                String
+  assetType           String    @default("Other")
   description         String?
   assignedToUserId    String?
   assignedToUser      User?     @relation(fields: [assignedToUserId], references: [id], onDelete: SetNull)
   assignedToVehicleId String?
   assignedToVehicle   Vehicle?  @relation(fields: [assignedToVehicleId], references: [id], onDelete: SetNull)
+  // Electrical test & tag due date — mainly relevant for assetType "Tools" (NZ AS/NZS 3760).
+  testTagDueDate      DateTime?
   status              String    @default("Active")
   createdAt           DateTime  @default(now())
+
+  issues AssetIssue[]
+}
+
+// "Needs repair" reports for tools/equipment — the Asset-side equivalent of VehicleIssue.
+model AssetIssue {
+  id          String    @id @default(cuid())
+  assetId     String
+  asset       Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  description String
+  raisedById  String?
+  raisedBy    User?     @relation("AssetIssueRaisedBy", fields: [raisedById], references: [id], onDelete: SetNull)
+  status      String    @default("Open")
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  @@index([assetId, status])
 }

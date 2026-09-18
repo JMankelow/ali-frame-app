@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { ASSET_TYPES } from "./assetTypes";
 
 export interface AssetFormState {
   error?: string;
@@ -13,9 +14,11 @@ export async function createAsset(_prevState: AssetFormState, formData: FormData
   const user = await requireUser();
 
   const name = String(formData.get("name") ?? "").trim();
+  const assetType = String(formData.get("assetType") ?? "Other");
   const description = String(formData.get("description") ?? "").trim();
   const assignedToUserId = String(formData.get("assignedToUserId") ?? "").trim();
   const assignedToVehicleId = String(formData.get("assignedToVehicleId") ?? "").trim();
+  const testTagDueDate = String(formData.get("testTagDueDate") ?? "").trim();
 
   if (!name) return { error: "Asset name is required." };
   if (assignedToUserId && assignedToVehicleId) return { error: "Assign to a person OR a vehicle, not both." };
@@ -23,9 +26,11 @@ export async function createAsset(_prevState: AssetFormState, formData: FormData
   await prisma.asset.create({
     data: {
       name,
+      assetType: ASSET_TYPES.includes(assetType as (typeof ASSET_TYPES)[number]) ? assetType : "Other",
       description: description || null,
       assignedToUserId: assignedToUserId || null,
       assignedToVehicleId: assignedToVehicleId || null,
+      testTagDueDate: testTagDueDate ? new Date(testTagDueDate) : null,
     },
   });
 
@@ -58,5 +63,30 @@ export async function retireAsset(id: string) {
   const user = await requireUser();
   await prisma.asset.update({ where: { id }, data: { status: "Retired" } });
   await logAudit({ userId: user.id, action: "asset_retired", entityType: "Asset", entityId: id });
+  revalidatePath("/assets");
+}
+
+export interface AssetIssueFormState {
+  error?: string;
+}
+
+export async function reportAssetIssue(_prevState: AssetIssueFormState, formData: FormData): Promise<AssetIssueFormState> {
+  const user = await requireUser();
+  const assetId = String(formData.get("assetId") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+
+  if (!assetId) return { error: "Select an asset." };
+  if (!description) return { error: "Describe the issue." };
+
+  await prisma.assetIssue.create({ data: { assetId, description, raisedById: user.id } });
+  await logAudit({ userId: user.id, action: "asset_issue_reported", entityType: "AssetIssue", metadata: { assetId } });
+  revalidatePath("/assets");
+  return {};
+}
+
+export async function resolveAssetIssue(id: string) {
+  const user = await requireUser();
+  await prisma.assetIssue.update({ where: { id }, data: { status: "Resolved", resolvedAt: new Date() } });
+  await logAudit({ userId: user.id, action: "asset_issue_resolved", entityType: "AssetIssue", entityId: id });
   revalidatePath("/assets");
 }

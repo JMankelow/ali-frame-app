@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/session";
 import { logout } from "./actions";
 import { AppShell } from "@/components/AppShell";
+import { prisma } from "@/lib/prisma";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN_MANAGEMENT: "Admin / Management",
@@ -18,9 +19,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await getSessionUser();
   if (!user) redirect("/login");
 
+  const openTaskCount = await prisma.note.count({ where: { assignedToId: user.id, status: { not: "Done" } } });
+
   return (
     <AppShell
       isSuperUser={user.isSuperUser}
+      openTaskCount={openTaskCount}
       userBadge={
         <span className="userBadge">
           {user.name} — {ROLE_LABELS[user.role] ?? user.role}

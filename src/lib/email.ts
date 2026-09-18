@@ -87,6 +87,44 @@ export async function sendSiteMeasureEmail(params: {
   }
 }
 
+export async function sendPlainNotificationEmail(params: { to: string; subject: string; text: string }) {
+  const from = process.env.EMAIL_FROM;
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] "${params.subject}" would go to ${params.to}`);
+    return;
+  }
+
+  const result = await getResend().emails.send({ from, to: params.to, subject: params.subject, text: params.text });
+  if (result.error) {
+    throw new Error(`Failed to send notification email: ${result.error.message}`);
+  }
+}
+
+export async function sendVehicleMechanicEmail(params: { to: string; vehicleName: string; fromName: string; message: string }) {
+  const from = process.env.EMAIL_FROM;
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] Mechanic booking request for ${params.vehicleName} would go to ${params.to}`);
+    return;
+  }
+
+  const result = await getResend().emails.send({
+    from,
+    to: params.to,
+    subject: `Service Booking Request — ${params.vehicleName}`,
+    text: `${params.message}\n\nSent by ${params.fromName}, Ali-Frame Windows & Doors.`,
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to send mechanic booking email: ${result.error.message}`);
+  }
+}
+
 export async function sendVehicleChecklistEmail(params: {
   to: string;
   vehicleName: string;
