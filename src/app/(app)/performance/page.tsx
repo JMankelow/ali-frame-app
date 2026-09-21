@@ -31,6 +31,7 @@ export default async function PerformancePage() {
               <th>Jobs</th>
               <th>Remedials</th>
               <th>Remedial %</th>
+              <th>Historical Remedials (2026 Job Tracking import)</th>
               <th>Avg Quality Score</th>
               <th>Assessments</th>
               <th>Last Assessed</th>
@@ -44,6 +45,7 @@ export default async function PerformancePage() {
                 <td>{s.jobsCount}</td>
                 <td>{s.remedialCount}</td>
                 <td>{(s.remedialPercentage * 100).toFixed(0)}%</td>
+                <td>{s.historicalRemedialCount}</td>
                 <td>{s.avgQualityScore ? s.avgQualityScore.toFixed(1) : "—"}</td>
                 <td>{s.assessmentCount}</td>
                 <td>{s.latestAssessmentAt ? s.latestAssessmentAt.toLocaleDateString("en-NZ") : "Never"}</td>
@@ -56,7 +58,7 @@ export default async function PerformancePage() {
             ))}
             {stats.length === 0 && (
               <tr>
-                <td colSpan={8} className="hint">
+                <td colSpan={9} className="hint">
                   No installers (Senior Installer / Crew Mobile role) found yet.
                 </td>
               </tr>
@@ -65,7 +67,10 @@ export default async function PerformancePage() {
         </table>
         <div className="hint" style={{ marginTop: 10 }}>
           Calculated Score = 60% average Quality Score from assessments (defaults to 3 if none exist) + 40% a
-          remedial-rate score (5 minus remedial % of jobs × 5, floored at 1). Rounded 1-5.
+          remedial-rate score (5 minus remedial % of jobs × 5, floored at 1). Rounded 1-5. &quot;Jobs&quot; and
+          &quot;Remedial %&quot; only count jobs assigned through the app going forward — the 2026 Job Tracking
+          spreadsheet didn&apos;t record who did every job, only who was responsible on the 18 that had a remedial,
+          so those are shown separately as a real count, not folded into a misleading percentage.
         </div>
       </div>
 

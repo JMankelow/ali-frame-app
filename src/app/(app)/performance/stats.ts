@@ -11,6 +11,11 @@ export interface InstallerStats {
   assessmentCount: number;
   latestAssessmentAt: Date | null;
   calculatedScore: number;
+  // Remedials named against this installer in the imported Job Tracking
+  // spreadsheet — real, but NOT a percentage: the sheet never recorded who
+  // did every job, only who was responsible when a remedial happened, so
+  // there's no honest total-jobs denominator for these historical rows.
+  historicalRemedialCount: number;
 }
 
 /**
@@ -39,13 +44,14 @@ export async function getInstallerStats(): Promise<InstallerStats[]> {
 
   const stats = await Promise.all(
     installers.map(async (installer) => {
-      const [jobsCount, remedialCount, assessments] = await Promise.all([
+      const [jobsCount, remedialCount, assessments, historicalRemedialCount] = await Promise.all([
         prisma.job.count({ where: { assignedUserId: installer.id } }),
         prisma.remedialItem.count({ where: { job: { assignedUserId: installer.id } } }),
         prisma.installerAssessment.findMany({
           where: { revieweeId: installer.id, qualityScore: { not: null } },
           orderBy: { createdAt: "desc" },
         }),
+        prisma.jobCosting.count({ where: { remedialSeniorName: { equals: installer.name, mode: "insensitive" } } }),
       ]);
 
       const remedialPercentage = jobsCount > 0 ? remedialCount / jobsCount : 0;
@@ -64,6 +70,7 @@ export async function getInstallerStats(): Promise<InstallerStats[]> {
         assessmentCount: assessments.length,
         latestAssessmentAt: assessments[0]?.createdAt ?? null,
         calculatedScore: calculateScore(avgQualityScore, remedialPercentage),
+        historicalRemedialCount,
       };
     })
   );
