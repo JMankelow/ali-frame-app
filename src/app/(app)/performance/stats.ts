@@ -16,6 +16,9 @@ export interface InstallerStats {
   // did every job, only who was responsible when a remedial happened, so
   // there's no honest total-jobs denominator for these historical rows.
   historicalRemedialCount: number;
+  // Sum of JobCosting.remedialCost for those same historical rows — the
+  // real dollar figure from the Margin/Remedial columns of the import.
+  historicalRemedialCost: number;
 }
 
 /**
@@ -44,15 +47,20 @@ export async function getInstallerStats(): Promise<InstallerStats[]> {
 
   const stats = await Promise.all(
     installers.map(async (installer) => {
-      const [jobsCount, remedialCount, assessments, historicalRemedialCount] = await Promise.all([
+      const [jobsCount, remedialCount, assessments, historicalRemedials] = await Promise.all([
         prisma.job.count({ where: { assignedUserId: installer.id } }),
         prisma.remedialItem.count({ where: { job: { assignedUserId: installer.id } } }),
         prisma.installerAssessment.findMany({
           where: { revieweeId: installer.id, qualityScore: { not: null } },
           orderBy: { createdAt: "desc" },
         }),
-        prisma.jobCosting.count({ where: { remedialSeniorName: { equals: installer.name, mode: "insensitive" } } }),
+        prisma.jobCosting.findMany({
+          where: { remedialSeniorName: { equals: installer.name, mode: "insensitive" } },
+          select: { remedialCost: true },
+        }),
       ]);
+      const historicalRemedialCount = historicalRemedials.length;
+      const historicalRemedialCost = historicalRemedials.reduce((sum, r) => sum + (r.remedialCost ?? 0), 0);
 
       const remedialPercentage = jobsCount > 0 ? remedialCount / jobsCount : 0;
       const avgQualityScore =
@@ -71,6 +79,7 @@ export async function getInstallerStats(): Promise<InstallerStats[]> {
         latestAssessmentAt: assessments[0]?.createdAt ?? null,
         calculatedScore: calculateScore(avgQualityScore, remedialPercentage),
         historicalRemedialCount,
+        historicalRemedialCost,
       };
     })
   );

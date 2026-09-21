@@ -33,6 +33,8 @@ export default async function SeniorPerformancePage() {
               <th>Jobs</th>
               <th>Remedials</th>
               <th>Remedial %</th>
+              <th>Historical Remedials (2026 Job Tracking import)</th>
+              <th>Historical Remedial Cost</th>
               <th>Avg Quality Score</th>
               <th>Assessments</th>
               <th>Last Assessed</th>
@@ -46,6 +48,8 @@ export default async function SeniorPerformancePage() {
                 <td>{s.jobsCount}</td>
                 <td>{s.remedialCount}</td>
                 <td>{(s.remedialPercentage * 100).toFixed(0)}%</td>
+                <td>{s.historicalRemedialCount}</td>
+                <td>{s.historicalRemedialCost.toLocaleString("en-NZ", { style: "currency", currency: "NZD" })}</td>
                 <td>{s.avgQualityScore ? s.avgQualityScore.toFixed(1) : "—"}</td>
                 <td>{s.assessmentCount}</td>
                 <td>{s.latestAssessmentAt ? s.latestAssessmentAt.toLocaleDateString("en-NZ") : "Never"}</td>
@@ -58,13 +62,18 @@ export default async function SeniorPerformancePage() {
             ))}
             {stats.length === 0 && (
               <tr>
-                <td colSpan={8} className="hint">
+                <td colSpan={10} className="hint">
                   No Senior Installer accounts yet.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        <div className="hint" style={{ marginTop: 10 }}>
+          &quot;Jobs&quot; and &quot;Remedial %&quot; only count jobs assigned through the app going forward — the
+          2026 Job Tracking spreadsheet didn&apos;t record who did every job, only who was responsible on jobs with a
+          remedial, so those are shown separately as a real count, not folded into a misleading percentage.
+        </div>
       </div>
 
       <AssessmentForm installers={stats.map((s) => ({ id: s.userId, name: s.name }))} jobs={jobs} currentUserId={user.id} />

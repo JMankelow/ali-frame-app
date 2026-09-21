@@ -67,6 +67,7 @@ model User {
   safetyIncidentsReported   SafetyIncident[]      @relation("SafetyIncidentReportedBy")
   marketingAssetsUploaded   MarketingAsset[]
   emailTemplatesCreated     EmailTemplate[]
+  leadsAssigned             Lead[]
 }
 
 // A short-lived marker created right after password verification, before the
@@ -154,17 +155,19 @@ model Client {
 }
 
 model Lead {
-  id          String    @id @default(cuid())
-  reference   String    @unique
-  title       String
-  description String?
-  source      String?
-  status      String    @default("New")
-  clientId    String?
-  client      Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  convertedAt DateTime?
+  id           String    @id @default(cuid())
+  reference    String    @unique
+  title        String
+  description  String?
+  source       String?
+  status       String    @default("New")
+  clientId     String?
+  client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  assignedToId String?
+  assignedTo   User?     @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  convertedAt  DateTime?
 }
 
 model Job {

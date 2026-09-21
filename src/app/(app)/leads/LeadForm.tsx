@@ -5,7 +5,7 @@ import { createLead, type LeadFormState } from "./actions";
 
 const initialState: LeadFormState = {};
 
-export function LeadForm() {
+export function LeadForm({ staff }: { staff: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState(createLead, initialState);
 
   return (
@@ -23,6 +23,17 @@ export function LeadForm() {
         <div>
           <label htmlFor="source">Source</label>
           <input id="source" name="source" placeholder="Website, Referral, Sales email…" />
+        </div>
+        <div>
+          <label htmlFor="assignedToId">Assign To</label>
+          <select id="assignedToId" name="assignedToId" defaultValue="">
+            <option value="">Unassigned</option>
+            {staff.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="full">
           <label htmlFor="description">Description</label>

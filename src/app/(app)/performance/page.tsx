@@ -32,6 +32,7 @@ export default async function PerformancePage() {
               <th>Remedials</th>
               <th>Remedial %</th>
               <th>Historical Remedials (2026 Job Tracking import)</th>
+              <th>Historical Remedial Cost</th>
               <th>Avg Quality Score</th>
               <th>Assessments</th>
               <th>Last Assessed</th>
@@ -46,6 +47,7 @@ export default async function PerformancePage() {
                 <td>{s.remedialCount}</td>
                 <td>{(s.remedialPercentage * 100).toFixed(0)}%</td>
                 <td>{s.historicalRemedialCount}</td>
+                <td>{s.historicalRemedialCost.toLocaleString("en-NZ", { style: "currency", currency: "NZD" })}</td>
                 <td>{s.avgQualityScore ? s.avgQualityScore.toFixed(1) : "—"}</td>
                 <td>{s.assessmentCount}</td>
                 <td>{s.latestAssessmentAt ? s.latestAssessmentAt.toLocaleDateString("en-NZ") : "Never"}</td>
@@ -58,7 +60,7 @@ export default async function PerformancePage() {
             ))}
             {stats.length === 0 && (
               <tr>
-                <td colSpan={9} className="hint">
+                <td colSpan={10} className="hint">
                   No installers (Senior Installer / Crew Mobile role) found yet.
                 </td>
               </tr>
