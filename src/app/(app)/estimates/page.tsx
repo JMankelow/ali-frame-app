@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { EstimateForm } from "./EstimateForm";
@@ -39,7 +40,9 @@ export default async function EstimatesPage() {
             {estimates.map((e) => (
               <tr key={e.id}>
                 <td>
-                  <div style={{ fontWeight: 800 }}>{e.clientName}</div>
+                  <Link href={`/estimates/${e.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none", display: "block" }}>
+                    {e.clientName}
+                  </Link>
                   <div className="hint">{e.address}</div>
                 </td>
                 <td>{e.category ?? "—"}</td>
