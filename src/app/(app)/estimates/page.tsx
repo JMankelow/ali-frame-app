@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { EstimateForm } from "./EstimateForm";
+import { QuickEstimateForm } from "./QuickEstimateForm";
 
 const STATUS_COLOR: Record<string, string> = {
   Quoted: "blue",
@@ -23,6 +24,8 @@ export default async function EstimatesPage() {
           <div className="subtitle">{estimates.length} estimate(s) — imported from real customer enquiries, plus anything added here since.</div>
         </div>
       </div>
+
+      <QuickEstimateForm />
 
       <div className="card">
         <table>

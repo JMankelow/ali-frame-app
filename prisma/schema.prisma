@@ -553,6 +553,8 @@ model EmailTemplate {
 model Estimate {
   id                   String    @id @default(cuid())
   clientName           String
+  email                String?
+  phone                String?
   address              String?
   category             String?
   joineryDescription   String?
@@ -567,6 +569,7 @@ model Estimate {
   heightMM             Float?
   cladding             String?
   joineryType          String?
+  pdfStorageKey        String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 }
