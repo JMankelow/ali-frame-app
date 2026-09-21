@@ -199,6 +199,7 @@ model Job {
   installerAssessments InstallerAssessment[]
   safetyIncidents      SafetyIncident[]
   costing              JobCosting?
+  quotes               Quote[]
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -572,4 +573,32 @@ model Estimate {
   pdfStorageKey        String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
+}
+
+// Imported from the real Quotes export (excludes Declined quotes per Jo's
+// instruction — those were dropped at import time, not just hidden).
+// jobNumber links to Job.number when a matching Job exists in this app;
+// jobReference keeps the raw text either way so nothing is lost if the Job
+// hasn't been imported (or never will be).
+model Quote {
+  id              String    @id @default(cuid())
+  quoteNumber     String    @unique
+  customerName    String
+  jobReference    String?
+  jobNumber       String?
+  job             Job?      @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
+  status          String    @default("Sent")
+  total           Float?
+  amountInvoiced  Float?
+  amountRemaining Float?
+  quoteDate       DateTime?
+  dateSent        DateTime?
+  expiryDate      DateTime?
+  hasFiles        Boolean   @default(false)
+  acceptedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([status])
+  @@index([jobNumber])
 }

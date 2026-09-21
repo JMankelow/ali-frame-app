@@ -10,7 +10,7 @@ export interface InstallerStats {
   avgQualityScore: number | null;
   assessmentCount: number;
   latestAssessmentAt: Date | null;
-  calculatedScore: number;
+  calculatedScore: number | null;
   // Remedials named against this installer in the imported Job Tracking
   // spreadsheet — real, but NOT a percentage: the sheet never recorded who
   // did every job, only who was responsible when a remedial happened, so
@@ -32,7 +32,13 @@ export interface InstallerStats {
  * formula — the weighting is easy to adjust in one place once Jo has real
  * assessment data to compare it against.
  */
-function calculateScore(avgQualityScore: number | null, remedialPercentage: number): number {
+// Returns null (no score, not a fabricated one) when there's zero real data
+// to base it on — an installer with no assessments AND no jobs assigned
+// through the app would otherwise silently get the default fallback values
+// (quality=3, remedial rate=0%), which round to a specific-looking "4" that
+// isn't a real evaluation of anyone.
+function calculateScore(avgQualityScore: number | null, jobsCount: number, remedialPercentage: number): number | null {
+  if (avgQualityScore == null && jobsCount === 0) return null;
   const qualityComponent = avgQualityScore ?? 3;
   const remedialComponent = Math.max(1, 5 - remedialPercentage * 5);
   const blended = qualityComponent * 0.6 + remedialComponent * 0.4;
@@ -77,7 +83,7 @@ export async function getInstallerStats(): Promise<InstallerStats[]> {
         avgQualityScore,
         assessmentCount: assessments.length,
         latestAssessmentAt: assessments[0]?.createdAt ?? null,
-        calculatedScore: calculateScore(avgQualityScore, remedialPercentage),
+        calculatedScore: calculateScore(avgQualityScore, jobsCount, remedialPercentage),
         historicalRemedialCount,
         historicalRemedialCost,
       };

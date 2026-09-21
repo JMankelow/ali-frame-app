@@ -54,9 +54,13 @@ export default async function SeniorPerformancePage() {
                 <td>{s.assessmentCount}</td>
                 <td>{s.latestAssessmentAt ? s.latestAssessmentAt.toLocaleDateString("en-NZ") : "Never"}</td>
                 <td>
-                  <span className={`status ${s.calculatedScore >= 4 ? "green" : s.calculatedScore >= 3 ? "blue" : "orange"}`}>
-                    {s.calculatedScore}
-                  </span>
+                  {s.calculatedScore == null ? (
+                    <span className="hint">Not enough data yet</span>
+                  ) : (
+                    <span className={`status ${s.calculatedScore >= 4 ? "green" : s.calculatedScore >= 3 ? "blue" : "orange"}`}>
+                      {s.calculatedScore}
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
