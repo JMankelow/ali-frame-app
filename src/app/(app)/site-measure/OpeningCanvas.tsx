@@ -72,21 +72,23 @@ export function OpeningCanvas({
     drawBackground(ctx, canvas.width, canvas.height);
   }, []);
 
+  function drawStroke(ctx: CanvasRenderingContext2D, s: Stroke) {
+    if (s.points.length < 2) return;
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(s.points[0].x, s.points[0].y);
+    for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+    ctx.stroke();
+  }
+
   function redraw() {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!ctx || !canvas) return;
     drawBackground(ctx, canvas.width, canvas.height);
-    for (const s of strokesRef.current) {
-      if (s.points.length < 2) continue;
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(s.points[0].x, s.points[0].y);
-      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
-      ctx.stroke();
-    }
+    for (const s of strokesRef.current) drawStroke(ctx, s);
   }
 
   function markHasStrokes() {
@@ -101,37 +103,36 @@ export function OpeningCanvas({
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   }
 
+  // Openings are straight edges, not freehand squiggles — every drag is
+  // committed as a single straight line from where the pointer went down to
+  // where it went up, rather than tracing the wobbly path in between.
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    currentRef.current = { color: colorRef.current, points: [pos(e)] };
+    const start = pos(e);
+    currentRef.current = { color: colorRef.current, points: [start, start] };
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!currentRef.current) return;
     e.preventDefault();
-    const p = pos(e);
-    const pts = currentRef.current.points;
-    const prev = pts[pts.length - 1];
-    pts.push(p);
+    const start = currentRef.current.points[0];
+    currentRef.current.points = [start, pos(e)];
+
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;
-    ctx.strokeStyle = currentRef.current.color;
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(prev.x, prev.y);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
+    redraw();
+    drawStroke(ctx, currentRef.current);
   }
 
   function handlePointerUp() {
     if (currentRef.current) strokesRef.current.push(currentRef.current);
     currentRef.current = null;
     markHasStrokes();
+    redraw();
   }
 
-  function undo() {
+  function removeLine() {
     strokesRef.current.pop();
     markHasStrokes();
     redraw();
@@ -159,8 +160,8 @@ export function OpeningCanvas({
         />
       </div>
       <div className="actions" style={{ marginTop: 8 }}>
-        <button type="button" className="btn light" onClick={undo}>
-          Undo
+        <button type="button" className="btn light" onClick={removeLine}>
+          Remove Line
         </button>
         <button type="button" className="btn light" onClick={clear}>
           Clear Drawing
