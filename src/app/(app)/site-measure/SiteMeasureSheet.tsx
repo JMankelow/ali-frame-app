@@ -306,7 +306,11 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
 
       {opened && job && (
         <>
-          <div className="card" style={{ marginTop: 16, position: "sticky", top: 12, zIndex: 5, boxShadow: "0 4px 14px rgba(0,0,0,.08)" }}>
+          {/* top:92 clears the app's own fixed blue utility bar (48px) + black
+              section-tab bar (44px) — without this the sticky offset was too
+              small and the pen picker slid up underneath those bars while
+              scrolling, instead of staying visible above the sheet. */}
+          <div className="card" style={{ marginTop: 16, position: "sticky", top: 92, zIndex: 5, boxShadow: "0 4px 14px rgba(0,0,0,.08)" }}>
             <div className="label">Pen</div>
             <div className="actions">
               {PEN_COLORS.map((c) => (
