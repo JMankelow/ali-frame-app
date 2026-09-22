@@ -21,6 +21,10 @@ const SCOPES = [
   "accounting.reports.budgetsummary.read",
   "accounting.reports.aged.read",
   "accounting.reports.banksummary.read",
+  // Write access (no ".read" suffix) so the month-end WIP journal can be
+  // created — always as a DRAFT for Jo to review and approve in Xero
+  // herself, never auto-posted.
+  "accounting.manualjournals",
 ].join(" ");
 
 function redirectUri(): string {
@@ -99,7 +103,11 @@ export async function getValidXeroClient(): Promise<{ client: XeroClient; tenant
 
   const needsRefresh = connection.expiresAt.getTime() - Date.now() < 2 * 60 * 1000;
   if (needsRefresh) {
-    client.setTokenSet({ refresh_token: connection.refreshToken } as never);
+    // refreshWithRefreshToken() makes its own token request using the
+    // refreshToken argument directly — it doesn't need setTokenSet() called
+    // first. Calling setTokenSet() with a partial {refresh_token} object (no
+    // access_token) crashes immediately with "Access token is undefined!"
+    // inside its own setAccessToken() call, before the refresh ever runs.
     const tokenSet = await client.refreshWithRefreshToken(
       process.env.XERO_CLIENT_ID!,
       process.env.XERO_CLIENT_SECRET!,

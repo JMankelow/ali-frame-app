@@ -602,3 +602,19 @@ model Quote {
   @@index([status])
   @@index([jobNumber])
 }
+
+// A monthly snapshot of Residential/Commercial WIP so past month-ends can
+// be looked back on even as the live Job/JobCosting data keeps changing.
+// jobNumbers is the list of Job.number values included, for an audit trail.
+model WipSnapshot {
+  id                    String   @id @default(cuid())
+  snapshotDate          DateTime // last day of the month being snapshotted
+  residentialTotal      Float
+  commercialTotal       Float
+  jobNumbers            String[]
+  xeroJournalId         String?
+  xeroReversalJournalId String?
+  createdAt             DateTime @default(now())
+
+  @@index([snapshotDate])
+}
