@@ -76,9 +76,11 @@ export async function sendSiteMeasureEmail(params: {
     to: params.to,
     subject: `Site Measure Sheet — ${params.jobNumber} ${params.jobTitle}`,
     text:
-      `Attached is the completed ${params.pageCount}-page Ali-Frame Measure Sheet for ` +
-      `job ${params.jobNumber} (${params.jobTitle}), sent by ${params.fromName}.\n\n` +
-      `Please get in touch if anything on the sketches or opening details needs clarifying.`,
+      `Hi,\n\n` +
+      `Please find attached the measure for ${params.jobNumber} ${params.jobTitle}.\n\n` +
+      `Could you kindly provide a quote based on the attached details.\n\n` +
+      `If you have any questions or need further information, feel free to get in touch.\n\n` +
+      `${params.fromName}`,
     attachments: params.attachments,
   });
 
