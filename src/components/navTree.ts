@@ -188,6 +188,15 @@ export const NAV_TREE: NavGroup[] = [
     ],
   },
   {
+    label: "Communications",
+    items: [
+      { label: "Hub", href: "/communications" },
+      { label: "Notes", href: "/notes" },
+      { label: "Email Templates", href: "/templates" },
+      { label: "Leads", href: "/leads" },
+    ],
+  },
+  {
     label: "Installers",
     items: [
       { label: "Calendar", href: "/calendar" },

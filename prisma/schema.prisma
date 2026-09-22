@@ -618,3 +618,19 @@ model WipSnapshot {
 
   @@index([snapshotDate])
 }
+
+// Real supplier/vendor contact book Jo supplied directly (not every one of
+// these is a joinery supplier used on Site Measure emails — this is the
+// broader Accounts-side directory of everyone Ali-Frame deals with).
+model Supplier {
+  id          String   @id @default(cuid())
+  companyName String
+  contactName String?
+  phone       String?
+  email       String?
+  address     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([companyName])
+}
