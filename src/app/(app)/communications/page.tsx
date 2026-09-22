@@ -53,6 +53,10 @@ export default async function CommunicationsHubPage() {
           <div className="label">Notes</div>
           <div className="hint">Open the full backlog →</div>
         </Link>
+        <Link href="/communications/groups" className="card" style={{ textDecoration: "none", color: "inherit" }}>
+          <div className="label">Groups</div>
+          <div className="hint">Management, Senior Installers, Sales, HR... →</div>
+        </Link>
         <Link href="/templates" className="card" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="label">Email Templates</div>
           <div className="hint">Manage reusable wording →</div>

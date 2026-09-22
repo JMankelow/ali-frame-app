@@ -68,6 +68,7 @@ model User {
   marketingAssetsUploaded   MarketingAsset[]
   emailTemplatesCreated     EmailTemplate[]
   leadsAssigned             Lead[]
+  communicationGroups       CommunicationGroup[]  @relation("CommunicationGroupMembers")
 }
 
 // A short-lived marker created right after password verification, before the
@@ -633,4 +634,14 @@ model Supplier {
   updatedAt   DateTime @updatedAt
 
   @@index([companyName])
+}
+
+// Named distribution groups for the Communications Hub (Management, Senior
+// Installers, All Installers, Sales, Human Resources) — Jo manages who's in
+// each herself; this is membership only, not a messaging/send feature yet.
+model CommunicationGroup {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  members   User[]   @relation("CommunicationGroupMembers")
+  createdAt DateTime @default(now())
 }

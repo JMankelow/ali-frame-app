@@ -55,6 +55,9 @@ export function AppShell({
         <Link href="/notes" className="syncBtn" style={{ fontWeight: 900 }}>
           📝 Update Notes
         </Link>
+        <Link href="/communications" className="syncBtn" style={{ fontWeight: 900 }}>
+          💬 Communications Hub
+        </Link>
         <div style={{ flex: 1 }} />
         {SYNC_BUTTONS.map((s) => (
           <Link key={s.href} href={s.href} className="syncBtn">
