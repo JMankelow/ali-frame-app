@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# provenance backup snapshots (Security Policy 03) — these are OneDrive-backed
+# archives of the whole working tree, not source; keeping them out of git
+# avoids repo bloat and duplicate storage.
+/_Provenance/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
