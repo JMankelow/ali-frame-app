@@ -189,9 +189,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     <div className="card">
       <div className="topbar" style={{ marginBottom: 8 }}>
         <div className="label">Files</div>
-        <Link href="/files" className="btn light">
-          Open Files ↗
-        </Link>
+        <a href={buildSharePointSearchUrl(job.number)} target="_blank" rel="noopener noreferrer" className="btn primary">
+          Open in SharePoint ↗
+        </a>
+      </div>
+      <div className="hint" style={{ marginBottom: 10 }}>
+        This job's real files live in SharePoint — the table below is only files uploaded directly through this app
+        (a stopgap until uploads go straight to SharePoint).
       </div>
       {otherFiles.length === 0 ? (
         <div className="hint">No other files uploaded for this job yet.</div>
