@@ -39,7 +39,13 @@ export async function createPurchaseOrder(_prevState: PurchaseOrderFormState, fo
 
 export async function markPurchaseOrderReceived(id: string) {
   const user = await requireUser();
-  await prisma.purchaseOrder.update({ where: { id }, data: { status: "Received", receivedAt: new Date() } });
-  await logAudit({ userId: user.id, action: "purchase_order_received", entityType: "PurchaseOrder", entityId: id });
+  const po = await prisma.purchaseOrder.update({ where: { id }, data: { status: "Received", receivedAt: new Date() } });
+  await logAudit({
+    userId: user.id,
+    action: "purchase_order_received",
+    entityType: "PurchaseOrder",
+    entityId: id,
+    metadata: { jobNumber: po.jobNumber, poNumber: po.poNumber },
+  });
   revalidatePath("/purchase-orders");
 }

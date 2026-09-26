@@ -27,8 +27,8 @@ export function JobEditForm({
   supplier,
   address,
   assignedUserId,
-  startDate,
   staff,
+  suppliers,
   onDone,
 }: {
   jobNumber: string;
@@ -40,8 +40,8 @@ export function JobEditForm({
   supplier: string;
   address: string;
   assignedUserId: string;
-  startDate: string;
   staff: { id: string; name: string }[];
+  suppliers: { id: string; companyName: string }[];
   onDone: () => void;
 }) {
   const action = updateJobDetails.bind(null, jobNumber);
@@ -79,14 +79,22 @@ export function JobEditForm({
         </div>
         <div>
           <label>Supplier</label>
-          <input name="supplier" defaultValue={supplier} />
+          <select name="supplier" defaultValue={supplier}>
+            <option value="">— Select supplier —</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.companyName}>
+                {s.companyName}
+              </option>
+            ))}
+            {supplier && !suppliers.some((s) => s.companyName === supplier) && <option value={supplier}>{supplier}</option>}
+          </select>
         </div>
         <div className="full">
           <label>Address</label>
           <input name="address" defaultValue={address} />
         </div>
         <div>
-          <label>Assigned To</label>
+          <label>Assigned To (Sales)</label>
           <select name="assignedUserId" defaultValue={assignedUserId}>
             <option value="">— Unassigned —</option>
             {staff.map((s) => (
@@ -95,10 +103,6 @@ export function JobEditForm({
               </option>
             ))}
           </select>
-        </div>
-        <div>
-          <label>Start Date</label>
-          <input name="startDate" type="date" defaultValue={startDate} />
         </div>
       </div>
       {state.error && <div className="authError">{state.error}</div>}

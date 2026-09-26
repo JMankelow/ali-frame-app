@@ -58,13 +58,25 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
   const supplier = String(formData.get("supplier") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
   const assignedUserId = String(formData.get("assignedUserId") ?? "").trim();
-  const startDateRaw = String(formData.get("startDate") ?? "").trim();
 
   if (!clientName) return { error: "Customer name is required." };
   if (!status) return { error: "Status is required." };
 
   const job = await prisma.job.findUnique({ where: { number }, include: { client: true } });
   if (!job) return { error: `Job ${number} not found.` };
+
+  // Acceptances are never entered by hand — the moment Sales moves a job's
+  // status to "Accepted" we log it automatically, and the job then sits in
+  // the Acceptances queue (see acceptances/page.tsx) until Sales books the
+  // Check Measure, which is what actually clears it from that queue.
+  if (status === "Accepted" && job.status !== "Accepted") {
+    const alreadyLogged = await prisma.acceptance.findFirst({ where: { jobNumber: number } });
+    if (!alreadyLogged) {
+      await prisma.acceptance.create({
+        data: { jobNumber: number, acceptedBy: clientName, notes: "Auto-recorded on status change to Accepted", createdById: user.id },
+      });
+    }
+  }
 
   let clientId = job.clientId;
   if (job.client) {
@@ -91,13 +103,122 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
       phone: clientPhone || null,
       email: clientEmail || null,
       assignedUserId: assignedUserId || null,
-      startDate: startDateRaw ? new Date(startDateRaw) : null,
     },
   });
 
-  await logAudit({ userId: user.id, action: "job_updated", entityType: "Job", entityId: number });
+  await logAudit({
+    userId: user.id,
+    action: "job_updated",
+    entityType: "Job",
+    entityId: number,
+    metadata: status !== job.status ? { statusFrom: job.status, statusTo: status } : undefined,
+  });
   revalidatePath(`/jobs/${number}`);
   revalidatePath("/jobs");
+  revalidatePath("/calendar");
+  return {};
+}
+
+export interface JobNoteState {
+  error?: string;
+}
+
+export async function createJobNote(jobNumber: string, _prevState: JobNoteState, formData: FormData): Promise<JobNoteState> {
+  const user = await requireUser();
+  const text = String(formData.get("text") ?? "").trim();
+  if (!text) return { error: "Note text is required." };
+
+  await prisma.note.create({ data: { text, authorId: user.id, jobNumber } });
+  await logAudit({ userId: user.id, action: "note_added", entityType: "Job", entityId: jobNumber });
+  revalidatePath(`/jobs/${jobNumber}`);
+  return {};
+}
+
+export interface ScheduledTaskState {
+  error?: string;
+}
+
+const TASK_TYPES = ["Sales Measure", "Check Measure", "Installation", "Remedial"];
+
+export async function createScheduledTask(
+  jobNumber: string,
+  _prevState: ScheduledTaskState,
+  formData: FormData
+): Promise<ScheduledTaskState> {
+  const user = await requireUser();
+
+  const type = String(formData.get("type") ?? "").trim();
+  const scheduledDateRaw = String(formData.get("scheduledDate") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim();
+  const assigneeIds = formData.getAll("assigneeIds").map((v) => String(v)).filter(Boolean);
+
+  if (!TASK_TYPES.includes(type)) return { error: "Pick a valid booking type." };
+  if (!scheduledDateRaw) return { error: "A date is required." };
+
+  const task = await prisma.jobScheduledTask.create({
+    data: {
+      jobNumber,
+      type,
+      scheduledDate: new Date(scheduledDateRaw),
+      notes: notes || null,
+      createdById: user.id,
+      assignees: { connect: assigneeIds.map((id) => ({ id })) },
+    },
+    include: { assignees: true },
+  });
+
+  await logAudit({
+    userId: user.id,
+    action: "scheduled_task_created",
+    entityType: "Job",
+    entityId: jobNumber,
+    metadata: { type, scheduledDate: task.scheduledDate, assignees: task.assignees.map((a) => a.name) },
+  });
+  revalidatePath(`/jobs/${jobNumber}`);
+  revalidatePath("/calendar");
+  return {};
+}
+
+export async function updateScheduledTask(
+  id: string,
+  _prevState: ScheduledTaskState,
+  formData: FormData
+): Promise<ScheduledTaskState> {
+  const user = await requireUser();
+
+  const existing = await prisma.jobScheduledTask.findUnique({ where: { id } });
+  if (!existing) return { error: "Booking not found." };
+
+  const type = String(formData.get("type") ?? "").trim();
+  const scheduledDateRaw = String(formData.get("scheduledDate") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim() || "Scheduled";
+  const assigneeIds = formData.getAll("assigneeIds").map((v) => String(v)).filter(Boolean);
+
+  if (!TASK_TYPES.includes(type)) return { error: "Pick a valid booking type." };
+  if (!scheduledDateRaw) return { error: "A date is required." };
+
+  await prisma.jobScheduledTask.update({
+    where: { id },
+    data: {
+      type,
+      scheduledDate: new Date(scheduledDateRaw),
+      notes: notes || null,
+      status,
+      completedAt: status === "Completed" ? new Date() : null,
+      assignees: { set: assigneeIds.map((aid) => ({ id: aid })) },
+    },
+  });
+
+  await logAudit({
+    userId: user.id,
+    action: "scheduled_task_updated",
+    entityType: "Job",
+    entityId: existing.jobNumber,
+    metadata: { type, scheduledDate: scheduledDateRaw, status },
+  });
+  revalidatePath(`/jobs/${existing.jobNumber}`);
+  revalidatePath("/calendar");
   return {};
 }
 

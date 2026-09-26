@@ -21,8 +21,8 @@ export function JobDetailsCard({
   address,
   assignedUserName,
   assignedUserId,
-  startDate,
   staff,
+  suppliers,
 }: {
   jobNumber: string;
   clientName: string;
@@ -34,8 +34,8 @@ export function JobDetailsCard({
   address: string;
   assignedUserName: string;
   assignedUserId: string;
-  startDate: string;
   staff: { id: string; name: string }[];
+  suppliers: { id: string; companyName: string }[];
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -61,8 +61,8 @@ export function JobDetailsCard({
           supplier={supplier}
           address={address}
           assignedUserId={assignedUserId}
-          startDate={startDate}
           staff={staff}
+          suppliers={suppliers}
           onDone={() => setEditing(false)}
         />
       ) : (
@@ -82,12 +82,8 @@ export function JobDetailsCard({
             <div>{supplier || "—"}</div>
           </div>
           <div>
-            <label>Assigned To</label>
+            <label>Assigned To (Sales)</label>
             <div>{assignedUserName || "—"}</div>
-          </div>
-          <div>
-            <label>Start Date</label>
-            <div>{startDate ? new Date(startDate).toLocaleDateString("en-NZ") : "—"}</div>
           </div>
           <div className="full">
             <label>Address</label>

@@ -6,7 +6,7 @@ interface Event {
   date: Date;
   label: string;
   href: string;
-  kind: "Job Due" | "WOF" | "Rego" | "Service" | "Checklist";
+  kind: "Job Due" | "Sales Measure" | "Check Measure" | "Installation" | "Remedial" | "WOF" | "Rego" | "Service" | "Checklist";
 }
 
 export default async function CalendarPage() {
@@ -14,8 +14,13 @@ export default async function CalendarPage() {
 
   const in90Days = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-  const [jobs, vehicles, checklists] = await Promise.all([
+  const [jobs, scheduledTasks, vehicles, checklists] = await Promise.all([
     prisma.job.findMany({ where: { archived: false, dueDate: { not: null, lte: in90Days } }, select: { number: true, title: true, dueDate: true } }),
+    prisma.jobScheduledTask.findMany({
+      where: { status: "Scheduled" },
+      include: { job: { include: { client: true } }, assignees: true },
+      orderBy: { scheduledDate: "asc" },
+    }),
     prisma.vehicle.findMany({ select: { name: true, wofDueDate: true, regoDueDate: true, serviceDueDate: true } }),
     prisma.vehicleChecklist.findMany({
       where: { status: { not: "Completed" } },
@@ -26,6 +31,15 @@ export default async function CalendarPage() {
   const events: Event[] = [];
   for (const j of jobs) {
     if (j.dueDate) events.push({ date: j.dueDate, label: `${j.number} — ${j.title}`, href: `/jobs/${j.number}`, kind: "Job Due" });
+  }
+  for (const t of scheduledTasks) {
+    const who = t.assignees.map((a) => a.name).join(", ") || "Unallocated";
+    events.push({
+      date: t.scheduledDate,
+      label: `${t.jobNumber} — ${t.job.client?.name ?? t.job.title} (${t.type}) — ${who}`,
+      href: `/jobs/${t.jobNumber}`,
+      kind: t.type as Event["kind"],
+    });
   }
   for (const v of vehicles) {
     if (v.wofDueDate) events.push({ date: v.wofDueDate, label: v.name, href: `/vehicles/${encodeURIComponent(v.name)}`, kind: "WOF" });
@@ -41,6 +55,10 @@ export default async function CalendarPage() {
 
   const KIND_COLOR: Record<Event["kind"], string> = {
     "Job Due": "blue",
+    "Sales Measure": "purple",
+    "Check Measure": "orange",
+    Installation: "green",
+    Remedial: "grey",
     WOF: "orange",
     Rego: "purple",
     Service: "green",
@@ -52,7 +70,10 @@ export default async function CalendarPage() {
       <div className="topbar">
         <div>
           <h2>Calendar</h2>
-          <div className="subtitle">Everything due in the next 90 days — job due dates, vehicle warrants and checklists — in one list.</div>
+          <div className="subtitle">
+            Everything due in the next 90 days — job due dates, scheduled bookings, vehicle warrants and checklists —
+            in one list.
+          </div>
         </div>
       </div>
 

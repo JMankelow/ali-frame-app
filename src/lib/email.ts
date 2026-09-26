@@ -89,6 +89,41 @@ export async function sendSiteMeasureEmail(params: {
   }
 }
 
+export async function sendCheckMeasureBookingEmail(params: {
+  to: string;
+  jobNumber: string;
+  clientName: string;
+  dates: string[];
+  fromName: string;
+}) {
+  const from = process.env.EMAIL_FROM;
+  const body =
+    `Hi,\n\n` +
+    `We are ready to book your final check measure for ${params.jobNumber} ${params.clientName}.\n\n` +
+    `We have availability on the following dates:\n${params.dates.map((d) => `- ${d}`).join("\n")}\n\n` +
+    `Let me know which one suits and a suitable time.\n\n` +
+    `${params.fromName}`;
+
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] Check measure booking email for ${params.jobNumber} would go to ${params.to}:\n${body}`);
+    return;
+  }
+
+  const result = await getResend().emails.send({
+    from,
+    to: params.to,
+    subject: `Book Your Final Check Measure — ${params.jobNumber}`,
+    text: body,
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to send check measure booking email: ${result.error.message}`);
+  }
+}
+
 export async function sendPlainNotificationEmail(params: { to: string; subject: string; text: string }) {
   const from = process.env.EMAIL_FROM;
   if (!process.env.RESEND_API_KEY || !from) {
