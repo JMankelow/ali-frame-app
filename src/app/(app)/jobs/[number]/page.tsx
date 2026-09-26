@@ -9,6 +9,7 @@ import { JobTabs } from "./JobTabs";
 import { ScheduledTasksSection, type ScheduledTaskRow } from "./ScheduledTasksSection";
 import { JobNotesSection, type JobFeedItem } from "./JobNotesSection";
 import { JobChecklistSection, type ChecklistItem } from "./JobChecklistSection";
+import { PhotosSection } from "./PhotosSection";
 
 function money(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -58,7 +59,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
   ]);
 
   const siteMeasureFiles = files.filter((f) => f.fileType === "Site Measure");
-  const otherFiles = files.filter((f) => f.fileType !== "Site Measure");
+  const photoFiles = files.filter((f) => f.fileType === "Photos");
+  const otherFiles = files.filter((f) => f.fileType !== "Site Measure" && f.fileType !== "Photos");
 
   const taskRows: ScheduledTaskRow[] = scheduledTasks.map((t) => ({
     id: t.id,
@@ -380,7 +382,22 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
             content: <ScheduledTasksSection jobNumber={job.number} tasks={taskRows} staff={allStaff} />,
           },
           { key: "contacts", label: "Linked Contacts", content: comingSoon("Linked Contacts") },
-          { key: "photos", label: "Photos", content: comingSoon("Photos") },
+          {
+            key: "photos",
+            label: "Photos",
+            content: (
+              <PhotosSection
+                jobNumber={job.number}
+                sharePointUrl={buildSharePointSearchUrl(job.number)}
+                photos={photoFiles.map((f) => ({
+                  id: f.id,
+                  fileName: f.fileName,
+                  uploadedByName: f.uploadedBy?.name ?? "—",
+                  date: f.createdAt.toLocaleDateString("en-NZ"),
+                }))}
+              />
+            ),
+          },
           { key: "notes", label: "Notes", content: <JobNotesSection jobNumber={job.number} feed={feed} /> },
           { key: "files", label: "Files", content: filesTab },
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },

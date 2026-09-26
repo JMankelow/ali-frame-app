@@ -12,6 +12,7 @@ export interface UserFormState {
   error?: string;
   createdTempPassword?: string;
   createdEmail?: string;
+  createdUserId?: string;
 }
 
 const VALID_ROLES: Role[] = [
@@ -58,7 +59,7 @@ export async function createUser(_prevState: UserFormState, formData: FormData):
   });
 
   revalidatePath("/users");
-  return { createdTempPassword: tempPassword, createdEmail: email };
+  return { createdTempPassword: tempPassword, createdEmail: email, createdUserId: user.id };
 }
 
 export async function deactivateUser(userId: string) {

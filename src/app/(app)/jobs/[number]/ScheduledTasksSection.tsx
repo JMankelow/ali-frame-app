@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { createScheduledTask, updateScheduledTask, type ScheduledTaskState } from "../actions";
 import { JOB_BOOKING_STATUSES } from "@/lib/jobStatus";
+import { TeamPicker } from "@/components/TeamPicker";
 
 const TASK_TYPES = ["Sales Measure", "Check Measure", "Installation", "Remedial"];
 
@@ -124,14 +125,7 @@ function TaskRow({ task, staff }: { task: ScheduledTaskRow; staff: { id: string;
             ))}
           </select>
           <input name="notes" defaultValue={task.notes ?? ""} placeholder="Notes" style={{ minWidth: 160 }} />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {staff.map((s) => (
-              <label key={s.id} style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: 4 }}>
-                <input type="checkbox" name="assigneeIds" value={s.id} defaultChecked={task.assigneeIds.includes(s.id)} />
-                {s.name}
-              </label>
-            ))}
-          </div>
+          <TeamPicker name="assigneeIds" staff={staff} defaultSelectedIds={task.assigneeIds} />
           {state.error && <div className="authError">{state.error}</div>}
           <button type="submit" className="btn primary" disabled={pending}>
             {pending ? "Saving…" : "Save"}
@@ -181,14 +175,7 @@ function NewTaskForm({ jobNumber, staff }: { jobNumber: string; staff: { id: str
         </div>
         <div className="full">
           <label>Allocate Team</label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-            {staff.map((s) => (
-              <label key={s.id} style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: 4 }}>
-                <input type="checkbox" name="assigneeIds" value={s.id} />
-                {s.name}
-              </label>
-            ))}
-          </div>
+          <TeamPicker name="assigneeIds" staff={staff} />
         </div>
         <div className="full">
           <label>Notes</label>

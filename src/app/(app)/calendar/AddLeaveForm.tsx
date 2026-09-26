@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { createStaffLeave, type LeaveFormState } from "./actions";
+import { TeamPicker } from "@/components/TeamPicker";
 
 const LEAVE_TYPES = ["Annual Leave", "Sick Leave", "Public Holiday", "Bereavement Leave"];
 const initialState: LeaveFormState = {};
@@ -41,14 +42,7 @@ export function AddLeaveForm({ staff }: { staff: { id: string; name: string }[] 
           </div>
           <div className="full">
             <label>Who</label>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              {staff.map((s) => (
-                <label key={s.id} style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: 4 }}>
-                  <input type="checkbox" name="staffIds" value={s.id} />
-                  {s.name}
-                </label>
-              ))}
-            </div>
+            <TeamPicker name="staffIds" staff={staff} />
           </div>
           <div className="full">
             <label>Notes</label>
