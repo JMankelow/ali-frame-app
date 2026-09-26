@@ -2,10 +2,18 @@
 
 import { NAV_TREE } from "./navTree";
 
-export function TopTabs({ selected, onSelect }: { selected: string | null; onSelect: (label: string) => void }) {
+export function TopTabs({
+  selected,
+  onSelect,
+  visibleSections,
+}: {
+  selected: string | null;
+  onSelect: (label: string) => void;
+  visibleSections: string[];
+}) {
   return (
     <nav className="topTabs">
-      {NAV_TREE.map((group) => (
+      {NAV_TREE.filter((group) => visibleSections.includes(group.label)).map((group) => (
         <button
           key={group.label}
           type="button"

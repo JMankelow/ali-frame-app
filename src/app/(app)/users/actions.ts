@@ -62,6 +62,30 @@ export async function createUser(_prevState: UserFormState, formData: FormData):
   return { createdTempPassword: tempPassword, createdEmail: email, createdUserId: user.id };
 }
 
+/** Replaces a user's whole section-access list in one call — the matrix's
+ * checkboxes always send the complete new set, not one-at-a-time deltas. */
+export async function setUserPermissions(userId: string, sections: string[]) {
+  const actor = await requireSuperUser();
+  await prisma.user.update({ where: { id: userId }, data: { permissions: sections } });
+  await logAudit({ userId: actor.id, action: "user_permissions_updated", entityType: "User", entityId: userId, metadata: { sections } });
+  revalidatePath("/users");
+}
+
+export async function setUserSuperUser(userId: string, isSuperUser: boolean) {
+  const actor = await requireSuperUser();
+  await prisma.user.update({ where: { id: userId }, data: { isSuperUser } });
+  await logAudit({ userId: actor.id, action: "user_superuser_updated", entityType: "User", entityId: userId, metadata: { isSuperUser } });
+  revalidatePath("/users");
+}
+
+export async function updateUserRole(userId: string, roleInput: string) {
+  const actor = await requireSuperUser();
+  if (!VALID_ROLES.includes(roleInput as Role)) return;
+  await prisma.user.update({ where: { id: userId }, data: { role: roleInput as Role } });
+  await logAudit({ userId: actor.id, action: "user_role_updated", entityType: "User", entityId: userId, metadata: { role: roleInput } });
+  revalidatePath("/users");
+}
+
 export async function deactivateUser(userId: string) {
   const actor = await requireSuperUser();
   await prisma.user.update({ where: { id: userId }, data: { isActive: false } });

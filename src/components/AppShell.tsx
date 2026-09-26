@@ -19,12 +19,14 @@ const SYNC_BUTTONS = [
 
 export function AppShell({
   isSuperUser,
+  visibleSections,
   userBadge,
   signOutForm,
   openTaskCount,
   children,
 }: {
   isSuperUser: boolean;
+  visibleSections: string[];
   userBadge: React.ReactNode;
   signOutForm: React.ReactNode;
   openTaskCount: number;
@@ -32,19 +34,22 @@ export function AppShell({
 }) {
   const pins = usePins();
   const pathname = usePathname();
+  const visibleTree = NAV_TREE.filter((g) => visibleSections.includes(g.label));
 
   // Which top-level section's items the sidebar shows. Clicking a top tab
   // changes this without navigating; landing directly on a page (e.g. via a
   // bookmark or a Link elsewhere in the app) auto-selects its section instead
   // of leaving the sidebar showing something unrelated to where you are.
-  const [selectedSection, setSelectedSection] = useState<string | null>(
-    () => findSectionForPath(NAV_TREE, pathname) ?? NAV_TREE[0].label
-  );
+  const [selectedSection, setSelectedSection] = useState<string | null>(() => {
+    const fromPath = findSectionForPath(NAV_TREE, pathname);
+    if (fromPath && visibleSections.includes(fromPath)) return fromPath;
+    return visibleTree[0]?.label ?? null;
+  });
 
   useEffect(() => {
     const section = findSectionForPath(NAV_TREE, pathname);
-    if (section) setSelectedSection(section);
-  }, [pathname]);
+    if (section && visibleSections.includes(section)) setSelectedSection(section);
+  }, [pathname, visibleSections]);
 
   return (
     <>
@@ -71,7 +76,7 @@ export function AppShell({
         <div className="topUtilityUser">{userBadge}</div>
         {signOutForm}
       </div>
-      <TopTabs selected={selectedSection} onSelect={setSelectedSection} />
+      <TopTabs selected={selectedSection} onSelect={setSelectedSection} visibleSections={visibleSections} />
       <div className="app">
         <aside>
           <NavSidebar isSuperUser={isSuperUser} pins={pins} selectedSection={selectedSection} />

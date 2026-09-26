@@ -17,9 +17,16 @@ export function proxy(req: NextRequest) {
     url.search = "";
     return NextResponse.redirect(url);
   }
-  return NextResponse.next();
+  // Relays the current path to the (app) layout via a request header, so the
+  // real per-request check (requireUser() + hasSectionAccess(), which does
+  // hit the database) can enforce section access centrally in one place
+  // instead of needing a check bolted onto every individual page.
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set("x-pathname", req.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/jobs/:path*", "/leads/:path*", "/users/:path*", "/settings/:path*"],
+  // Every app route except the public/auth pages and static assets.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.svg|login|setup|reset-password).*)"],
 };

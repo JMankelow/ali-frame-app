@@ -2,6 +2,7 @@ import { requireSuperUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { deactivateUser, reactivateUser } from "./actions";
 import { UserForm } from "./UserForm";
+import { PermissionsMatrix } from "./PermissionsMatrix";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN_MANAGEMENT: "Admin / Management",
@@ -16,7 +17,7 @@ export default async function UsersPage() {
   // Real server-side gate — this page (and every action it calls) is
   // restricted to the Master User, matching the old prototype's Accounts
   // rule, but actually enforced server-side this time, not just a hidden tab.
-  await requireSuperUser();
+  const actor = await requireSuperUser();
   const users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
 
   return (
@@ -74,6 +75,15 @@ export default async function UsersPage() {
       </div>
 
       <UserForm />
+
+      <div style={{ marginTop: 16 }}>
+        <PermissionsMatrix
+          rows={users
+            .filter((u) => u.isActive)
+            .map((u) => ({ id: u.id, name: u.name, role: u.role, isSuperUser: u.isSuperUser, permissions: u.permissions }))}
+          currentUserId={actor.id}
+        />
+      </div>
     </div>
   );
 }

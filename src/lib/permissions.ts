@@ -1,7 +1,17 @@
-// Matches the sidebar's top-level nav groups (src/components/navTree.ts),
-// excluding Notes which stays open to every signed-in user regardless of
-// their section access.
-export const SECTIONS = ["Sales", "Jobs", "Operations", "Human Resources", "Accounts", "Installers", "Settings"] as const;
+// Matches the sidebar's top-level nav groups (src/components/navTree.ts)
+// exactly, excluding Notes which stays open to every signed-in user
+// regardless of their section access.
+export const SECTIONS = [
+  "Sales",
+  "Jobs",
+  "Operations",
+  "Human Resources",
+  "Accounts",
+  "Marketing",
+  "Communications",
+  "Installers",
+  "Settings",
+] as const;
 export type Section = (typeof SECTIONS)[number];
 
 interface PermissionUser {

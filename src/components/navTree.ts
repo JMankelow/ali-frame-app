@@ -29,6 +29,14 @@ export function findSectionForPath(tree: NavGroup[], path: string): string | nul
   return match?.label ?? null;
 }
 
+/** Same lookup as findSectionForPath, but returns every top-level section
+ * that contains this path (a route like /calendar or /jobs legitimately
+ * sits under more than one section) — used for real access enforcement,
+ * where having access to ANY one of them should be enough. */
+export function findAllSectionsForPath(tree: NavGroup[], path: string): string[] {
+  return tree.filter((group) => containsPath(group.items, path)).map((group) => group.label);
+}
+
 /** A whole group (e.g. "Check Measures") has no single page of its own, so
  * pinning it pins a shortcut to its first leaf item — the practical
  * equivalent of "take me straight into this section". */
