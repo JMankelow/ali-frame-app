@@ -4,13 +4,7 @@ import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { FileRow } from "../../files/FileRow";
 import { buildSharePointSearchUrl } from "@/lib/sharepoint";
-
-const STATUS_COLOR: Record<string, string> = {
-  New: "blue",
-  "In Progress": "purple",
-  "On Hold": "orange",
-  Complete: "green",
-};
+import { JobDetailsCard } from "./JobDetailsCard";
 
 function money(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -21,10 +15,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
   await requireUser();
   const { number } = await params;
 
-  const job = await prisma.job.findUnique({
-    where: { number },
-    include: { client: true, assignedUser: true, costing: true },
-  });
+  const [job, staff] = await Promise.all([
+    prisma.job.findUnique({
+      where: { number },
+      include: { client: true, assignedUser: true, costing: true },
+    }),
+    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+  ]);
   if (!job) notFound();
 
   const files = await prisma.fileAsset.findMany({
@@ -40,7 +37,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
       <div className="topbar">
         <div>
           <h2>
-            {job.number} — {job.title}
+            {job.number} — {job.client?.name ?? job.title}
           </h2>
           <div className="subtitle">
             Everything for this job in one place — files, site measure sketches, and (as they're built) quotes,
@@ -57,45 +54,20 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         </div>
       </div>
 
-      <div className="card">
-        <div className="label">Job Details</div>
-        <div className="form" style={{ marginTop: 10 }}>
-          <div>
-            <label>Status</label>
-            <div>
-              <span className={`status ${STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
-            </div>
-          </div>
-          <div>
-            <label>Type</label>
-            <div>{job.type === "COMMERCIAL" ? "Commercial" : "Residential"}</div>
-          </div>
-          <div>
-            <label>Supplier</label>
-            <div>{job.supplier ?? "—"}</div>
-          </div>
-          <div>
-            <label>Assigned To</label>
-            <div>{job.assignedUser?.name ?? "—"}</div>
-          </div>
-          <div className="full">
-            <label>Address</label>
-            <div>{job.address ?? "—"}</div>
-          </div>
-          <div>
-            <label>Customer</label>
-            <div>{job.client?.name ?? "—"}</div>
-          </div>
-          <div>
-            <label>Customer Phone</label>
-            <div>{job.client?.phone ?? "—"}</div>
-          </div>
-          <div>
-            <label>Customer Email</label>
-            <div>{job.client?.email ?? "—"}</div>
-          </div>
-        </div>
-      </div>
+      <JobDetailsCard
+        jobNumber={job.number}
+        clientName={job.client?.name ?? ""}
+        clientPhone={job.client?.phone ?? ""}
+        clientEmail={job.client?.email ?? ""}
+        status={job.status}
+        type={job.type}
+        supplier={job.supplier ?? ""}
+        address={job.address ?? ""}
+        assignedUserName={job.assignedUser?.name ?? ""}
+        assignedUserId={job.assignedUserId ?? ""}
+        startDate={job.startDate ? job.startDate.toISOString().slice(0, 10) : ""}
+        staff={staff}
+      />
 
       {job.costing && (
         <div className="card" style={{ marginTop: 16 }}>

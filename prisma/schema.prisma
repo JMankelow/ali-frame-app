@@ -69,6 +69,8 @@ model User {
   emailTemplatesCreated     EmailTemplate[]
   leadsAssigned             Lead[]
   communicationGroups       CommunicationGroup[]  @relation("CommunicationGroupMembers")
+  scheduledTasksAssigned    JobScheduledTask[]    @relation("JobScheduledTaskAssignee")
+  scheduledTasksCreated     JobScheduledTask[]    @relation("JobScheduledTaskCreatedBy")
 }
 
 // A short-lived marker created right after password verification, before the
@@ -182,6 +184,7 @@ model Job {
   status         String    @default("New")
   priority       String?
   dueDate        DateTime?
+  startDate      DateTime?
   assignedUserId String?
   assignedUser   User?     @relation("AssignedUser", fields: [assignedUserId], references: [id], onDelete: SetNull)
   supplier       String?
@@ -201,6 +204,7 @@ model Job {
   safetyIncidents      SafetyIncident[]
   costing              JobCosting?
   quotes               Quote[]
+  scheduledTasks       JobScheduledTask[]
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -644,4 +648,25 @@ model CommunicationGroup {
   name      String   @unique
   members   User[]   @relation("CommunicationGroupMembers")
   createdAt DateTime @default(now())
+}
+
+// Bookings against a job — Check Measure, Installation, Remedial or Sales
+// Measure. Distinct from Calendar's due-date view: this is the actual
+// per-job booking record with a specific date/time and assignee.
+model JobScheduledTask {
+  id            String    @id @default(cuid())
+  jobNumber     String
+  job           Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  type          String // Check Measure / Installation / Remedial / Sales Measure
+  scheduledDate DateTime
+  assignedToId  String?
+  assignedTo    User?     @relation("JobScheduledTaskAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes         String?
+  status        String    @default("Scheduled")
+  createdById   String
+  createdBy     User      @relation("JobScheduledTaskCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  completedAt   DateTime?
+
+  @@index([jobNumber, scheduledDate])
 }
