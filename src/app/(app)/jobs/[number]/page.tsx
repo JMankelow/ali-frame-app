@@ -60,6 +60,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     id: t.id,
     type: t.type,
     scheduledDate: t.scheduledDate.toISOString(),
+    endDate: t.endDate ? t.endDate.toISOString() : null,
     status: t.status,
     notes: t.notes,
     assigneeIds: t.assignees.map((a) => a.id),
@@ -96,6 +97,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         address={job.address ?? ""}
         assignedUserName={job.assignedUser?.name ?? ""}
         assignedUserId={job.assignedUserId ?? ""}
+        priceType={job.priceType ?? ""}
+        leadSource={job.leadSource ?? ""}
         staff={salesStaff}
         suppliers={suppliers}
       />

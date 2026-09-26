@@ -2,18 +2,7 @@
 
 import { useActionState } from "react";
 import { updateJobDetails, type JobEditState } from "../actions";
-
-const STATUS_OPTIONS = [
-  "New",
-  "Accepted",
-  "Awaiting Deposit",
-  "Check Measure",
-  "Joinery Ordered",
-  "Install Date confirmed",
-  "In Progress",
-  "Complete",
-  "Remedial / Awaiting Material",
-];
+import { JOB_STATUS_OPTIONS, JOB_PRICE_TYPES, JOB_LEAD_SOURCES } from "@/lib/jobStatus";
 
 const initialState: JobEditState = {};
 
@@ -27,6 +16,8 @@ export function JobEditForm({
   supplier,
   address,
   assignedUserId,
+  priceType,
+  leadSource,
   staff,
   suppliers,
   onDone,
@@ -40,6 +31,8 @@ export function JobEditForm({
   supplier: string;
   address: string;
   assignedUserId: string;
+  priceType: string;
+  leadSource: string;
   staff: { id: string; name: string }[];
   suppliers: { id: string; companyName: string }[];
   onDone: () => void;
@@ -65,7 +58,8 @@ export function JobEditForm({
         <div>
           <label>Status</label>
           <select name="status" defaultValue={status}>
-            {STATUS_OPTIONS.map((s) => (
+            {!JOB_STATUS_OPTIONS.includes(status) && status && <option value={status}>{status}</option>}
+            {JOB_STATUS_OPTIONS.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
@@ -75,6 +69,24 @@ export function JobEditForm({
           <select name="type" defaultValue={type}>
             <option value="RESIDENTIAL">Residential</option>
             <option value="COMMERCIAL">Commercial</option>
+          </select>
+        </div>
+        <div>
+          <label>Price Type</label>
+          <select name="priceType" defaultValue={priceType}>
+            <option value="">— Select price type —</option>
+            {JOB_PRICE_TYPES.map((p) => (
+              <option key={p}>{p}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label>How Did They Hear About Us?</label>
+          <select name="leadSource" defaultValue={leadSource}>
+            <option value="">— Select source —</option>
+            {JOB_LEAD_SOURCES.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
           </select>
         </div>
         <div>

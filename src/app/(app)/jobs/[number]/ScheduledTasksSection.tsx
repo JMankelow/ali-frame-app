@@ -2,14 +2,34 @@
 
 import { useActionState, useState } from "react";
 import { createScheduledTask, updateScheduledTask, type ScheduledTaskState } from "../actions";
+import { JOB_BOOKING_STATUSES } from "@/lib/jobStatus";
 
 const TASK_TYPES = ["Sales Measure", "Check Measure", "Installation", "Remedial"];
-const STATUS_OPTIONS = ["Scheduled", "Completed", "Cancelled"];
+
+const BOOKING_STATUS_COLOR: Record<string, string> = {
+  Floating: "grey",
+  "Booked in": "blue",
+  "Booking Confirmed": "green",
+  "Tentative Sales Booking Awaiting": "grey",
+  "Check Measure Booked": "green",
+  "Sales Rep Booked - Dwayne": "blue",
+  "Sales Rep Booked - Kere": "blue",
+  "Sales Rep Booked - Tristam": "blue",
+  "Sales Follow Up on Quote Sent": "orange",
+  "Commercial Meeting": "purple",
+  "On Measures / Meetings": "purple",
+  "On tools": "green",
+  "Supply only": "orange",
+  Remedial: "orange",
+  "90% invoiced": "purple",
+  "Fully Invoiced": "green",
+};
 
 export interface ScheduledTaskRow {
   id: string;
   type: string;
   scheduledDate: string;
+  endDate: string | null;
   status: string;
   notes: string | null;
   assigneeIds: string[];
@@ -31,8 +51,8 @@ export function ScheduledTasksSection({
     <div className="card">
       <div className="label">Scheduled Bookings</div>
       <div className="hint" style={{ marginTop: 4 }}>
-        Check Measure, Installation, Remedial and Sales Measure bookings — each shows on the Calendar and can have
-        more than one person allocated.
+        Check Measure, Installation, Remedial and Sales Measure bookings — each shows on the Calendar, can have more
+        than one person allocated, and its status can be changed as the booking moves along.
       </div>
 
       {tasks.length > 0 && (
@@ -40,7 +60,8 @@ export function ScheduledTasksSection({
           <thead>
             <tr>
               <th>Type</th>
-              <th>Date</th>
+              <th>From</th>
+              <th>To</th>
               <th>Allocated</th>
               <th>Status</th>
               <th>Notes</th>
@@ -70,11 +91,10 @@ function TaskRow({ task, staff }: { task: ScheduledTaskRow; staff: { id: string;
       <tr>
         <td>{task.type}</td>
         <td>{new Date(task.scheduledDate).toLocaleDateString("en-NZ")}</td>
+        <td>{task.endDate ? new Date(task.endDate).toLocaleDateString("en-NZ") : "—"}</td>
         <td>{task.assigneeNames.join(", ") || "—"}</td>
         <td>
-          <span className={`status ${task.status === "Completed" ? "green" : task.status === "Cancelled" ? "grey" : "blue"}`}>
-            {task.status}
-          </span>
+          <span className={`status ${BOOKING_STATUS_COLOR[task.status] ?? "grey"}`}>{task.status}</span>
         </td>
         <td>{task.notes ?? "—"}</td>
         <td>
@@ -88,7 +108,7 @@ function TaskRow({ task, staff }: { task: ScheduledTaskRow; staff: { id: string;
 
   return (
     <tr>
-      <td colSpan={6}>
+      <td colSpan={7}>
         <form action={formAction} style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "flex-start", padding: "8px 0" }}>
           <select name="type" defaultValue={task.type}>
             {TASK_TYPES.map((t) => (
@@ -96,8 +116,10 @@ function TaskRow({ task, staff }: { task: ScheduledTaskRow; staff: { id: string;
             ))}
           </select>
           <input type="date" name="scheduledDate" defaultValue={task.scheduledDate.slice(0, 10)} required />
+          <input type="date" name="endDate" defaultValue={task.endDate ? task.endDate.slice(0, 10) : ""} placeholder="To (optional)" />
           <select name="status" defaultValue={task.status}>
-            {STATUS_OPTIONS.map((s) => (
+            {!JOB_BOOKING_STATUSES.includes(task.status) && <option value={task.status}>{task.status}</option>}
+            {JOB_BOOKING_STATUSES.map((s) => (
               <option key={s}>{s}</option>
             ))}
           </select>
@@ -142,8 +164,20 @@ function NewTaskForm({ jobNumber, staff }: { jobNumber: string; staff: { id: str
           </select>
         </div>
         <div>
-          <label>Date</label>
+          <label>From Date</label>
           <input type="date" name="scheduledDate" required />
+        </div>
+        <div>
+          <label>To Date (optional — for multi-day bookings)</label>
+          <input type="date" name="endDate" />
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status" defaultValue="Floating">
+            {JOB_BOOKING_STATUSES.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
         </div>
         <div className="full">
           <label>Allocate Team</label>

@@ -56,6 +56,8 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
   const status = String(formData.get("status") ?? "").trim();
   const type = String(formData.get("type") ?? "RESIDENTIAL") === "COMMERCIAL" ? "COMMERCIAL" : "RESIDENTIAL";
   const supplier = String(formData.get("supplier") ?? "").trim();
+  const priceType = String(formData.get("priceType") ?? "").trim();
+  const leadSource = String(formData.get("leadSource") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
   const assignedUserId = String(formData.get("assignedUserId") ?? "").trim();
 
@@ -66,14 +68,30 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
   if (!job) return { error: `Job ${number} not found.` };
 
   // Acceptances are never entered by hand — the moment Sales moves a job's
-  // status to "Accepted" we log it automatically, and the job then sits in
-  // the Acceptances queue (see acceptances/page.tsx) until Sales books the
-  // Check Measure, which is what actually clears it from that queue.
-  if (status === "Accepted" && job.status !== "Accepted") {
+  // status to "Quote Accepted" we log it automatically, and the job then
+  // sits in the Acceptances queue (see acceptances/page.tsx) until Sales
+  // books the Check Measure, which is what actually clears it from that queue.
+  if (status === "Quote Accepted" && job.status !== "Quote Accepted") {
     const alreadyLogged = await prisma.acceptance.findFirst({ where: { jobNumber: number } });
     if (!alreadyLogged) {
       await prisma.acceptance.create({
         data: { jobNumber: number, acceptedBy: clientName, notes: "Auto-recorded on status change to Accepted", createdById: user.id },
+      });
+    }
+  }
+
+  // Same idea for Remedial — nothing raised by hand, Sales/Ops just changes
+  // the job's status to "Remedial Work Required" and a remedial item appears
+  // on the Remedial queue automatically.
+  if (status === "Remedial Work Required" && job.status !== "Remedial Work Required") {
+    const alreadyOpen = await prisma.remedialItem.findFirst({ where: { jobNumber: number, status: "Open" } });
+    if (!alreadyOpen) {
+      await prisma.remedialItem.create({
+        data: {
+          jobNumber: number,
+          issue: "Auto-raised on status change to Remedial Work Required — add details.",
+          raisedById: user.id,
+        },
       });
     }
   }
@@ -99,6 +117,8 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
       status,
       type,
       supplier: supplier || null,
+      priceType: priceType || null,
+      leadSource: leadSource || null,
       address: address || null,
       phone: clientPhone || null,
       email: clientEmail || null,
@@ -149,17 +169,22 @@ export async function createScheduledTask(
 
   const type = String(formData.get("type") ?? "").trim();
   const scheduledDateRaw = String(formData.get("scheduledDate") ?? "").trim();
+  const endDateRaw = String(formData.get("endDate") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim() || "Floating";
   const notes = String(formData.get("notes") ?? "").trim();
   const assigneeIds = formData.getAll("assigneeIds").map((v) => String(v)).filter(Boolean);
 
   if (!TASK_TYPES.includes(type)) return { error: "Pick a valid booking type." };
   if (!scheduledDateRaw) return { error: "A date is required." };
+  if (endDateRaw && endDateRaw < scheduledDateRaw) return { error: "To date can't be before the from date." };
 
   const task = await prisma.jobScheduledTask.create({
     data: {
       jobNumber,
       type,
       scheduledDate: new Date(scheduledDateRaw),
+      endDate: endDateRaw ? new Date(endDateRaw) : null,
+      status,
       notes: notes || null,
       createdById: user.id,
       assignees: { connect: assigneeIds.map((id) => ({ id })) },
@@ -192,20 +217,23 @@ export async function updateScheduledTask(
   const type = String(formData.get("type") ?? "").trim();
   const scheduledDateRaw = String(formData.get("scheduledDate") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
-  const status = String(formData.get("status") ?? "").trim() || "Scheduled";
+  const endDateRaw = String(formData.get("endDate") ?? "").trim();
+  const status = String(formData.get("status") ?? "").trim() || "Floating";
   const assigneeIds = formData.getAll("assigneeIds").map((v) => String(v)).filter(Boolean);
 
   if (!TASK_TYPES.includes(type)) return { error: "Pick a valid booking type." };
   if (!scheduledDateRaw) return { error: "A date is required." };
+  if (endDateRaw && endDateRaw < scheduledDateRaw) return { error: "To date can't be before the from date." };
 
   await prisma.jobScheduledTask.update({
     where: { id },
     data: {
       type,
       scheduledDate: new Date(scheduledDateRaw),
+      endDate: endDateRaw ? new Date(endDateRaw) : null,
       notes: notes || null,
       status,
-      completedAt: status === "Completed" ? new Date() : null,
+      completedAt: status === "Fully Invoiced" ? new Date() : null,
       assignees: { set: assigneeIds.map((aid) => ({ id: aid })) },
     },
   });

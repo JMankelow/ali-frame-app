@@ -71,6 +71,8 @@ model User {
   communicationGroups       CommunicationGroup[]  @relation("CommunicationGroupMembers")
   scheduledTasksAssigned    JobScheduledTask[]    @relation("JobScheduledTaskAssignees")
   scheduledTasksCreated     JobScheduledTask[]    @relation("JobScheduledTaskCreatedBy")
+  leave                     StaffLeave[]          @relation("StaffLeavePeople")
+  leaveCreated              StaffLeave[]          @relation("StaffLeaveCreatedBy")
 }
 
 // A short-lived marker created right after password verification, before the
@@ -183,6 +185,8 @@ model Job {
   type           JobType   @default(RESIDENTIAL)
   status         String    @default("New")
   priority       String?
+  priceType      String?
+  leadSource     String? // "How did they hear about us?"
   dueDate        DateTime?
   startDate      DateTime?
   assignedUserId String?
@@ -665,6 +669,9 @@ model JobScheduledTask {
   job           Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
   type          String // Check Measure / Installation / Remedial / Sales Measure
   scheduledDate DateTime
+  // Multi-day bookings (e.g. a install running Mon-Fri) — null means a
+  // single-day booking, same as scheduledDate.
+  endDate       DateTime?
   // A booking can be worked by more than one person (e.g. a 2-installer
   // team) — many-to-many, not a single assignee.
   assignees     User[]    @relation("JobScheduledTaskAssignees")
@@ -676,4 +683,22 @@ model JobScheduledTask {
   completedAt   DateTime?
 
   @@index([jobNumber, scheduledDate])
+}
+
+// Staff leave / holidays — shows on the Calendar as an all-day bar, same as
+// an install. Not job-scoped. Payroll-approved leave auto-pushing into this
+// table (per Jo's 2026-09-26 request) is a later step, once there's a real
+// payroll integration to push from — for now these are entered directly.
+model StaffLeave {
+  id          String    @id @default(cuid())
+  type        String // Annual Leave / Sick Leave / Public Holiday / Bereavement Leave
+  staff       User[]    @relation("StaffLeavePeople")
+  fromDate    DateTime
+  toDate      DateTime?
+  notes       String?
+  createdById String
+  createdBy   User      @relation("StaffLeaveCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@index([fromDate])
 }

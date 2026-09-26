@@ -2,13 +2,7 @@
 
 import { useState } from "react";
 import { JobEditForm } from "./JobEditForm";
-
-const STATUS_COLOR: Record<string, string> = {
-  New: "blue",
-  "In Progress": "purple",
-  "On Hold": "orange",
-  Complete: "green",
-};
+import { JOB_STATUS_COLOR } from "@/lib/jobStatus";
 
 export function JobDetailsCard({
   jobNumber,
@@ -21,6 +15,8 @@ export function JobDetailsCard({
   address,
   assignedUserName,
   assignedUserId,
+  priceType,
+  leadSource,
   staff,
   suppliers,
 }: {
@@ -34,6 +30,8 @@ export function JobDetailsCard({
   address: string;
   assignedUserName: string;
   assignedUserId: string;
+  priceType: string;
+  leadSource: string;
   staff: { id: string; name: string }[];
   suppliers: { id: string; companyName: string }[];
 }) {
@@ -61,6 +59,8 @@ export function JobDetailsCard({
           supplier={supplier}
           address={address}
           assignedUserId={assignedUserId}
+          priceType={priceType}
+          leadSource={leadSource}
           staff={staff}
           suppliers={suppliers}
           onDone={() => setEditing(false)}
@@ -70,12 +70,20 @@ export function JobDetailsCard({
           <div>
             <label>Status</label>
             <div>
-              <span className={`status ${STATUS_COLOR[status] ?? "grey"}`}>{status}</span>
+              <span className={`status ${JOB_STATUS_COLOR[status] ?? "grey"}`}>{status}</span>
             </div>
           </div>
           <div>
             <label>Type</label>
             <div>{type === "COMMERCIAL" ? "Commercial" : "Residential"}</div>
+          </div>
+          <div>
+            <label>Price Type</label>
+            <div>{priceType || "—"}</div>
+          </div>
+          <div>
+            <label>How Did They Hear About Us?</label>
+            <div>{leadSource || "—"}</div>
           </div>
           <div>
             <label>Supplier</label>

@@ -2,16 +2,16 @@ import "server-only";
 import { prisma } from "./prisma";
 import { createWipJournalPair } from "./xeroJournals";
 
-// Real Job.status values on Residential/Commercial jobs that correspond to
-// Jo's named WIP pipeline stages (accepted / deposit sent / check measure /
-// joinery ordered / install confirmed) — "Awaiting Deposit" stands in for
-// "deposit sent" since that's the closest real status recorded.
+// Real Job.status values (see src/lib/jobStatus.ts) that sit between
+// acceptance and install-confirmed — i.e. work that's underway but not yet
+// installed/invoiced, which is what "WIP" means here.
 export const WIP_STATUSES = [
-  "Accepted",
-  "Awaiting Deposit",
-  "Check Measure",
+  "Quote Accepted",
+  "Deposit Invoice Sent",
+  "Check Measure Required",
+  "Final Check Measure Complete",
+  "Measure & Quoted Booked",
   "Joinery Ordered",
-  "Install Date confirmed",
   "Installation Date Confirmed",
   "Commercial Acceptance",
 ];
