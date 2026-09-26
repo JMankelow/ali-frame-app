@@ -2,68 +2,103 @@ import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
-interface Event {
-  date: Date;
+interface Chip {
   label: string;
   href: string;
-  kind: "Job Due" | "Sales Measure" | "Check Measure" | "Installation" | "Remedial" | "WOF" | "Rego" | "Service" | "Checklist";
+  kind: "Sales Measure" | "Check Measure" | "Remedial" | "WOF" | "Rego" | "Service" | "Checklist";
 }
 
-export default async function CalendarPage() {
+interface AllDayBar {
+  label: string;
+  href: string;
+}
+
+const KIND_COLOR: Record<Chip["kind"], string> = {
+  "Sales Measure": "blue",
+  "Check Measure": "orange",
+  Remedial: "grey",
+  WOF: "orange",
+  Rego: "purple",
+  Service: "green",
+  Checklist: "grey",
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function startOfWeek(d: Date): Date {
+  // Monday-start week, matching how the team already reads the SimPRO calendar.
+  const day = d.getDay(); // 0=Sun..6=Sat
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() + diff);
+  return monday;
+}
+
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ week?: string }> }) {
   await requireUser();
+  const { week } = await searchParams;
 
-  const in90Days = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  const anchor = week ? new Date(week) : new Date();
+  const monday = startOfWeek(anchor);
+  const nextMonday = new Date(monday.getTime() + 7 * DAY_MS);
+  const prevWeekParam = new Date(monday.getTime() - 7 * DAY_MS).toISOString().slice(0, 10);
+  const nextWeekParam = nextMonday.toISOString().slice(0, 10);
 
-  const [jobs, scheduledTasks, vehicles, checklists] = await Promise.all([
-    prisma.job.findMany({ where: { archived: false, dueDate: { not: null, lte: in90Days } }, select: { number: true, title: true, dueDate: true } }),
+  const days = Array.from({ length: 7 }, (_, i) => new Date(monday.getTime() + i * DAY_MS));
+
+  const [scheduledTasks, vehicles, checklists] = await Promise.all([
     prisma.jobScheduledTask.findMany({
-      where: { status: "Scheduled" },
+      where: { status: "Scheduled", scheduledDate: { gte: monday, lt: nextMonday } },
       include: { job: { include: { client: true } }, assignees: true },
       orderBy: { scheduledDate: "asc" },
     }),
     prisma.vehicle.findMany({ select: { name: true, wofDueDate: true, regoDueDate: true, serviceDueDate: true } }),
     prisma.vehicleChecklist.findMany({
-      where: { status: { not: "Completed" } },
+      where: { status: { not: "Completed" }, dueDate: { gte: monday, lt: nextMonday } },
       select: { dueDate: true, vehicle: { select: { name: true } } },
     }),
   ]);
 
-  const events: Event[] = [];
-  for (const j of jobs) {
-    if (j.dueDate) events.push({ date: j.dueDate, label: `${j.number} — ${j.title}`, href: `/jobs/${j.number}`, kind: "Job Due" });
-  }
+  const allDayByDay: AllDayBar[][] = days.map(() => []);
+  const chipsByDay: (Chip & { dayIndex: number })[][] = days.map(() => []);
+
+  const dayIndexOf = (d: Date) => Math.floor((new Date(d).setHours(0, 0, 0, 0) - monday.getTime()) / DAY_MS);
+
   for (const t of scheduledTasks) {
+    const idx = dayIndexOf(t.scheduledDate);
+    if (idx < 0 || idx > 6) continue;
     const who = t.assignees.map((a) => a.name).join(", ") || "Unallocated";
-    events.push({
-      date: t.scheduledDate,
-      label: `${t.jobNumber} — ${t.job.client?.name ?? t.job.title} (${t.type}) — ${who}`,
-      href: `/jobs/${t.jobNumber}`,
-      kind: t.type as Event["kind"],
-    });
+    const label = `${t.jobNumber} — ${t.job.client?.name ?? t.job.title} — ${who}`;
+    const href = `/jobs/${t.jobNumber}`;
+
+    if (t.type === "Installation") {
+      allDayByDay[idx].push({ label: `${label} (Install)`, href });
+    } else {
+      chipsByDay[idx].push({ label: `${label} (${t.type})`, href, kind: t.type as Chip["kind"], dayIndex: idx });
+    }
   }
+
   for (const v of vehicles) {
-    if (v.wofDueDate) events.push({ date: v.wofDueDate, label: v.name, href: `/vehicles/${encodeURIComponent(v.name)}`, kind: "WOF" });
-    if (v.regoDueDate) events.push({ date: v.regoDueDate, label: v.name, href: `/vehicles/${encodeURIComponent(v.name)}`, kind: "Rego" });
-    if (v.serviceDueDate) events.push({ date: v.serviceDueDate, label: v.name, href: `/vehicles/${encodeURIComponent(v.name)}`, kind: "Service" });
+    for (const [field, kind] of [
+      ["wofDueDate", "WOF"],
+      ["regoDueDate", "Rego"],
+      ["serviceDueDate", "Service"],
+    ] as const) {
+      const date = v[field];
+      if (!date) continue;
+      const idx = dayIndexOf(date);
+      if (idx < 0 || idx > 6) continue;
+      chipsByDay[idx].push({ label: v.name, href: `/vehicles/${encodeURIComponent(v.name)}`, kind, dayIndex: idx });
+    }
   }
   for (const c of checklists) {
-    events.push({ date: c.dueDate, label: c.vehicle.name, href: `/vehicles/${encodeURIComponent(c.vehicle.name)}`, kind: "Checklist" });
+    const idx = dayIndexOf(c.dueDate);
+    if (idx < 0 || idx > 6) continue;
+    chipsByDay[idx].push({ label: c.vehicle.name, href: `/vehicles/${encodeURIComponent(c.vehicle.name)}`, kind: "Checklist", dayIndex: idx });
   }
 
-  events.sort((a, b) => a.date.getTime() - b.date.getTime());
-  const today = new Date().toISOString().slice(0, 10);
-
-  const KIND_COLOR: Record<Event["kind"], string> = {
-    "Job Due": "blue",
-    "Sales Measure": "purple",
-    "Check Measure": "orange",
-    Installation: "green",
-    Remedial: "grey",
-    WOF: "orange",
-    Rego: "purple",
-    Service: "green",
-    Checklist: "grey",
-  };
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   return (
     <div>
@@ -71,50 +106,80 @@ export default async function CalendarPage() {
         <div>
           <h2>Calendar</h2>
           <div className="subtitle">
-            Everything due in the next 90 days — job due dates, scheduled bookings, vehicle warrants and checklists —
-            in one list.
+            Week view — installs run as full-width bars, Check Measure / Sales Measure / Remedial bookings show as
+            coloured chips underneath.
           </div>
+        </div>
+        <div className="actions">
+          <Link href={`/calendar?week=${prevWeekParam}`} className="btn light">
+            ← Prev Week
+          </Link>
+          <Link href="/calendar" className="btn light">
+            Today
+          </Link>
+          <Link href={`/calendar?week=${nextWeekParam}`} className="btn light">
+            Next Week →
+          </Link>
         </div>
       </div>
 
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Type</th>
-              <th>What</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((e, i) => {
-              const dateStr = e.date.toISOString().slice(0, 10);
-              return (
-                <tr key={i}>
-                  <td style={{ color: dateStr < today ? "#dc2626" : undefined, fontWeight: dateStr < today ? 800 : undefined }}>
-                    {e.date.toLocaleDateString("en-NZ")}
-                    {dateStr < today ? " (Overdue)" : ""}
-                  </td>
-                  <td>
-                    <span className={`status ${KIND_COLOR[e.kind]}`}>{e.kind}</span>
-                  </td>
-                  <td>
-                    <Link href={e.href} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
-                      {e.label}
-                    </Link>
-                  </td>
-                </tr>
-              );
-            })}
-            {events.length === 0 && (
-              <tr>
-                <td colSpan={3} className="hint">
-                  Nothing due in the next 90 days.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div
+        className="card"
+        style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 8, padding: 12, overflowX: "auto" }}
+      >
+        {days.map((d, i) => {
+          const dStr = d.toISOString().slice(0, 10);
+          const isToday = dStr === todayStr;
+          return (
+            <div
+              key={i}
+              style={{
+                border: isToday ? "2px solid var(--blueDark, #0b3d91)" : "1px solid #e5e7eb",
+                borderRadius: 8,
+                minHeight: 220,
+                padding: 6,
+                background: isToday ? "#f0f6ff" : "#fff",
+              }}
+            >
+              <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 6 }}>
+                {d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short" })}
+              </div>
+
+              {allDayByDay[i].map((bar, bi) => (
+                <Link
+                  key={bi}
+                  href={bar.href}
+                  style={{
+                    display: "block",
+                    background: "#dc2626",
+                    color: "#fff",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    borderRadius: 4,
+                    padding: "3px 5px",
+                    marginBottom: 3,
+                    textDecoration: "none",
+                  }}
+                >
+                  {bar.label}
+                </Link>
+              ))}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: allDayByDay[i].length ? 6 : 0 }}>
+                {chipsByDay[i].map((chip, ci) => (
+                  <Link
+                    key={ci}
+                    href={chip.href}
+                    className={`status ${KIND_COLOR[chip.kind]}`}
+                    style={{ display: "block", textDecoration: "none", fontSize: 11, padding: "3px 5px", lineHeight: 1.3 }}
+                  >
+                    {chip.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
