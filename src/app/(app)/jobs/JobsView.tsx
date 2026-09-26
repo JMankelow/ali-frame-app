@@ -3,17 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { archiveJob, reactivateJob } from "./actions";
-
-const STATUS_COLOR: Record<string, string> = {
-  New: "blue",
-  "In Progress": "purple",
-  "On Hold": "orange",
-  Complete: "green",
-};
+import { JOB_STATUS_COLOR } from "@/lib/jobStatus";
 
 export interface JobRow {
   number: string;
   title: string;
+  clientName: string | null;
   address: string | null;
   type: "RESIDENTIAL" | "COMMERCIAL";
   status: string;
@@ -71,11 +66,11 @@ export function JobsView({ jobs, showArchived }: { jobs: JobRow[]; showArchived:
                     {job.number}
                   </Link>
                 </td>
-                <td>{job.title}</td>
+                <td>{job.clientName ?? job.title}</td>
                 <td>{job.address ?? "—"}</td>
                 <td>{job.type === "COMMERCIAL" ? "Commercial" : "Residential"}</td>
                 <td>
-                  <span className={`status ${STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
+                  <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
                 </td>
                 <td>{job.supplier ?? "—"}</td>
                 <td>
@@ -97,13 +92,13 @@ export function JobsView({ jobs, showArchived }: { jobs: JobRow[]; showArchived:
           {jobs.map((job) => (
             <div key={job.number} className="card jobCard">
               <Link href={`/jobs/${job.number}`} style={{ fontWeight: 900, marginBottom: 8, display: "block", color: "inherit", textDecoration: "none" }}>
-                {job.number} — {job.title}
+                {job.number} — {job.clientName ?? job.title}
               </Link>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>
                 <span className={`status ${job.type === "COMMERCIAL" ? "green" : "blue"}`}>
                   {job.type === "COMMERCIAL" ? "Commercial" : "Residential"}
                 </span>
-                <span className={`status ${STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
+                <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
               </div>
               <div className="hint">
                 {job.address ?? "No address"}

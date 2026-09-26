@@ -8,6 +8,7 @@ import { JobDetailsCard } from "./JobDetailsCard";
 import { JobTabs } from "./JobTabs";
 import { ScheduledTasksSection, type ScheduledTaskRow } from "./ScheduledTasksSection";
 import { JobNotesSection, type JobFeedItem } from "./JobNotesSection";
+import { JobChecklistSection, type ChecklistItem } from "./JobChecklistSection";
 
 function money(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -27,6 +28,9 @@ const AUDIT_LABELS: Record<string, (m: Record<string, unknown> | null) => string
   check_measure_booking_emailed: () => "Emailed the client to book Check Measure.",
   purchase_order_created: (m) => `Placed purchase order with ${m?.supplier ?? "supplier"} (${money(Number(m?.amount) || 0)}).`,
   purchase_order_received: (m) => `Purchase order ${m?.poNumber ?? ""} marked received.`,
+  remedial_created: (m) => `Remedial raised (${m?.priority ?? "Normal"} priority) — Tanya and Tristam notified.`,
+  remedial_auto_raised: () => "Remedial auto-raised on status change to Remedial Work Required.",
+  remedial_resolved: () => "Remedial marked resolved.",
 };
 
 export default async function JobDetailPage({ params }: { params: Promise<{ number: string }> }) {
@@ -83,6 +87,21 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
       createdAt: a.createdAt.toISOString(),
     })),
   ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const checkMeasureBooked = scheduledTasks.some((t) => t.type === "Check Measure");
+  const installationBooked = scheduledTasks.some((t) => t.type === "Installation");
+  const isCompleted = job.status === "Completed";
+  const invoiceSent = quotes.some((q) => (q.amountInvoiced ?? 0) > 0) || job.status === "Deposit Invoice Sent";
+
+  const checklistItems: ChecklistItem[] = [
+    { label: "Quote accepted", done: job.status !== "New" && job.status !== "Quote Sent" && job.status !== "Quote Sent to Supplier" },
+    { label: "Check Measure booked", done: checkMeasureBooked, detail: checkMeasureBooked ? undefined : "No Check Measure booking on this job yet." },
+    { label: "Joinery ordered", done: purchaseOrders.length > 0, detail: purchaseOrders.length > 0 ? undefined : "No purchase order raised yet." },
+    { label: "Installation booked", done: installationBooked, detail: installationBooked ? undefined : "No install booking yet." },
+    { label: "Photos / files uploaded", done: files.length > 0, detail: files.length > 0 ? `${files.length} file(s) on this job.` : "Nothing uploaded to this job yet." },
+    { label: "Invoice sent", done: invoiceSent, detail: invoiceSent ? undefined : "No invoiced amount recorded against this job's quote yet." },
+    { label: "Job marked Completed", done: isCompleted },
+  ];
 
   const detailsTab = (
     <>
@@ -369,7 +388,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           { key: "quotes", label: "Quotes", content: quotesTab },
           { key: "orders", label: "Purchase Orders", content: ordersTab },
           { key: "supplierinvoices", label: "Supplier Invoices", content: comingSoon("Supplier Invoices") },
-          { key: "jobsheet", label: "Job Sheet", content: comingSoon("Job Sheet") },
+          { key: "checklist", label: "Job Checklist", content: <JobChecklistSection items={checklistItems} /> },
         ]}
       />
     </div>

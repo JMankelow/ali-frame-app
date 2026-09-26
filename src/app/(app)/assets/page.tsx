@@ -5,8 +5,10 @@ import { AssetForm } from "./AssetForm";
 import { retireAsset, resolveAssetIssue } from "./actions";
 import { AssetIssueForm } from "./AssetIssueForm";
 
-export default async function AssetsPage() {
+export default async function AssetsPage({ searchParams }: { searchParams: Promise<{ add?: string }> }) {
   await requireUser();
+  const { add } = await searchParams;
+  const adding = add === "1";
 
   const [assets, staff, vehicles] = await Promise.all([
     prisma.asset.findMany({
@@ -29,9 +31,14 @@ export default async function AssetsPage() {
             {assets.length} active asset(s) — tools, office equipment and other gear. Vehicles have their own page.
           </div>
         </div>
-        <Link href="/vehicles" className="btn light">
-          Go to Vehicles ↗
-        </Link>
+        <div className="actions">
+          <Link href={adding ? "/assets" : "/assets?add=1"} className="btn primary">
+            {adding ? "Cancel" : "+ Add New Asset"}
+          </Link>
+          <Link href="/vehicles" className="btn light">
+            Go to Vehicles ↗
+          </Link>
+        </div>
       </div>
 
       <div className="card">
@@ -40,6 +47,7 @@ export default async function AssetsPage() {
             <tr>
               <th>Asset</th>
               <th>Type</th>
+              <th>Serial Number</th>
               <th>Description</th>
               <th>Assigned To</th>
               <th>Test &amp; Tag Due</th>
@@ -54,6 +62,7 @@ export default async function AssetsPage() {
                 <tr key={a.id}>
                   <td>{a.name}</td>
                   <td>{a.assetType}</td>
+                  <td>{a.serialNumber ?? "—"}</td>
                   <td>{a.description ?? "—"}</td>
                   <td>
                     {a.assignedToUser?.name ?? a.assignedToVehicle?.name ?? <span className="hint">Unassigned</span>}
@@ -92,7 +101,7 @@ export default async function AssetsPage() {
             })}
             {assets.length === 0 && (
               <tr>
-                <td colSpan={7} className="hint">
+                <td colSpan={8} className="hint">
                   No assets yet — add one below.
                 </td>
               </tr>
@@ -101,7 +110,7 @@ export default async function AssetsPage() {
         </table>
       </div>
 
-      <AssetForm staff={staff} vehicles={vehicles} />
+      {adding && <AssetForm staff={staff} vehicles={vehicles} />}
       <AssetIssueForm assets={assets.map((a) => ({ id: a.id, name: a.name }))} />
     </div>
   );

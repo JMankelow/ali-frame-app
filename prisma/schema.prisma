@@ -330,11 +330,40 @@ model Vehicle {
   assignedToUserId String?
   assignedToUser   User?     @relation("VehicleDriver", fields: [assignedToUserId], references: [id], onDelete: SetNull)
   mechanicEmail    String?
+  // RUC (Road User Charges) tracking — seeded from a manual EROAD screenshot
+  // (2026-09-26) until a real EROAD API connection exists (needs Jo's EROAD
+  // account manager to issue API access; see src/app/(app)/sync/eroad).
+  rucType          String? // "D-2" / "D-3" licence type
+  rucOdometerKm    Int?
+  rucStartDistKm   Int?
+  rucEndDistKm     Int?
+  rucRemainingKm   Int?
+  rucUpdatedAt     DateTime?
   createdAt        DateTime  @default(now())
 
-  assets     Asset[]
-  checklists VehicleChecklist[]
-  issues     VehicleIssue[]
+  assets             Asset[]
+  checklists         VehicleChecklist[]
+  issues             VehicleIssue[]
+  maintenanceRecords VehicleMaintenanceRecord[]
+}
+
+// Historical maintenance log, imported from Jo's "Asset Maintainence List"
+// spreadsheet (one sheet per rego, 2026-09-26) — free-text fields kept as
+// close to the source as possible rather than force-fit into structured data.
+model VehicleMaintenanceRecord {
+  id             String    @id @default(cuid())
+  vehicleId      String
+  vehicle        Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  checklistDate  DateTime?
+  completedBy    String?
+  wofDate        String? // kept as text — source dates are inconsistently formatted, some rows aren't dates at all (e.g. "Service")
+  kms            String?
+  comments       String?
+  actions        String?
+  estimatedValue Float?
+  createdAt      DateTime  @default(now())
+
+  @@index([vehicleId, checklistDate])
 }
 
 // "Notify Issue" (a driver flags something wrong) and "Request Service"
@@ -390,6 +419,9 @@ model Asset {
   assignedToVehicle   Vehicle?  @relation(fields: [assignedToVehicleId], references: [id], onDelete: SetNull)
   // Electrical test & tag due date — mainly relevant for assetType "Tools" (NZ AS/NZS 3760).
   testTagDueDate      DateTime?
+  serialNumber        String?
+  estimatedValue      Float?
+  receiptNote         String? // purchase reference / where the receipt is kept — not a file upload (yet)
   status              String    @default("Active")
   createdAt           DateTime  @default(now())
 

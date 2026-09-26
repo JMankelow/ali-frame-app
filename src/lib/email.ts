@@ -124,7 +124,7 @@ export async function sendCheckMeasureBookingEmail(params: {
   }
 }
 
-export async function sendPlainNotificationEmail(params: { to: string; subject: string; text: string }) {
+export async function sendPlainNotificationEmail(params: { to: string | string[]; subject: string; text: string }) {
   const from = process.env.EMAIL_FROM;
   if (!process.env.RESEND_API_KEY || !from) {
     if (process.env.NODE_ENV === "production") {

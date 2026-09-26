@@ -93,6 +93,7 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
           raisedById: user.id,
         },
       });
+      await logAudit({ userId: user.id, action: "remedial_auto_raised", entityType: "Job", entityId: number });
     }
   }
 

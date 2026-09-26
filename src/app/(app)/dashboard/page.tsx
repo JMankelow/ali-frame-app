@@ -29,7 +29,7 @@ export default async function DashboardPage() {
     prisma.vehicleIssue.count({ where: { status: "Open" } }),
     prisma.note.count({ where: { assignedToId: user.id, status: { not: "Done" } } }),
     prisma.job.findMany({
-      where: { archived: false, status: { not: "Complete" } },
+      where: { archived: false, status: { not: "Completed" } },
       include: { costing: { select: { quotedTotal: true } } },
     }),
     getXeroConnectionStatus(),

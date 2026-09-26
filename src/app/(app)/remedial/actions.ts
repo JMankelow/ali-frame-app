@@ -6,9 +6,9 @@ import { requireUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { sendPlainNotificationEmail } from "@/lib/email";
 
-// Jo asked that Tanya (Operations) always be notified when a remedial is
-// raised, regardless of who it's assigned to.
-const OPERATIONS_NOTIFY_EMAIL = "tanya@aliframe.co.nz";
+// Jo asked that Tanya and Tristam (Operations) always be notified when a
+// remedial is raised, regardless of who it's assigned to.
+const OPERATIONS_NOTIFY_EMAILS = ["tanya@aliframe.co.nz", "tristam@aliframe.co.nz"];
 
 export interface RemedialFormState {
   error?: string;
@@ -33,19 +33,21 @@ export async function createRemedialItem(_prevState: RemedialFormState, formData
   });
 
   await sendPlainNotificationEmail({
-    to: OPERATIONS_NOTIFY_EMAIL,
+    to: OPERATIONS_NOTIFY_EMAILS,
     subject: `Remedial raised — ${jobNumber} (${priority})`,
     text: `${user.name} raised a remedial item on job ${jobNumber}:\n\n${issue}\n\nPriority: ${priority}`,
   });
 
-  await logAudit({ userId: user.id, action: "remedial_created", entityType: "RemedialItem", metadata: { jobNumber, priority } });
+  await logAudit({ userId: user.id, action: "remedial_created", entityType: "Job", entityId: jobNumber, metadata: { priority, issue } });
   revalidatePath("/remedial");
+  revalidatePath(`/jobs/${jobNumber}`);
   return {};
 }
 
 export async function resolveRemedialItem(id: string) {
   const user = await requireUser();
-  await prisma.remedialItem.update({ where: { id }, data: { status: "Resolved", resolvedAt: new Date() } });
-  await logAudit({ userId: user.id, action: "remedial_resolved", entityType: "RemedialItem", entityId: id });
+  const item = await prisma.remedialItem.update({ where: { id }, data: { status: "Resolved", resolvedAt: new Date() } });
+  await logAudit({ userId: user.id, action: "remedial_resolved", entityType: "Job", entityId: item.jobNumber });
   revalidatePath("/remedial");
+  revalidatePath(`/jobs/${item.jobNumber}`);
 }

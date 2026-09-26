@@ -58,6 +58,18 @@ export function AssetForm({
             <label htmlFor="testTagDueDate">Test &amp; Tag Due (if electrical)</label>
             <input id="testTagDueDate" name="testTagDueDate" type="date" />
           </div>
+          <div>
+            <label htmlFor="serialNumber">Serial Number</label>
+            <input id="serialNumber" name="serialNumber" />
+          </div>
+          <div>
+            <label htmlFor="estimatedValue">Estimated Value ($)</label>
+            <input id="estimatedValue" name="estimatedValue" type="number" step="0.01" min="0" />
+          </div>
+          <div className="full">
+            <label htmlFor="receiptNote">Receipt / Purchase Reference</label>
+            <input id="receiptNote" name="receiptNote" placeholder="e.g. Mitre 10, invoice #1234, kept in office folder" />
+          </div>
           <div className="full">
             <label htmlFor="description">Description</label>
             <input id="description" name="description" />

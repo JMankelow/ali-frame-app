@@ -1,13 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-
-const STATUS_COLOR: Record<string, string> = {
-  New: "blue",
-  "In Progress": "purple",
-  "On Hold": "orange",
-  Complete: "green",
-};
+import { JOB_STATUS_COLOR as STATUS_COLOR } from "@/lib/jobStatus";
 
 export default async function CrewPage() {
   const user = await requireUser();

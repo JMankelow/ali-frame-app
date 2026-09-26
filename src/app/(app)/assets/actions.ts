@@ -19,6 +19,9 @@ export async function createAsset(_prevState: AssetFormState, formData: FormData
   const assignedToUserId = String(formData.get("assignedToUserId") ?? "").trim();
   const assignedToVehicleId = String(formData.get("assignedToVehicleId") ?? "").trim();
   const testTagDueDate = String(formData.get("testTagDueDate") ?? "").trim();
+  const serialNumber = String(formData.get("serialNumber") ?? "").trim();
+  const estimatedValueRaw = String(formData.get("estimatedValue") ?? "").trim();
+  const receiptNote = String(formData.get("receiptNote") ?? "").trim();
 
   if (!name) return { error: "Asset name is required." };
   if (assignedToUserId && assignedToVehicleId) return { error: "Assign to a person OR a vehicle, not both." };
@@ -31,6 +34,9 @@ export async function createAsset(_prevState: AssetFormState, formData: FormData
       assignedToUserId: assignedToUserId || null,
       assignedToVehicleId: assignedToVehicleId || null,
       testTagDueDate: testTagDueDate ? new Date(testTagDueDate) : null,
+      serialNumber: serialNumber || null,
+      estimatedValue: estimatedValueRaw ? parseFloat(estimatedValueRaw) : null,
+      receiptNote: receiptNote || null,
     },
   });
 

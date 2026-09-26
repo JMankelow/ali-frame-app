@@ -74,6 +74,68 @@ export async function completeVehicleChecklist(id: string, formData: FormData) {
   revalidatePath("/assets");
 }
 
+const MONTHLY_DEFAULT_ITEMS = [
+  "Oil level",
+  "Tyre condition & pressure",
+  "Lights working",
+  "Warning lights on dash",
+  "Vehicle clean/tidy",
+  "Damage to report",
+].join("\n");
+
+/**
+ * Creates and emails one checklist for every vehicle that has a driver
+ * assigned, unless one has already been created for that vehicle this
+ * calendar month. Called by the monthly cron route
+ * (src/app/api/cron/vehicle-checklists-monthly) — not wired to any button.
+ */
+export async function createMonthlyVehicleChecklists(): Promise<{ created: number; skipped: number }> {
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const vehicles = await prisma.vehicle.findMany({ where: { assignedToUserId: { not: null } }, include: { assignedToUser: true } });
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const vehicle of vehicles) {
+    if (!vehicle.assignedToUser) continue;
+    const alreadyThisMonth = await prisma.vehicleChecklist.findFirst({
+      where: { vehicleId: vehicle.id, createdAt: { gte: startOfMonth } },
+    });
+    if (alreadyThisMonth) {
+      skipped += 1;
+      continue;
+    }
+
+    const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const checklist = await prisma.vehicleChecklist.create({
+      data: {
+        vehicleId: vehicle.id,
+        assignedToId: vehicle.assignedToUser.id,
+        dueDate,
+        items: MONTHLY_DEFAULT_ITEMS,
+      },
+    });
+
+    await sendVehicleChecklistEmail({
+      to: vehicle.assignedToUser.email,
+      vehicleName: vehicle.name,
+      items: MONTHLY_DEFAULT_ITEMS.split("\n"),
+      dueDate,
+      checklistUrl: `${appUrl()}/vehicles/${encodeURIComponent(vehicle.name)}`,
+    });
+
+    await logAudit({
+      action: "vehicle_checklist_monthly_created",
+      entityType: "VehicleChecklist",
+      entityId: checklist.id,
+      metadata: { vehicleId: vehicle.id, assignedToId: vehicle.assignedToUser.id },
+    });
+    created += 1;
+  }
+
+  return { created, skipped };
+}
+
 /**
  * Emails management for every Pending checklist past its due date that
  * hasn't already triggered an alert. Called by the daily cron route

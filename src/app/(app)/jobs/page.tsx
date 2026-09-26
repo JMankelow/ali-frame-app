@@ -13,13 +13,16 @@ export default async function JobsPage({
   const showArchived = archived === "1";
   const jobType = type === "Residential" || type === "Commercial" ? type.toUpperCase() : null;
 
-  const jobs = await prisma.job.findMany({
+  const jobsRaw = await prisma.job.findMany({
     where: {
       archived: showArchived,
       ...(jobType ? { type: jobType as "RESIDENTIAL" | "COMMERCIAL" } : {}),
     },
+    include: { client: true },
     orderBy: { createdAt: "desc" },
   });
+
+  const jobs = jobsRaw.map((j) => ({ ...j, clientName: j.client?.name ?? null }));
 
   const heading = showArchived ? "Inactive Jobs" : type ? `${type} Jobs` : "Jobs";
 
