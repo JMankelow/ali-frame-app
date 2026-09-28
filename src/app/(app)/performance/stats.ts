@@ -1,6 +1,20 @@
 import "server-only";
 import { prisma } from "@/lib/prisma";
 
+// The imported Job Tracking spreadsheet's remedialSeniorName column has the
+// short names staff were known by at the time of import (2026-09-26), before
+// their accounts were renamed to full legal names — kept here so historical
+// rows still match after the rename.
+const HISTORICAL_NAME_ALIASES: Record<string, string[]> = {
+  "Aisea Fifita": ["Fita"],
+  "Amanaki Fukofuka": ["Naki"],
+  "Gulio Folauola Puniani Afu": ["Gulio"],
+  "Jake Iakopo": ["Jake"],
+  "Siauane Siauane": ["Siauane"],
+  "Siosiuafale Hauhautapu": ["Tapu"],
+  "Matthew Batey": ["Matt"],
+};
+
 export interface InstallerStats {
   userId: string;
   name: string;
@@ -47,7 +61,10 @@ function calculateScore(avgQualityScore: number | null, jobsCount: number, remed
 
 export async function getInstallerStats(): Promise<InstallerStats[]> {
   const installers = await prisma.user.findMany({
-    where: { isActive: true, role: { in: ["SENIOR_INSTALLER", "CREW_MOBILE"] } },
+    where: {
+      isActive: true,
+      role: { in: ["SENIOR_INSTALLER", "INTERMEDIATE_INSTALLER", "JUNIOR_INSTALLER", "CREW_MOBILE", "CONTRACTOR"] },
+    },
     orderBy: { name: "asc" },
   });
 
@@ -61,7 +78,11 @@ export async function getInstallerStats(): Promise<InstallerStats[]> {
           orderBy: { createdAt: "desc" },
         }),
         prisma.jobCosting.findMany({
-          where: { remedialSeniorName: { equals: installer.name, mode: "insensitive" } },
+          where: {
+            OR: [installer.name, ...(HISTORICAL_NAME_ALIASES[installer.name] ?? [])].map((n) => ({
+              remedialSeniorName: { equals: n, mode: "insensitive" as const },
+            })),
+          },
           select: { remedialCost: true },
         }),
       ]);
