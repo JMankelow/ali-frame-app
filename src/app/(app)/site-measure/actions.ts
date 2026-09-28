@@ -5,7 +5,6 @@ import { requireUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendSiteMeasureEmail } from "@/lib/email";
-import { SUPPLIER_CONTACTS } from "@/lib/supplierContacts";
 
 export interface SendSiteMeasureState {
   error?: string;
@@ -13,8 +12,8 @@ export interface SendSiteMeasureState {
 
 /**
  * Emails the finished sheet's sketch images (already uploaded to R2 as FileAssets)
- * to a supplier contact. The recipient is only ever looked up from
- * SUPPLIER_CONTACTS for the job's own supplier — never an address the caller
+ * to a supplier contact. The recipient is only ever looked up from the real
+ * Supplier table for the job's own supplier — never an address the caller
  * supplies directly — so this can't be turned into an arbitrary email relay.
  */
 export async function sendSiteMeasureSheetEmail(params: {
@@ -30,8 +29,11 @@ export async function sendSiteMeasureSheetEmail(params: {
   if (!job) return { error: `Job ${jobNumber} not found.` };
   if (!job.supplier) return { error: "This job has no supplier set." };
 
-  const contacts = SUPPLIER_CONTACTS[job.supplier] ?? [];
-  const contact = contacts.find((c) => c.email === supplierEmail);
+  const target = job.supplier.trim().toLowerCase();
+  const suppliers = await prisma.supplier.findMany({ where: { email: supplierEmail } });
+  const contact = suppliers.find(
+    (s) => s.companyName.toLowerCase() === target || target.includes(s.companyName.toLowerCase()) || s.companyName.toLowerCase().includes(target)
+  );
   if (!contact) return { error: "Unrecognized supplier contact for this job." };
 
   if (storageKeys.length === 0) return { error: "Draw at least one opening before emailing the sheet." };
@@ -46,7 +48,7 @@ export async function sendSiteMeasureSheetEmail(params: {
   );
 
   await sendSiteMeasureEmail({
-    to: contact.email,
+    to: supplierEmail,
     jobNumber,
     jobTitle: job.title,
     fromName: user.name,

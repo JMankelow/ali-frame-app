@@ -5,17 +5,20 @@ import { SiteMeasureSheet } from "./SiteMeasureSheet";
 export default async function SiteMeasurePage() {
   await requireUser();
 
-  const jobs = await prisma.job.findMany({
-    where: { archived: false },
-    orderBy: { createdAt: "desc" },
-    select: {
-      number: true,
-      title: true,
-      address: true,
-      supplier: true,
-      client: { select: { name: true, phone: true, email: true } },
-    },
-  });
+  const [jobs, suppliers] = await Promise.all([
+    prisma.job.findMany({
+      where: { archived: false },
+      orderBy: { createdAt: "desc" },
+      select: {
+        number: true,
+        title: true,
+        address: true,
+        supplier: true,
+        client: { select: { name: true, phone: true, email: true } },
+      },
+    }),
+    prisma.supplier.findMany({ select: { companyName: true, contactName: true, email: true } }),
+  ]);
 
   return (
     <div>
@@ -25,7 +28,7 @@ export default async function SiteMeasurePage() {
           <div className="subtitle">Freehand measure sheets, uploaded to the job's files and emailed to the supplier.</div>
         </div>
       </div>
-      <SiteMeasureSheet jobs={jobs} />
+      <SiteMeasureSheet jobs={jobs} suppliers={suppliers} />
     </div>
   );
 }

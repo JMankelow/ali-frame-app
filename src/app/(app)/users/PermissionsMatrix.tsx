@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setUserPermissions, setUserSuperUser, updateUserRole } from "./actions";
 import { SECTIONS } from "@/lib/permissions";
+import { ROLE_OPTIONS, ROLE_LABELS } from "@/lib/roles";
 
 export interface PermissionRow {
   id: string;
@@ -11,16 +12,6 @@ export interface PermissionRow {
   isSuperUser: boolean;
   permissions: string[];
 }
-
-const ROLE_OPTIONS = ["ADMIN_MANAGEMENT", "OFFICE_SCHEDULING", "SALES", "SENIOR_INSTALLER", "CREW_MOBILE", "READ_ONLY"];
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN_MANAGEMENT: "Admin / Management",
-  OFFICE_SCHEDULING: "Office / Scheduling",
-  SALES: "Sales",
-  SENIOR_INSTALLER: "Senior Installer",
-  CREW_MOBILE: "Crew Mobile",
-  READ_ONLY: "Read Only",
-};
 
 export function PermissionsMatrix({ rows, currentUserId }: { rows: PermissionRow[]; currentUserId: string }) {
   return (

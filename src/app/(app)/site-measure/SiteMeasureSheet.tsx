@@ -4,8 +4,22 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { OpeningCanvas } from "./OpeningCanvas";
 import { requestUpload, confirmUpload } from "../files/actions";
 import { sendSiteMeasureSheetEmail } from "./actions";
-import { SUPPLIER_CONTACTS } from "@/lib/supplierContacts";
 import { JobPicker } from "@/components/JobPicker";
+
+export interface SupplierContact {
+  companyName: string;
+  contactName: string | null;
+  email: string | null;
+}
+
+// Jo's named preferred contact per supplier (2026-09-26) — used to default
+// the dropdown's selection when a supplier has more than one contact on file.
+const PREFERRED_CONTACT: Record<string, string> = {
+  "vision windows": "sales",
+  "nz windows": "paul",
+  "altherm west": "troy",
+  counties: "maree",
+};
 
 export interface JobOption {
   number: string;
@@ -105,11 +119,13 @@ function PageBlock({
   pageNum,
   job,
   color,
+  openings,
   registerCanvas,
 }: {
   pageNum: number;
   job: JobOption;
   color: string;
+  openings: number[];
   registerCanvas: (id: string, el: HTMLCanvasElement | null) => void;
 }) {
   const p = `page${pageNum}`;
@@ -166,17 +182,17 @@ function PageBlock({
           <input type="text" name={`${p}_rubbishRemoval`} />
         </div>
       </div>
-      {[1, 2, 3, 4].map((i) => (
+      {openings.map((i) => (
         <OpeningBlock key={i} pageNum={pageNum} openingIndex={i} color={color} registerCanvas={registerCanvas} />
       ))}
     </div>
   );
 }
 
-export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
+export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppliers: SupplierContact[] }) {
   const [selectedJobNumber, setSelectedJobNumber] = useState("");
   const [opened, setOpened] = useState(false);
-  const [pages, setPages] = useState<number[]>([]);
+  const [openings, setOpenings] = useState<number[]>([]);
   const [color, setColor] = useState(PEN_COLORS[0].value);
   const [supplierEmail, setSupplierEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -186,7 +202,26 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
   const canvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   const job = useMemo(() => jobs.find((j) => j.number === selectedJobNumber) ?? null, [jobs, selectedJobNumber]);
-  const contacts = useMemo(() => (job?.supplier ? SUPPLIER_CONTACTS[job.supplier] ?? [] : []), [job]);
+
+  const contacts = useMemo(() => {
+    if (!job?.supplier) return [];
+    const target = job.supplier.trim().toLowerCase();
+    const matches = suppliers.filter(
+      (s) => s.companyName.toLowerCase() === target || target.includes(s.companyName.toLowerCase()) || s.companyName.toLowerCase().includes(target)
+    );
+    return matches
+      .filter((s) => s.email)
+      .map((s) => ({ name: s.contactName ? `${s.contactName} (${s.companyName})` : s.companyName, email: s.email as string }));
+  }, [job, suppliers]);
+
+  const preferredEmail = useMemo(() => {
+    if (!job?.supplier || contacts.length === 0) return contacts[0]?.email ?? "";
+    const key = Object.keys(PREFERRED_CONTACT).find((k) => job.supplier!.toLowerCase().includes(k));
+    const hint = key ? PREFERRED_CONTACT[key] : null;
+    if (!hint) return contacts[0].email;
+    const preferred = contacts.find((c) => c.name.toLowerCase().includes(hint) || c.email.toLowerCase().includes(hint));
+    return preferred?.email ?? contacts[0].email;
+  }, [job, contacts]);
 
   // Stable identity across re-renders — OpeningCanvas passes this straight into a
   // ref callback, and a ref callback that changes identity every render gets
@@ -201,13 +236,13 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
     if (!selectedJobNumber) return setError("Select a job first.");
     setError("");
     canvasesRef.current.clear();
-    setPages([1]);
+    setOpenings([1, 2, 3, 4]);
     setOpened(true);
-    setSupplierEmail(contacts[0]?.email ?? "");
+    setSupplierEmail(preferredEmail);
   }
 
-  function addPage() {
-    setPages((prev) => [...prev, (prev[prev.length - 1] ?? 0) + 1]);
+  function addOpening() {
+    setOpenings((prev) => [...prev, (prev[prev.length - 1] ?? 0) + 1]);
   }
 
   function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
@@ -267,12 +302,12 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
       const { error: sendError } = await sendSiteMeasureSheetEmail({
         jobNumber: job.number,
         supplierEmail,
-        pageCount: pages.length,
+        pageCount: 1,
         storageKeys,
       });
       if (sendError) throw new Error(sendError);
 
-      setStatus(`Sent — uploaded ${uploaded} sketch(es) and emailed the ${pages.length}-page sheet.`);
+      setStatus(`Sent — uploaded ${uploaded} sketch(es) and emailed the sheet.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setStatus("");
@@ -324,16 +359,14 @@ export function SiteMeasureSheet({ jobs }: { jobs: JobOption[] }) {
                   {c.label}
                 </button>
               ))}
-              <button type="button" className="btn primary" onClick={addPage}>
-                + Add New Page
+              <button type="button" className="btn primary" onClick={addOpening}>
+                + Add New Box
               </button>
             </div>
           </div>
 
           <form ref={formRef}>
-            {pages.map((n) => (
-              <PageBlock key={n} pageNum={n} job={job} color={color} registerCanvas={registerCanvas} />
-            ))}
+            <PageBlock pageNum={1} job={job} color={color} openings={openings} registerCanvas={registerCanvas} />
           </form>
 
           <div className="card" style={{ marginTop: 16 }}>

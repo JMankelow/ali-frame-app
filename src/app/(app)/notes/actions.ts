@@ -22,6 +22,20 @@ export async function createNote(_prevState: NoteFormState, formData: FormData):
 
   await logAudit({ userId: user.id, action: "note_created", entityType: "Note" });
   revalidatePath("/notes");
+  revalidatePath("/users");
+  return {};
+}
+
+export async function updateNoteText(id: string, _prevState: NoteFormState, formData: FormData): Promise<NoteFormState> {
+  const user = await requireUser();
+  const text = String(formData.get("text") ?? "").trim();
+  if (!text) return { error: "Task text can't be empty." };
+
+  await prisma.note.update({ where: { id }, data: { text } });
+  await logAudit({ userId: user.id, action: "note_edited", entityType: "Note", entityId: id });
+  revalidatePath("/notes");
+  revalidatePath("/tasks");
+  revalidatePath("/users");
   return {};
 }
 
@@ -31,6 +45,7 @@ export async function resolveNote(id: string) {
   await logAudit({ userId: user.id, action: "note_resolved", entityType: "Note", entityId: id });
   revalidatePath("/notes");
   revalidatePath("/tasks");
+  revalidatePath("/users");
 }
 
 /**

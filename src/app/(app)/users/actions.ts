@@ -7,6 +7,7 @@ import { requireSuperUser } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 import { logAudit } from "@/lib/audit";
 import type { Role } from "@prisma/client";
+import { ROLE_OPTIONS as VALID_ROLES } from "@/lib/roles";
 
 export interface UserFormState {
   error?: string;
@@ -14,15 +15,6 @@ export interface UserFormState {
   createdEmail?: string;
   createdUserId?: string;
 }
-
-const VALID_ROLES: Role[] = [
-  "ADMIN_MANAGEMENT",
-  "OFFICE_SCHEDULING",
-  "SALES",
-  "SENIOR_INSTALLER",
-  "CREW_MOBILE",
-  "READ_ONLY",
-];
 
 function generateTempPassword(): string {
   // Readable-ish random password, well above the 12-char minimum.

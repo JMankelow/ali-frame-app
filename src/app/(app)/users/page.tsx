@@ -3,15 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { deactivateUser, reactivateUser } from "./actions";
 import { UserForm } from "./UserForm";
 import { PermissionsMatrix } from "./PermissionsMatrix";
-
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN_MANAGEMENT: "Admin / Management",
-  OFFICE_SCHEDULING: "Office / Scheduling",
-  SALES: "Sales",
-  SENIOR_INSTALLER: "Senior Installer",
-  CREW_MOBILE: "Crew Mobile",
-  READ_ONLY: "Read Only",
-};
+import { UserTasksSection } from "./UserTasksSection";
+import { ROLE_LABELS } from "@/lib/roles";
 
 export default async function UsersPage() {
   // Real server-side gate — this page (and every action it calls) is
@@ -19,6 +12,12 @@ export default async function UsersPage() {
   // rule, but actually enforced server-side this time, not just a hidden tab.
   const actor = await requireSuperUser();
   const users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
+
+  const openTasks = await prisma.note.findMany({
+    where: { assignedToId: { not: null }, status: { not: "Done" } },
+    include: { author: true },
+    orderBy: { createdAt: "asc" },
+  });
 
   return (
     <div>
@@ -82,6 +81,20 @@ export default async function UsersPage() {
             .filter((u) => u.isActive)
             .map((u) => ({ id: u.id, name: u.name, role: u.role, isSuperUser: u.isSuperUser, permissions: u.permissions }))}
           currentUserId={actor.id}
+        />
+      </div>
+
+      <div style={{ marginTop: 16 }}>
+        <UserTasksSection
+          users={users
+            .filter((u) => u.isActive)
+            .map((u) => ({
+              id: u.id,
+              name: u.name,
+              tasks: openTasks
+                .filter((t) => t.assignedToId === u.id)
+                .map((t) => ({ id: t.id, text: t.text, authorName: t.author.name, createdAt: t.createdAt.toISOString() })),
+            }))}
         />
       </div>
     </div>
