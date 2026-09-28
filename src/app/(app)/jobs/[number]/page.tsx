@@ -10,6 +10,7 @@ import { ScheduledTasksSection, type ScheduledTaskRow } from "./ScheduledTasksSe
 import { JobNotesSection, type JobFeedItem } from "./JobNotesSection";
 import { JobChecklistSection, type ChecklistItem } from "./JobChecklistSection";
 import { PhotosSection } from "./PhotosSection";
+import { BookCheckMeasureForm } from "../../email-client/BookCheckMeasureForm";
 
 function money(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -405,6 +406,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           { key: "notes", label: "Notes", content: <JobNotesSection jobNumber={job.number} feed={feed} /> },
           { key: "files", label: "Files", content: filesTab },
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },
+          {
+            key: "emailclient",
+            label: "Email Client",
+            content: (
+              <BookCheckMeasureForm fixedJobNumber={job.number} fixedClientName={job.client?.name ?? job.title} />
+            ),
+          },
           { key: "charges", label: "Charges", content: comingSoon("Charges") },
           { key: "quotes", label: "Quotes", content: quotesTab },
           { key: "orders", label: "Purchase Orders", content: ordersTab },
