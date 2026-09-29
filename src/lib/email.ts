@@ -124,6 +124,35 @@ export async function sendCheckMeasureBookingEmail(params: {
   }
 }
 
+export async function sendRepricingEmail(params: {
+  to: string;
+  jobNumber: string;
+  subject: string;
+  text: string;
+  attachments: EmailAttachment[];
+}) {
+  const from = process.env.EMAIL_FROM;
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] Repricing email for ${params.jobNumber} would go to ${params.to}`);
+    return;
+  }
+
+  const result = await getResend().emails.send({
+    from,
+    to: params.to,
+    subject: params.subject,
+    text: params.text,
+    attachments: params.attachments,
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to send repricing email: ${result.error.message}`);
+  }
+}
+
 export async function sendPlainNotificationEmail(params: { to: string | string[]; subject: string; text: string }) {
   const from = process.env.EMAIL_FROM;
   if (!process.env.RESEND_API_KEY || !from) {

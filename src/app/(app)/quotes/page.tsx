@@ -64,8 +64,24 @@ export default async function QuotesPage() {
               const isExpired = q.expiryDate ? q.expiryDate < today : false;
               return (
                 <tr key={q.id}>
-                  <td>{q.quoteNumber}</td>
-                  <td>{q.customerName}</td>
+                  <td>
+                    {q.jobNumber ? (
+                      <Link href={`/jobs/${q.jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                        {q.quoteNumber}
+                      </Link>
+                    ) : (
+                      q.quoteNumber
+                    )}
+                  </td>
+                  <td>
+                    {q.jobNumber ? (
+                      <Link href={`/jobs/${q.jobNumber}`} style={{ color: "var(--blueDark)", textDecoration: "none" }}>
+                        {q.customerName}
+                      </Link>
+                    ) : (
+                      q.customerName
+                    )}
+                  </td>
                   <td>
                     {q.jobNumber ? (
                       <Link href={`/jobs/${q.jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
