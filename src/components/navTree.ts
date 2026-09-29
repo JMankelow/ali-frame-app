@@ -149,6 +149,7 @@ export const NAV_TREE: NavGroup[] = [
   {
     label: "Human Resources",
     items: [
+      { label: "Employees", href: "/employees" },
       { label: "Assets", href: "/assets" },
       { label: "Vehicles", href: "/vehicles" },
       { label: "Timesheets", href: "/timesheets" },
