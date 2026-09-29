@@ -61,6 +61,54 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
         }))}
       />
 
+      {(vehicle.vin || vehicle.insuranceCompany || vehicle.currentOdometerKm != null) && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="label">Fleet Details</div>
+          <div className="hint" style={{ marginTop: 4 }}>
+            Imported from the real asset register (2026-09-30).
+          </div>
+          <div className="form" style={{ marginTop: 10 }}>
+            <div>
+              <label>VIN</label>
+              <div>{vehicle.vin ?? "—"}</div>
+            </div>
+            <div>
+              <label>Insurance</label>
+              <div>
+                {vehicle.insuranceCompany ?? "—"}
+                {vehicle.insurancePolicyNumber ? ` (Policy ${vehicle.insurancePolicyNumber})` : ""}
+              </div>
+            </div>
+            <div>
+              <label>Preferred Workshop</label>
+              <div>{vehicle.preferredWorkshop ?? "—"}</div>
+            </div>
+            <div>
+              <label>Fuel Card</label>
+              <div>{vehicle.fuelCardNumber ?? "—"}</div>
+            </div>
+            <div>
+              <label>Current Odometer</label>
+              <div>{vehicle.currentOdometerKm?.toLocaleString("en-NZ") ?? "—"} km</div>
+            </div>
+            <div>
+              <label>Next Service Due</label>
+              <div>{vehicle.nextServiceDueKm?.toLocaleString("en-NZ") ?? "—"} km</div>
+            </div>
+            <div>
+              <label>Last Service Date</label>
+              <div>{vehicle.lastServiceDate ? vehicle.lastServiceDate.toLocaleDateString("en-NZ") : "—"}</div>
+            </div>
+            {vehicle.vehicleNotes && (
+              <div className="full">
+                <label>Notes</label>
+                <div>{vehicle.vehicleNotes}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {vehicle.rucType && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="label">RUC (Road User Charges)</div>

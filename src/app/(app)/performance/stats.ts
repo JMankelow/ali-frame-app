@@ -3,10 +3,11 @@ import { prisma } from "@/lib/prisma";
 
 // The imported Job Tracking spreadsheet's remedialSeniorName column has the
 // short names staff were known by at the time of import (2026-09-26), before
-// their accounts were renamed to full legal names — kept here so historical
-// rows still match after the rename.
+// their accounts were renamed (twice, as more authoritative sources —
+// SharePoint, then the real asset register — corrected the names) — kept
+// here so historical rows still match after each rename.
 const HISTORICAL_NAME_ALIASES: Record<string, string[]> = {
-  "Aisea Fifita": ["Fita"],
+  "Fita Fifita": ["Fita", "Aisea Fifita"],
   "Amanaki Fukofuka": ["Naki"],
   "Gulio Folauola Puniani Afu": ["Gulio"],
   "Jake Iakopo": ["Jake"],

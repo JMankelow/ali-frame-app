@@ -346,25 +346,36 @@ model Acceptance {
 }
 
 model Vehicle {
-  id               String    @id @default(cuid())
-  name             String    @unique
-  rego             String?
-  wofDueDate       DateTime?
-  regoDueDate      DateTime?
-  serviceDueDate   DateTime?
-  assignedToUserId String?
-  assignedToUser   User?     @relation("VehicleDriver", fields: [assignedToUserId], references: [id], onDelete: SetNull)
-  mechanicEmail    String?
+  id                    String    @id @default(cuid())
+  name                  String    @unique
+  rego                  String?
+  wofDueDate            DateTime?
+  regoDueDate           DateTime?
+  serviceDueDate        DateTime?
+  assignedToUserId      String?
+  assignedToUser        User?     @relation("VehicleDriver", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  mechanicEmail         String?
   // RUC (Road User Charges) tracking — seeded from a manual EROAD screenshot
   // (2026-09-26) until a real EROAD API connection exists (needs Jo's EROAD
   // account manager to issue API access; see src/app/(app)/sync/eroad).
-  rucType          String? // "D-2" / "D-3" licence type
-  rucOdometerKm    Int?
-  rucStartDistKm   Int?
-  rucEndDistKm     Int?
-  rucRemainingKm   Int?
-  rucUpdatedAt     DateTime?
-  createdAt        DateTime  @default(now())
+  rucType               String? // "D-2" / "D-3" licence type
+  rucOdometerKm         Int?
+  rucStartDistKm        Int?
+  rucEndDistKm          Int?
+  rucRemainingKm        Int?
+  rucUpdatedAt          DateTime?
+  // Fleet/insurance details, imported from Jo's real asset register
+  // (2026-09-30).
+  vin                   String?
+  insuranceCompany      String?
+  insurancePolicyNumber String?
+  preferredWorkshop     String?
+  fuelCardNumber        String?
+  vehicleNotes          String? // e.g. EROAD unit serial, roof racks, towbar
+  currentOdometerKm     Int?
+  nextServiceDueKm      Int?
+  lastServiceDate       DateTime?
+  createdAt             DateTime  @default(now())
 
   assets             Asset[]
   checklists         VehicleChecklist[]
