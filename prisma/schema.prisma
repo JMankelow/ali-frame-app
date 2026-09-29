@@ -77,6 +77,27 @@ model User {
   scheduledTasksCreated     JobScheduledTask[]    @relation("JobScheduledTaskCreatedBy")
   leave                     StaffLeave[]          @relation("StaffLeavePeople")
   leaveCreated              StaffLeave[]          @relation("StaffLeaveCreatedBy")
+  employeeDocuments         EmployeeDocument[]    @relation("EmployeeDocumentOwner")
+  employeeDocumentsUploaded EmployeeDocument[]    @relation("EmployeeDocumentUploadedBy")
+}
+
+// HR files (contracts, ID, certifications) — same R2-backed upload pipeline
+// as job Files, just namespaced under employees/ instead of jobs/ and linked
+// to a person instead of a job.
+model EmployeeDocument {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation("EmployeeDocumentOwner", fields: [userId], references: [id], onDelete: Cascade)
+  fileName     String
+  docType      String   @default("Other") // Contract / ID / Certification / Other
+  storageKey   String   @unique
+  mimeType     String
+  sizeBytes    Int
+  uploadedById String?
+  uploadedBy   User?    @relation("EmployeeDocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // A short-lived marker created right after password verification, before the

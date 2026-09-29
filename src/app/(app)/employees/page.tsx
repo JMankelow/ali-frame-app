@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABELS } from "@/lib/roles";
@@ -35,7 +36,11 @@ export default async function EmployeesPage() {
           <tbody>
             {employees.map((e) => (
               <tr key={e.id}>
-                <td style={{ fontWeight: 700 }}>{e.name}</td>
+                <td style={{ fontWeight: 700 }}>
+                  <Link href={`/employees/${e.id}`} style={{ color: "var(--blueDark)", textDecoration: "none" }}>
+                    {e.name}
+                  </Link>
+                </td>
                 <td>{ROLE_LABELS[e.role] ?? e.role}</td>
                 <td>{e.email}</td>
                 <td>
