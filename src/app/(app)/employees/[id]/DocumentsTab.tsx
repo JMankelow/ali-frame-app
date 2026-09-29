@@ -13,7 +13,17 @@ export interface EmployeeDocRow {
   date: string;
 }
 
-export function DocumentsTab({ userId, documents, canManage }: { userId: string; documents: EmployeeDocRow[]; canManage: boolean }) {
+export function DocumentsTab({
+  userId,
+  documents,
+  canManage,
+  sharePointUrl,
+}: {
+  userId: string;
+  documents: EmployeeDocRow[];
+  canManage: boolean;
+  sharePointUrl: string;
+}) {
   const [docType, setDocType] = useState(DOC_TYPES[0]);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
@@ -66,9 +76,15 @@ export function DocumentsTab({ userId, documents, canManage }: { userId: string;
 
   return (
     <div className="card">
-      <div className="label">Employee Documents</div>
+      <div className="topbar" style={{ marginBottom: 8 }}>
+        <div className="label">Employee Documents</div>
+        <a href={sharePointUrl} target="_blank" rel="noopener noreferrer" className="btn primary">
+          Open in SharePoint ↗
+        </a>
+      </div>
       <div className="hint" style={{ marginTop: 4, marginBottom: 10 }}>
-        Contracts, ID, certifications — stored securely, visible to admins.
+        This person's real HR file (contract, ID, certifications) lives in SharePoint, under 1 - Employees -
+        Installers. The uploader below is only a stopgap until documents go straight to SharePoint.
       </div>
 
       {canManage && (

@@ -7,6 +7,7 @@ import { EmployeeDetailsTab } from "./EmployeeDetailsTab";
 import { DocumentsTab } from "./DocumentsTab";
 import { ReviewsTab } from "./ReviewsTab";
 import { JobHistoryTab } from "./JobHistoryTab";
+import { buildEmployeeSharePointUrl } from "@/lib/sharepoint";
 
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const currentUser = await requireUser();
@@ -84,6 +85,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
               <DocumentsTab
                 userId={employee.id}
                 canManage={currentUser.isSuperUser}
+                sharePointUrl={buildEmployeeSharePointUrl(employee.name)}
                 documents={documents.map((d) => ({
                   id: d.id,
                   fileName: d.fileName,

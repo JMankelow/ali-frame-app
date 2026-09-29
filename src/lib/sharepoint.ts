@@ -12,3 +12,12 @@ const SHAREPOINT_BASE = "https://blbconsultantsltd-my.sharepoint.com/personal/jo
 export function buildSharePointSearchUrl(jobNumber: string): string {
   return `${SHAREPOINT_BASE}/_layouts/15/search.aspx?q=${encodeURIComponent(jobNumber)}`;
 }
+
+// Employee HR folders live under the same site
+// ("Management - Documents/Human Resources/Operations Human Resources/1 -
+// Employees - Installers/<Surname, Firstname or full name>"), inconsistently
+// named — some "Surname, Firstname", some full name as-is — so this searches
+// by name rather than guessing the exact folder string.
+export function buildEmployeeSharePointUrl(employeeName: string): string {
+  return `${SHAREPOINT_BASE}/_layouts/15/search.aspx?q=${encodeURIComponent(employeeName)}`;
+}
