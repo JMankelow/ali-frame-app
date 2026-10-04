@@ -5,7 +5,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireSuperUser } from "@/lib/session";
+import { requireUser, requireSuperUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { PRESTART_CHECKS, RISK_LEVELS, HS_IMPORT_STATUS } from "@/lib/hsDocs";
 
@@ -19,7 +19,7 @@ const done = () => revalidatePath("/health-safety");
 
 // ---- Training & Competency Register ----
 export async function saveCompetency(fd: FormData) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const id = str(fd, "id");
   const name = str(fd, "name");
   if (!name) return;
@@ -42,7 +42,7 @@ export async function saveCompetency(fd: FormData) {
 
 /** Archive, never hard-delete (standing rule). */
 export async function archiveCompetency(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.hsCompetency.update({ where: { id }, data: { active: false } });
   await logAudit({ userId: user.id, action: "hs_competency_archived", entityType: "HsCompetency", entityId: id });
   done();
@@ -50,7 +50,7 @@ export async function archiveCompetency(id: string) {
 
 // ---- Company Hazard & Risk Register ----
 export async function saveRisk(fd: FormData) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const id = str(fd, "id");
   const hazard = str(fd, "hazard");
   const activity = str(fd, "activity");
@@ -73,7 +73,7 @@ export async function saveRisk(fd: FormData) {
 }
 
 export async function closeRisk(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.hsRisk.update({ where: { id }, data: { status: "Closed" } });
   await logAudit({ userId: user.id, action: "hs_risk_closed", entityType: "HsRisk", entityId: id });
   done();
@@ -113,7 +113,7 @@ export async function createJsa(fd: FormData) {
 
 // ---- Site Specific Safety Plan ----
 export async function saveSssp(fd: FormData) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const jobNumber = str(fd, "jobNumber");
   if (!jobNumber) return;
   const s = (k: string) => str(fd, k) || null;
@@ -158,7 +158,7 @@ export async function addSsspSignOn(fd: FormData) {
 
 // ---- Inductions ----
 export async function createInduction(fd: FormData) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const userId = str(fd, "userId");
   if (!userId) return;
   await prisma.hsInduction.create({

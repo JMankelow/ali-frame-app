@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { sendPlainNotificationEmail } from "@/lib/email";
 
@@ -13,7 +13,7 @@ export interface JobFormState {
 export async function createJob(_prevState: JobFormState, formData: FormData): Promise<JobFormState> {
   // Real, server-side check — every signed-in user can create a job for now;
   // tighten with requireRole(...) once role rules for Jobs are decided.
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const number = String(formData.get("number") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
@@ -49,7 +49,7 @@ export interface JobEditState {
 }
 
 export async function updateJobDetails(number: string, _prevState: JobEditState, formData: FormData): Promise<JobEditState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const clientName = String(formData.get("clientName") ?? "").trim();
   const clientPhone = String(formData.get("clientPhone") ?? "").trim();
@@ -178,7 +178,7 @@ export async function createScheduledTask(
   _prevState: ScheduledTaskState,
   formData: FormData
 ): Promise<ScheduledTaskState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const type = String(formData.get("type") ?? "").trim();
   const scheduledDateRaw = String(formData.get("scheduledDate") ?? "").trim();
@@ -237,7 +237,7 @@ export async function updateScheduledTask(
   _prevState: ScheduledTaskState,
   formData: FormData
 ): Promise<ScheduledTaskState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const existing = await prisma.jobScheduledTask.findUnique({ where: { id } });
   if (!existing) return { error: "Booking not found." };
@@ -279,14 +279,14 @@ export async function updateScheduledTask(
 }
 
 export async function archiveJob(number: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.job.update({ where: { number }, data: { archived: true } });
   await logAudit({ userId: user.id, action: "job_archived", entityType: "Job", entityId: number });
   revalidatePath("/jobs");
 }
 
 export async function reactivateJob(number: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.job.update({ where: { number }, data: { archived: false } });
   await logAudit({ userId: user.id, action: "job_reactivated", entityType: "Job", entityId: number });
   revalidatePath("/jobs");
@@ -299,7 +299,7 @@ export interface SendTemplateState {
 
 /** Sends a (possibly hand-edited) templated email about a job, recorded on that job's activity feed. */
 export async function sendTemplatedEmail(_prevState: SendTemplateState, formData: FormData): Promise<SendTemplateState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const to = String(formData.get("to") ?? "").trim();
   const subject = String(formData.get("subject") ?? "").trim();

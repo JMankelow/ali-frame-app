@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface PurchaseOrderFormState {
@@ -10,7 +10,7 @@ export interface PurchaseOrderFormState {
 }
 
 export async function createPurchaseOrder(_prevState: PurchaseOrderFormState, formData: FormData): Promise<PurchaseOrderFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const poNumber = String(formData.get("poNumber") ?? "").trim();
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
@@ -38,7 +38,7 @@ export async function createPurchaseOrder(_prevState: PurchaseOrderFormState, fo
 }
 
 export async function markPurchaseOrderReceived(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const po = await prisma.purchaseOrder.update({ where: { id }, data: { status: "Received", receivedAt: new Date() } });
   await logAudit({
     userId: user.id,

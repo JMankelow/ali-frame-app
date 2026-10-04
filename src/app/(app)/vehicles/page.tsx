@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
+import { InstallerVehicles } from "./InstallerVehicles";
 import { prisma } from "@/lib/prisma";
 import { ChecklistForm } from "./ChecklistForm";
 import { ChecklistRow } from "./ChecklistRow";
@@ -9,7 +11,8 @@ function toDateInput(d: Date | null): string {
 }
 
 export default async function VehiclesPage() {
-  await requireUser();
+  const me = await requireUser();
+  if (isInstallerProfile(me)) return <InstallerVehicles userId={me.id} />;
 
   const [vehicles, staff, checklists] = await Promise.all([
     prisma.vehicle.findMany({

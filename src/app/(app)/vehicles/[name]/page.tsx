@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { VehicleCard } from "../VehicleCard";
 import { ChecklistRow } from "../ChecklistRow";
 import { CreateChecklistForm } from "../CreateChecklistForm";
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ name: string }> }) {
-  await requireUser();
+  const me = await requireUser();
+  if (isInstallerProfile(me)) notFound(); // field staff use the lean "My Vehicle" view on /vehicles
   const { name } = await params;
 
   const [vehicle, staff] = await Promise.all([

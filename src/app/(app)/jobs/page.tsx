@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { JobForm } from "./JobForm";
 import { JobsView } from "./JobsView";
@@ -8,7 +9,8 @@ export default async function JobsPage({
 }: {
   searchParams: Promise<{ type?: string; archived?: string }>;
 }) {
-  await requireUser();
+  const user = await requireUser();
+  const readOnly = isInstallerProfile(user);
   const { type, archived } = await searchParams;
   const showArchived = archived === "1";
   const jobType = type === "Residential" || type === "Commercial" ? type.toUpperCase() : null;
@@ -37,9 +39,9 @@ export default async function JobsPage({
         </div>
       </div>
 
-      <JobsView jobs={jobs} showArchived={showArchived} />
+      <JobsView jobs={jobs} showArchived={showArchived} canManage={!readOnly} />
 
-      <JobForm />
+      {!readOnly && <JobForm />}
     </div>
   );
 }

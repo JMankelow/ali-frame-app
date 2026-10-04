@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export async function toggleGroupMember(groupId: string, userId: string, formData: FormData) {
-  const actor = await requireUser();
+  const actor = await requireNotInstaller();
   const shouldBeMember = formData.get("member") === "on";
 
   await prisma.communicationGroup.update({

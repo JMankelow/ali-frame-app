@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { sendPlainNotificationEmail } from "@/lib/email";
 
@@ -38,7 +38,7 @@ export async function createSafetyIncident(_prevState: SafetyIncidentFormState, 
 }
 
 export async function resolveSafetyIncident(id: string, formData: FormData) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const actionTaken = String(formData.get("actionTaken") ?? "").trim();
 
   await prisma.safetyIncident.update({

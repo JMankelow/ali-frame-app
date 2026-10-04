@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 import { getXeroConnectionStatus } from "@/lib/xero";
 import { getProfitAndLoss, type ParsedReport } from "@/lib/xeroReports";
 
@@ -58,7 +58,7 @@ export default async function ProfitAndLossPage({
 }: {
   searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
-  await requireUser();
+  await requireSuperUser();
   const connection = await getXeroConnectionStatus();
   const { range, from: customFrom, to: customTo } = await searchParams;
 

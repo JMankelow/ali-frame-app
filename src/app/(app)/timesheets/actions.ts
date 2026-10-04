@@ -66,6 +66,7 @@ export async function createTimesheetEntry(_prevState: TimesheetFormState, formD
 
   await logAudit({ userId: user.id, action: "timesheet_created", entityType: "TimesheetEntry", metadata: { jobNumber, staffUserId, totalHours } });
   revalidatePath("/timesheets");
+  revalidatePath(`/jobs/${jobNumber}`);
   return {};
 }
 

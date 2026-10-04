@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { CalendarFilters, ALL_TYPES } from "./CalendarFilters";
 import { AddLeaveForm } from "./AddLeaveForm";
@@ -45,7 +46,8 @@ export default async function CalendarPage({
 }: {
   searchParams: Promise<{ view?: string; date?: string; types?: string }>;
 }) {
-  await requireUser();
+  const me = await requireUser();
+  const readOnly = isInstallerProfile(me);
   const { view: viewRaw, date: dateRaw, types: typesRaw } = await searchParams;
   const view = viewRaw === "day" || viewRaw === "month" ? viewRaw : "week";
   const anchor = dateRaw ? atMidnight(new Date(dateRaw)) : atMidnight(new Date());
@@ -241,9 +243,11 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      <div style={{ marginBottom: 12 }}>
-        <AddLeaveForm staff={staff} />
-      </div>
+      {!readOnly && (
+        <div style={{ marginBottom: 12 }}>
+          <AddLeaveForm staff={staff} />
+        </div>
+      )}
 
       <div
         className="card"

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface AssessmentFormState {
@@ -17,7 +17,7 @@ function parseScore(formData: FormData, field: string): number | null {
 }
 
 export async function submitInstallerAssessment(_prevState: AssessmentFormState, formData: FormData): Promise<AssessmentFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const revieweeId = String(formData.get("revieweeId") ?? "").trim();
   if (!revieweeId) return { error: "Select who this assessment is for." };

@@ -5,7 +5,7 @@ import { logout } from "./actions";
 import { AppShell } from "@/components/AppShell";
 import { prisma } from "@/lib/prisma";
 import { NAV_TREE, findAllSectionsForPath } from "@/components/navTree";
-import { hasSectionAccess, SECTIONS, type Section } from "@/lib/permissions";
+import { hasSectionAccess, SECTIONS, isInstallerProfile, isInstallerAllowedPath, isSuperOnlyPath, type Section } from "@/lib/permissions";
 
 const ROLE_LABELS: Record<string, string> = {
   ADMIN_MANAGEMENT: "Admin / Management",
@@ -31,6 +31,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const sections = findAllSectionsForPath(NAV_TREE, pathname).filter((s): s is Section => SECTIONS.includes(s as Section));
   // Company Policies sit under Human Resources in the nav but are open to every signed-in user.
   const isOpenToAll = pathname === "/policies" || pathname.startsWith("/policies/");
+
+  // Payroll and Accounts: super users only. Field staff: only the installer pages.
+  if (isSuperOnlyPath(pathname) && !user.isSuperUser) redirect("/dashboard");
+  if (isInstallerProfile(user) && !isInstallerAllowedPath(pathname)) redirect("/dashboard");
   if (!isOpenToAll && sections.length > 0 && !sections.some((s) => hasSectionAccess(user, s))) {
     redirect("/dashboard");
   }

@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export async function acceptQuote(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const quote = await prisma.quote.findUnique({ where: { id } });
   if (!quote) return;
 

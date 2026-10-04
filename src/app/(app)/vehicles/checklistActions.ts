@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { redirect } from "next/navigation";
+import { isInstallerProfile } from "@/lib/permissions";
 import { sendVehicleChecklistEmail, sendVehicleChecklistOverdueAlert, sendPlainNotificationEmail } from "@/lib/email";
 import { MONTHLY_QUESTIONS, MONTHLY_ITEM_SUMMARY, isFailure, type ChecklistAnswer, type MonthlyResponses } from "@/lib/vehicleChecklist";
 
@@ -17,7 +18,7 @@ function appUrl(): string {
 }
 
 export async function createVehicleChecklist(_prevState: ChecklistFormState, formData: FormData): Promise<ChecklistFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const vehicleId = String(formData.get("vehicleId") ?? "").trim();
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
@@ -66,6 +67,11 @@ export async function createVehicleChecklist(_prevState: ChecklistFormState, for
 export async function completeVehicleChecklist(id: string, formData: FormData) {
   const user = await requireUser();
   const responses = String(formData.get("responses") ?? "").trim();
+
+  const existing = await prisma.vehicleChecklist.findUnique({ where: { id } });
+  if (!existing) return;
+  if (existing.template === "monthly") return; // the monthly check is only completed through its own form
+  if (isInstallerProfile(user) && existing.assignedToId !== user.id) return;
 
   await prisma.vehicleChecklist.update({
     where: { id },

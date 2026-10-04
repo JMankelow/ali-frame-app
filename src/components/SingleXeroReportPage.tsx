@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 import { getXeroConnectionStatus } from "@/lib/xero";
 import type { ParsedReport } from "@/lib/xeroReports";
 
@@ -12,7 +12,7 @@ export async function SingleXeroReportPage({
   subtitle: string;
   fetchReport: () => Promise<ParsedReport>;
 }) {
-  await requireUser();
+  await requireSuperUser();
   const connection = await getXeroConnectionStatus();
 
   if (!connection) {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface AcceptanceFormState {
@@ -10,7 +10,7 @@ export interface AcceptanceFormState {
 }
 
 export async function createAcceptance(_prevState: AcceptanceFormState, formData: FormData): Promise<AcceptanceFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const acceptedBy = String(formData.get("acceptedBy") ?? "").trim();

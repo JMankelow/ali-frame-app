@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { isInstallerProfile } from "@/lib/permissions";
 import { buildStorageKey, getUploadUrl, getDownloadUrl, deleteObject } from "@/lib/storage";
 import { FILE_TYPES } from "./fileTypes";
 
@@ -22,7 +23,9 @@ export async function requestUpload(
   mimeType: string,
   sizeBytes: number
 ): Promise<RequestUploadResult> {
-  await requireUser();
+  const user = await requireUser();
+  // Field staff can add photos/videos only.
+  if (isInstallerProfile(user) && !/^(image|video)\//.test(mimeType)) return { error: "Only photos and videos can be added." };
 
   if (!jobNumber) return { error: "Select a job first." };
   if (!fileName) return { error: "No file selected." };
@@ -60,7 +63,7 @@ export async function confirmUpload(params: {
       jobNumber,
       storageKey,
       fileName,
-      fileType: FILE_TYPES.includes(fileType as (typeof FILE_TYPES)[number]) ? fileType : "Other",
+      fileType: isInstallerProfile(user) ? "Photos" : FILE_TYPES.includes(fileType as (typeof FILE_TYPES)[number]) ? fileType : "Other",
       mimeType: mimeType || "application/octet-stream",
       sizeBytes,
       uploadedById: user.id,
@@ -76,6 +79,7 @@ export async function getFileDownloadUrl(fileId: string): Promise<{ url?: string
   const user = await requireUser();
   const file = await prisma.fileAsset.findUnique({ where: { id: fileId } });
   if (!file) return { error: "File not found." };
+  if (isInstallerProfile(user) && !["Photos", "Site Measure"].includes(file.fileType)) return { error: "File not found." };
 
   const url = await getDownloadUrl(file.storageKey, file.fileName);
   await logAudit({ userId: user.id, action: "file_downloaded", entityType: "FileAsset", entityId: file.id, metadata: { jobNumber: file.jobNumber } });
@@ -83,7 +87,7 @@ export async function getFileDownloadUrl(fileId: string): Promise<{ url?: string
 }
 
 export async function deleteFile(fileId: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const file = await prisma.fileAsset.findUnique({ where: { id: fileId } });
   if (!file) return;
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface LeadFormState {
@@ -20,7 +20,7 @@ async function alertAssignee(leadReference: string, leadTitle: string, authorId:
 }
 
 export async function createLead(_prevState: LeadFormState, formData: FormData): Promise<LeadFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const reference = String(formData.get("reference") ?? "").trim();
   const title = String(formData.get("title") ?? "").trim();
@@ -46,7 +46,7 @@ export async function createLead(_prevState: LeadFormState, formData: FormData):
 }
 
 export async function reassignLead(id: string, formData: FormData) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const assignedToId = String(formData.get("assignedToId") ?? "").trim() || null;
 
   const lead = await prisma.lead.update({ where: { id }, data: { assignedToId } });
@@ -57,7 +57,7 @@ export async function reassignLead(id: string, formData: FormData) {
 }
 
 export async function markLeadConverted(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.lead.update({ where: { id }, data: { status: "Converted", convertedAt: new Date() } });
   await logAudit({ userId: user.id, action: "lead_converted", entityType: "Lead", entityId: id });
   revalidatePath("/leads");

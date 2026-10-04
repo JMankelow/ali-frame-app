@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { DocContent } from "@/components/DocContent";
 import { ensureHsDocuments } from "@/lib/hsSeed";
@@ -15,7 +16,8 @@ const fmt = (d: Date | null | undefined) => (d ? d.toLocaleDateString("en-NZ") :
 const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
 
 export default async function SsspPage({ params }: { params: Promise<{ jobNumber: string }> }) {
-  await requireUser();
+  const me = await requireUser();
+  const canManage = !isInstallerProfile(me);
   const { jobNumber: raw } = await params;
   const jobNumber = decodeURIComponent(raw);
   const job = await prisma.job.findUnique({ where: { number: jobNumber }, include: { client: true } });
@@ -60,7 +62,8 @@ export default async function SsspPage({ params }: { params: Promise<{ jobNumber
         </div>
       </div>
 
-      <form action={saveSssp} className="card no-print">
+      {canManage && (
+<form action={saveSssp} className="card no-print">
         <input type="hidden" name="jobNumber" value={jobNumber} />
         <div className="label">Site agreement</div>
         <div className="form" style={{ marginTop: 10 }}>
@@ -87,6 +90,7 @@ export default async function SsspPage({ params }: { params: Promise<{ jobNumber
         </div>
         <div className="actions" style={{ marginTop: 12 }}><button className="btn primary" type="submit">Save SSSP</button></div>
       </form>
+)}
 
       {sssp && (
         <form action={addSsspSignOn} className="card no-print" style={{ marginTop: 16 }}>

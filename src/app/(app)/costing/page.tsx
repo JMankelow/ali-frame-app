@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 function money(v: number | null | undefined): string {
@@ -8,7 +8,7 @@ function money(v: number | null | undefined): string {
 }
 
 export default async function CostingPage() {
-  await requireUser();
+  await requireSuperUser();
 
   const jobs = await prisma.job.findMany({
     where: { costing: { isNot: null } },

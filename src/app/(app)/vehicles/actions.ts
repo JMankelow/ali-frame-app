@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { isInstallerProfile } from "@/lib/permissions";
 import { sendVehicleMechanicEmail } from "@/lib/email";
 
 export interface VehicleUpdateState {
@@ -11,7 +12,7 @@ export interface VehicleUpdateState {
 }
 
 export async function updateVehicleDetails(_prevState: VehicleUpdateState, formData: FormData): Promise<VehicleUpdateState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const vehicleId = String(formData.get("vehicleId") ?? "").trim();
   if (!vehicleId) return { error: "Vehicle not found." };
 
@@ -43,7 +44,7 @@ export interface MechanicEmailState {
 }
 
 export async function emailMechanicToBook(_prevState: MechanicEmailState, formData: FormData): Promise<MechanicEmailState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const vehicleId = String(formData.get("vehicleId") ?? "").trim();
   const mechanicEmail = String(formData.get("mechanicEmail") ?? "").trim();
   const message = String(formData.get("message") ?? "").trim();
@@ -82,6 +83,10 @@ export async function reportVehicleIssue(_prevState: VehicleIssueFormState, form
 
   if (!vehicleId) return { error: "Select a vehicle." };
   if (!description) return { error: "Describe the issue or request." };
+  if (isInstallerProfile(user)) {
+    const mine = await prisma.vehicle.findFirst({ where: { id: vehicleId, assignedToUserId: user.id } });
+    if (!mine) return { error: "That vehicle isn't assigned to you." };
+  }
 
   await prisma.vehicleIssue.create({
     data: { vehicleId, type: type === "Service Request" ? "Service Request" : "Issue", description, raisedById: user.id },
@@ -93,7 +98,7 @@ export async function reportVehicleIssue(_prevState: VehicleIssueFormState, form
 }
 
 export async function resolveVehicleIssue(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.vehicleIssue.update({ where: { id }, data: { status: "Resolved", resolvedAt: new Date() } });
   await logAudit({ userId: user.id, action: "vehicle_issue_resolved", entityType: "VehicleIssue", entityId: id });
   revalidatePath("/vehicles");

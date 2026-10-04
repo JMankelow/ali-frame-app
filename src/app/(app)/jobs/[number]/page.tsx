@@ -12,6 +12,12 @@ import { JobChecklistSection, type ChecklistItem } from "./JobChecklistSection";
 import { PhotosSection } from "./PhotosSection";
 import { BookCheckMeasureForm } from "../../email-client/BookCheckMeasureForm";
 import { SendTemplateEmailForm } from "./SendTemplateEmailForm";
+import { JobTimeSection } from "./JobTimeSection";
+import { isInstallerProfile } from "@/lib/permissions";
+
+// Field staff only get these tabs — no quotes, orders, costing, supplier invoices or client email.
+const INSTALLER_TABS = ["details", "tasks", "photos", "notes", "time", "sitemeasure", "checklist"];
+const INSTALLER_HIDDEN_AUDIT = /^(purchase_order|templated_email|check_measure_booking|repricing|quote)/;
 
 function money(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -39,6 +45,7 @@ const AUDIT_LABELS: Record<string, (m: Record<string, unknown> | null) => string
 
 export default async function JobDetailPage({ params }: { params: Promise<{ number: string }> }) {
   const currentUser = await requireUser();
+  const installer = isInstallerProfile(currentUser);
   const { number } = await params;
 
   const [job, salesStaff, allStaff, suppliers] = await Promise.all([
@@ -61,6 +68,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     prisma.purchaseOrder.findMany({ where: { jobNumber: number }, include: { orderedBy: true }, orderBy: { createdAt: "desc" } }),
     prisma.emailTemplate.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, subject: true, body: true } }),
   ]);
+
+  const [hoursAgg, quoteInputs, timeEntries] = await Promise.all([
+    prisma.timesheetEntry.aggregate({ where: { jobNumber: number }, _sum: { totalHours: true } }),
+    prisma.jobQuoteInputs.findUnique({ where: { jobNumber: number } }),
+    prisma.timesheetEntry.findMany({
+      where: { jobNumber: number, ...(installer ? { userId: currentUser.id } : {}) },
+      include: { user: true },
+      orderBy: { dateWorked: "desc" },
+      take: 100,
+    }),
+  ]);
+  const hoursLogged = hoursAgg._sum.totalHours ?? 0;
 
   const siteMeasureFiles = files.filter((f) => f.fileType === "Site Measure");
   const photoFiles = files.filter((f) => f.fileType === "Photos");
@@ -85,7 +104,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
       authorName: n.author.name,
       createdAt: n.createdAt.toISOString(),
     })),
-    ...auditLogs.map((a) => ({
+    ...auditLogs.filter((a) => !installer || !INSTALLER_HIDDEN_AUDIT.test(a.action)).map((a) => ({
       id: `audit-${a.id}`,
       kind: "audit" as const,
       text: AUDIT_LABELS[a.action]?.(a.metadata as Record<string, unknown> | null) ?? a.action,
@@ -127,9 +146,25 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         leadSource={job.leadSource ?? ""}
         staff={salesStaff}
         suppliers={suppliers}
+        readOnly={installer}
       />
 
-      {job.costing && (
+      {installer && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="label">Install budget</div>
+          <div className="hint" style={{ marginTop: 4 }}>What this job was priced to take — aim to finish within it.</div>
+          <div className="form" style={{ marginTop: 10 }}>
+            <div><label>Install days</label><div>{job.installDays ?? "—"}</div></div>
+            <div><label>Install allowance</label><div>{money(quoteInputs?.installAllowance ?? job.costing?.installQuoted)}</div></div>
+            <div><label>Labour hours (budget)</label><div>{job.costing?.labourHoursQuoted ?? "—"}</div></div>
+            <div><label>Hours logged so far</label><div>{hoursLogged.toFixed(1)}</div></div>
+            <div><label>Materials (budget)</label><div>{money(job.costing?.materialsQuoted)}</div></div>
+            <div><label>Rubbish removal (budget)</label><div>{money(job.costing?.rubbishQuoted)}</div></div>
+          </div>
+        </div>
+      )}
+
+      {job.costing && !installer && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="label">Costing (from Job Tracking import)</div>
           <div className="form" style={{ marginTop: 10 }}>
@@ -361,6 +396,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     </div>
   );
 
+  const tabsFor = <T extends { key: string }>(all: T[]): T[] => (installer ? all.filter((t) => INSTALLER_TABS.includes(t.key)) : all);
+
   return (
     <div>
       <div className="topbar">
@@ -383,12 +420,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
       </div>
 
       <JobTabs
-        tabs={[
+        tabs={tabsFor([
           { key: "details", label: "Job Details", content: detailsTab },
           {
             key: "tasks",
             label: "Scheduled Tasks",
-            content: <ScheduledTasksSection jobNumber={job.number} tasks={taskRows} staff={allStaff} />,
+            content: <ScheduledTasksSection jobNumber={job.number} tasks={taskRows} staff={allStaff} readOnly={installer} />,
           },
           { key: "contacts", label: "Linked Contacts", content: comingSoon("Linked Contacts") },
           {
@@ -408,6 +445,18 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
             ),
           },
           { key: "notes", label: "Notes", content: <JobNotesSection jobNumber={job.number} feed={feed} /> },
+          {
+            key: "time",
+            label: "Time",
+            content: (
+              <JobTimeSection
+                jobNumber={job.number}
+                userId={currentUser.id}
+                showStaff={!installer}
+                rows={timeEntries.map((t) => ({ id: t.id, date: t.dateWorked.toLocaleDateString("en-NZ"), staffName: t.user.name, workType: t.workType, hours: t.totalHours, status: t.status }))}
+              />
+            ),
+          },
           { key: "files", label: "Files", content: filesTab },
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },
           {
@@ -434,7 +483,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           { key: "orders", label: "Purchase Orders", content: ordersTab },
           { key: "supplierinvoices", label: "Supplier Invoices", content: comingSoon("Supplier Invoices") },
           { key: "checklist", label: "Job Checklist", content: <JobChecklistSection items={checklistItems} /> },
-        ]}
+        ])}
       />
     </div>
   );

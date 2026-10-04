@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 function startOfWeek(d: Date): Date {
@@ -11,7 +11,7 @@ function startOfWeek(d: Date): Date {
 }
 
 export default async function PayrollPage() {
-  await requireRole("ADMIN_MANAGEMENT", "OFFICE_SCHEDULING");
+  await requireSuperUser();
 
   const since = new Date();
   since.setDate(since.getDate() - 28);

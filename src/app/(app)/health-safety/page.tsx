@@ -13,6 +13,7 @@ import { resolveSafetyIncident } from "./actions";
 import { saveCompetency, archiveCompetency, saveRisk, closeRisk, createPreStart, createJsa, createInduction, saveDocument } from "./hsActions";
 import { PRESTART_CHECKS, RISK_LEVELS, RISK_COLOR } from "@/lib/hsDocs";
 import { ensureHsDocuments } from "@/lib/hsSeed";
+import { isInstallerProfile } from "@/lib/permissions";
 
 const SEVERITY_COLOR: Record<string, string> = { Low: "grey", Medium: "orange", High: "red" };
 const fmt = (d: Date | null | undefined) => (d ? d.toLocaleDateString("en-NZ") : "—");
@@ -22,6 +23,8 @@ const daysUntil = (d: Date) => Math.ceil((d.getTime() - Date.now()) / 86400000);
 export default async function HealthSafetyPage() {
   const user = await requireUser();
   const isSuper = user.isSuperUser;
+  // Field staff can read everything and do pre-starts / task analyses / incident reports, but not edit registers.
+  const canManage = !isInstallerProfile(user);
   const today = new Date();
   const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   await ensureHsDocuments();
@@ -180,7 +183,7 @@ export default async function HealthSafetyPage() {
         <div className="hint" style={{ marginTop: 4 }}>
           One per job. Fill in the site agreement, record sign-offs and worker sign-on, then print the full pack (policy, procedures, PPE, emergency plan, training register) as a PDF for the Main Contractor.
         </div>
-        <div style={{ marginTop: 10 }}><OpenSsspForm jobs={jobs} /></div>
+        {canManage && <div style={{ marginTop: 10 }}><OpenSsspForm jobs={jobs} /></div>}
       </div>
       <div className="card" style={{ marginTop: 16 }}>
         <table>
@@ -217,10 +220,12 @@ export default async function HealthSafetyPage() {
                 <td>{item.reportedBy.name}</td>
                 <td>{fmt(item.createdAt)}</td>
                 <td>
-                  <form action={resolveSafetyIncident.bind(null, item.id)} className="actions">
+                  {canManage && (
+<form action={resolveSafetyIncident.bind(null, item.id)} className="actions">
                     <input name="actionTaken" placeholder="Action taken (optional)" style={{ width: 160 }} />
                     <button type="submit" className="btn light">Resolve</button>
                   </form>
+)}
                 </td>
               </tr>
             ))}
@@ -270,7 +275,8 @@ export default async function HealthSafetyPage() {
                   </td>
                   <td>{p.yearsExperience ?? "—"}</td><td>{p.competency ?? "—"}</td>
                   <td>
-                    <details>
+                    {canManage && (
+<details>
                       <summary className="btn light" style={{ display: "inline-block", cursor: "pointer" }}>Edit</summary>
                       <form action={saveCompetency} style={{ marginTop: 8, minWidth: 420 }}>
                         {competencyFields(p)}
@@ -280,6 +286,7 @@ export default async function HealthSafetyPage() {
                         <button className="btn light" type="submit">Archive (inactive)</button>
                       </form>
                     </details>
+)}
                   </td>
                 </tr>
               );
@@ -288,20 +295,23 @@ export default async function HealthSafetyPage() {
           </tbody>
         </table>
       </div>
-      <div className="card" style={{ marginTop: 16 }}>
+      {canManage && (
+<div className="card" style={{ marginTop: 16 }}>
         <div className="label">Add person</div>
         <form action={saveCompetency} style={{ marginTop: 10 }}>
           {competencyFields()}
           <div className="actions" style={{ marginTop: 12 }}><button className="btn primary" type="submit">Add to Register</button></div>
         </form>
       </div>
+)}
     </div>
   );
 
   // ---------------- Inductions ----------------
   const inductionsTab = (
     <div>
-      <div className="card">
+      {canManage && (
+<div className="card">
         <div className="label">Record Induction</div>
         <form action={createInduction} style={{ marginTop: 10 }}>
           <div className="form">
@@ -315,6 +325,7 @@ export default async function HealthSafetyPage() {
           <div className="actions" style={{ marginTop: 12 }}><button className="btn primary" type="submit">Record Induction</button></div>
         </form>
       </div>
+)}
       <div className="card" style={{ marginTop: 16 }}>
         <table>
           <thead><tr><th>Date</th><th>Worker</th><th>Job</th><th>Site / topic</th><th>Inducted by</th></tr></thead>
@@ -347,14 +358,15 @@ export default async function HealthSafetyPage() {
                 <td style={{ whiteSpace: "pre-wrap" }}>{r.controls}</td>
                 <td><span className={`status ${RISK_COLOR[r.residualRisk] ?? "grey"}`}>{r.residualRisk}</span></td>
                 <td>{fmt(r.reviewDate)}</td>
-                <td><form action={closeRisk.bind(null, r.id)}><button className="btn light" type="submit">Close</button></form></td>
+                <td>{canManage && <form action={closeRisk.bind(null, r.id)}><button className="btn light" type="submit">Close</button></form>}</td>
               </tr>
             ))}
             {risks.length === 0 && <tr><td colSpan={8} className="hint">No open risks recorded yet.</td></tr>}
           </tbody>
         </table>
       </div>
-      <div className="card" style={{ marginTop: 16 }}>
+      {canManage && (
+<div className="card" style={{ marginTop: 16 }}>
         <div className="label">Add Risk</div>
         <form action={saveRisk} style={{ marginTop: 10 }}>
           <div className="form">
@@ -370,6 +382,7 @@ export default async function HealthSafetyPage() {
           <div className="actions" style={{ marginTop: 12 }}><button className="btn primary" type="submit">Add Risk</button></div>
         </form>
       </div>
+)}
     </div>
   );
 

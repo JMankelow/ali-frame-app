@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 import { getXeroConnectionStatus } from "@/lib/xero";
 import { getOutstandingInvoices, type OutstandingInvoice } from "@/lib/xeroReports";
 
@@ -16,7 +16,7 @@ export async function InvoiceListPage({
   subtitle: string;
   type: "ACCREC" | "ACCPAY";
 }) {
-  await requireUser();
+  await requireSuperUser();
   const connection = await getXeroConnectionStatus();
 
   if (!connection) {

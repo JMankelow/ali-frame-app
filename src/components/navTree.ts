@@ -153,7 +153,7 @@ export const NAV_TREE: NavGroup[] = [
       { label: "Assets", href: "/assets" },
       { label: "Vehicles", href: "/vehicles" },
       { label: "Timesheets", href: "/timesheets" },
-      { label: "Payroll", href: "/payroll" },
+      { label: "Payroll", href: "/payroll", superUserOnly: true },
       { label: "Health & Safety", href: "/health-safety" },
       { label: "Performance", href: "/performance" },
       { label: "Senior Performance", href: "/senior-performance" },
@@ -161,6 +161,7 @@ export const NAV_TREE: NavGroup[] = [
   },
   {
     label: "Accounts",
+    superUserOnly: true,
     items: [
       { label: "Costing & Margin", href: "/costing" },
       { label: "WIP Report", href: "/wip" },
@@ -212,7 +213,11 @@ export const NAV_TREE: NavGroup[] = [
       { label: "Residential", href: "/jobs?type=Residential" },
       { label: "Commercial", href: "/jobs?type=Commercial" },
       { label: "Timesheets", href: "/timesheets" },
-      { label: "Crew Mobile View", href: "/crew" },
+      { label: "My Jobs (Mobile)", href: "/crew" },
+      { label: "My Assets", href: "/assets" },
+      { label: "My Vehicle", href: "/vehicles" },
+      { label: "Health & Safety", href: "/health-safety" },
+      { label: "Company Policies", href: "/policies" },
     ],
   },
   {

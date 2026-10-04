@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { buildGenericStorageKey, getUploadUrl, getDownloadUrl, deleteObject } from "@/lib/storage";
 import { MARKETING_CATEGORIES, type MarketingCategory } from "./categories";
@@ -33,7 +33,7 @@ export async function requestMarketingUpload(
   mimeType: string,
   sizeBytes: number
 ): Promise<RequestMarketingUploadResult> {
-  await requireUser();
+  await requireNotInstaller();
   assertCategory(category);
 
   if (!fileName) return { error: "No file selected." };
@@ -56,7 +56,7 @@ export async function createMarketingAsset(params: {
   storageKey?: string;
   fileName?: string;
 }): Promise<MarketingAssetFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const category = assertCategory(params.category);
   const title = params.title.trim();
 
@@ -81,7 +81,7 @@ export async function createMarketingAsset(params: {
 }
 
 export async function getMarketingDownloadUrl(id: string): Promise<{ url?: string; error?: string }> {
-  await requireUser();
+  await requireNotInstaller();
   const asset = await prisma.marketingAsset.findUnique({ where: { id } });
   if (!asset?.storageKey) return { error: "Nothing to download." };
 
@@ -90,7 +90,7 @@ export async function getMarketingDownloadUrl(id: string): Promise<{ url?: strin
 }
 
 export async function deleteMarketingAsset(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const asset = await prisma.marketingAsset.findUnique({ where: { id } });
   if (!asset) return;
 

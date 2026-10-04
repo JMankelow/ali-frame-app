@@ -11,6 +11,7 @@ export default async function TimesheetsPage() {
 
   const [entries, jobs, allStaff] = await Promise.all([
     prisma.timesheetEntry.findMany({
+      where: isTimesheetAdmin ? {} : { userId: user.id }, // staff only ever see their own hours
       include: { user: true },
       orderBy: { dateWorked: "desc" },
       take: 100,

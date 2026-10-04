@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { calculateRepricing, type RepricingInput } from "@/lib/repricing";
 import { generateRepricingPdf } from "@/lib/repricingPdf";
@@ -37,7 +37,7 @@ function parseInput(formData: FormData): RepricingInput {
 }
 
 export async function generateRepricing(_prevState: GeneratePdfResult, formData: FormData): Promise<GeneratePdfResult> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   if (!jobNumber) return { error: "Select a job first." };
 
@@ -105,7 +105,7 @@ export interface SendEmailResult {
 }
 
 export async function sendRepricingEmailAction(_prevState: SendEmailResult, formData: FormData): Promise<SendEmailResult> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const storageKey = String(formData.get("storageKey") ?? "").trim();
   const emailText = String(formData.get("emailText") ?? "").trim();

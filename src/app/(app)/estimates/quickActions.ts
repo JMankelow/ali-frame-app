@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { generateEstimatePdf } from "@/lib/estimatePdf";
 import { buildGenericStorageKey, putObjectBuffer, getDownloadUrl } from "@/lib/storage";
@@ -37,7 +37,7 @@ async function findComparable(category: string, widthMM: number | null, heightMM
 }
 
 export async function createQuickEstimate(_prevState: QuickEstimateState, formData: FormData): Promise<QuickEstimateState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const clientName = String(formData.get("clientName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
@@ -111,7 +111,7 @@ export async function createQuickEstimate(_prevState: QuickEstimateState, formDa
 }
 
 export async function getEstimatePdfUrl(id: string): Promise<{ url?: string; error?: string }> {
-  await requireUser();
+  await requireNotInstaller();
   const estimate = await prisma.estimate.findUnique({ where: { id } });
   if (!estimate?.pdfStorageKey) return { error: "No PDF generated for this estimate yet." };
   const url = await getDownloadUrl(estimate.pdfStorageKey, `estimate-${estimate.clientName}.pdf`);

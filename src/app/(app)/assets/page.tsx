@@ -1,23 +1,29 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { AssetForm } from "./AssetForm";
 import { retireAsset, resolveAssetIssue } from "./actions";
 import { AssetIssueForm } from "./AssetIssueForm";
 
 export default async function AssetsPage({ searchParams }: { searchParams: Promise<{ add?: string }> }) {
-  await requireUser();
+  const user = await requireUser();
+  // Field staff only ever see — and can report issues on — assets assigned to them (or to their vehicle).
+  const installer = isInstallerProfile(user);
   const { add } = await searchParams;
-  const adding = add === "1";
+  const adding = add === "1" && !installer;
 
   const [assets, staff, vehicles] = await Promise.all([
     prisma.asset.findMany({
-      where: { status: "Active" },
+      where: {
+        status: "Active",
+        ...(installer ? { OR: [{ assignedToUserId: user.id }, { assignedToVehicle: { assignedToUserId: user.id } }] } : {}),
+      },
       include: { assignedToUser: true, assignedToVehicle: true, issues: { where: { status: "Open" }, include: { raisedBy: true } } },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.vehicle.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    installer ? Promise.resolve([]) : prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    installer ? Promise.resolve([]) : prisma.vehicle.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const today = new Date();
@@ -26,19 +32,23 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
     <div>
       <div className="topbar">
         <div>
-          <h2>Assets</h2>
+          <h2>{installer ? "My Assets" : "Assets"}</h2>
           <div className="subtitle">
-            {assets.length} active asset(s) — tools, office equipment and other gear. Vehicles have their own page.
+            {installer
+              ? `${assets.length} asset(s) assigned to you or your vehicle — report anything that needs repair below.`
+              : `${assets.length} active asset(s) — tools, office equipment and other gear. Vehicles have their own page.`}
           </div>
         </div>
-        <div className="actions">
-          <Link href={adding ? "/assets" : "/assets?add=1"} className="btn primary">
-            {adding ? "Cancel" : "+ Add New Asset"}
-          </Link>
-          <Link href="/vehicles" className="btn light">
-            Go to Vehicles ↗
-          </Link>
-        </div>
+        {!installer && (
+          <div className="actions">
+            <Link href={adding ? "/assets" : "/assets?add=1"} className="btn primary">
+              {adding ? "Cancel" : "+ Add New Asset"}
+            </Link>
+            <Link href="/vehicles" className="btn light">
+              Go to Vehicles ↗
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -52,7 +62,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
               <th>Assigned To</th>
               <th>Test &amp; Tag Due</th>
               <th>Open Issues</th>
-              <th></th>
+              {!installer && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -79,30 +89,34 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
                         {a.issues.map((i) => (
                           <div key={i.id} style={{ marginBottom: 4 }}>
                             <span className="status orange">{i.description}</span>
-                            <form action={resolveAssetIssue.bind(null, i.id)} style={{ display: "inline", marginLeft: 6 }}>
-                              <button type="submit" className="btn light">
-                                Resolve
-                              </button>
-                            </form>
+                            {!installer && (
+                              <form action={resolveAssetIssue.bind(null, i.id)} style={{ display: "inline", marginLeft: 6 }}>
+                                <button type="submit" className="btn light">
+                                  Resolve
+                                </button>
+                              </form>
+                            )}
                           </div>
                         ))}
                       </div>
                     )}
                   </td>
-                  <td>
-                    <form action={retireAsset.bind(null, a.id)}>
-                      <button type="submit" className="btn light">
-                        Retire
-                      </button>
-                    </form>
-                  </td>
+                  {!installer && (
+                    <td>
+                      <form action={retireAsset.bind(null, a.id)}>
+                        <button type="submit" className="btn light">
+                          Retire
+                        </button>
+                      </form>
+                    </td>
+                  )}
                 </tr>
               );
             })}
             {assets.length === 0 && (
               <tr>
-                <td colSpan={8} className="hint">
-                  No assets yet — add one below.
+                <td colSpan={installer ? 7 : 8} className="hint">
+                  {installer ? "No assets are assigned to you." : "No assets yet — add one below."}
                 </td>
               </tr>
             )}
@@ -111,7 +125,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
       </div>
 
       {adding && <AssetForm staff={staff} vehicles={vehicles} />}
-      <AssetIssueForm assets={assets.map((a) => ({ id: a.id, name: a.name }))} />
+      {assets.length > 0 && <AssetIssueForm assets={assets.map((a) => ({ id: a.id, name: a.name }))} />}
     </div>
   );
 }

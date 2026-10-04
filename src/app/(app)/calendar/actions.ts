@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface LeaveFormState {
@@ -12,7 +12,7 @@ export interface LeaveFormState {
 const LEAVE_TYPES = ["Annual Leave", "Sick Leave", "Public Holiday", "Bereavement Leave"];
 
 export async function createStaffLeave(_prevState: LeaveFormState, formData: FormData): Promise<LeaveFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const type = String(formData.get("type") ?? "").trim();
   const fromDateRaw = String(formData.get("fromDate") ?? "").trim();

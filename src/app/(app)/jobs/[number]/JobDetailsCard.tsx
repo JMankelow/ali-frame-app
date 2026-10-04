@@ -21,6 +21,7 @@ export function JobDetailsCard({
   installDays,
   staff,
   suppliers,
+  readOnly = false,
 }: {
   jobNumber: string;
   clientName: string;
@@ -37,6 +38,7 @@ export function JobDetailsCard({
   installDays: string;
   staff: { id: string; name: string }[];
   suppliers: { id: string; companyName: string }[];
+  readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
 
@@ -44,7 +46,7 @@ export function JobDetailsCard({
     <div className="card">
       <div className="topbar" style={{ marginBottom: editing ? 12 : 0 }}>
         <div className="label">Job Details</div>
-        {!editing && (
+        {!editing && !readOnly && (
           <button type="button" className="btn light" onClick={() => setEditing(true)}>
             Edit
           </button>
@@ -85,14 +87,18 @@ export function JobDetailsCard({
             <label>Install Days</label>
             <div>{installDays || "—"}</div>
           </div>
+{!readOnly && (
           <div>
             <label>Price Type</label>
             <div>{priceType || "—"}</div>
           </div>
+)}
+{!readOnly && (
           <div>
             <label>How Did They Hear About Us?</label>
             <div>{leadSource || "—"}</div>
           </div>
+)}
           <div>
             <label>Supplier</label>
             <div>{supplier || "—"}</div>

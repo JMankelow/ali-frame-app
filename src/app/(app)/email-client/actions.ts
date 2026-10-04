@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { sendCheckMeasureBookingEmail } from "@/lib/email";
 
@@ -15,7 +15,7 @@ export async function bookCheckMeasure(
   _prevState: BookCheckMeasureFormState,
   formData: FormData
 ): Promise<BookCheckMeasureFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const datesRaw = formData.getAll("dates").map((d) => String(d)).filter(Boolean);

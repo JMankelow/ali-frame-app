@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { buildStorageKey, putObjectBuffer, getObjectBuffer } from "@/lib/storage";
 import { generateQuotePdf } from "@/lib/quotePdf";
@@ -15,7 +15,7 @@ export interface GenerateQuoteResult {
 }
 
 export async function generateQuote(_prevState: GenerateQuoteResult, formData: FormData): Promise<GenerateQuoteResult> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const quoteNumber = String(formData.get("quoteNumber") ?? "").trim();
   const total = parseFloat(String(formData.get("total") ?? "0")) || 0;
@@ -82,7 +82,7 @@ export interface SendQuoteEmailResult {
 }
 
 export async function sendQuoteEmail(_prevState: SendQuoteEmailResult, formData: FormData): Promise<SendQuoteEmailResult> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const storageKey = String(formData.get("storageKey") ?? "").trim();
   const quoteNumber = String(formData.get("quoteNumber") ?? "").trim();

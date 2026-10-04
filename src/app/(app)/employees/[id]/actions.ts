@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireSuperUser, requireUser } from "@/lib/session";
+import { requireSuperUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { buildGenericStorageKey, getUploadUrl, getDownloadUrl, deleteObject } from "@/lib/storage";
 
@@ -48,7 +48,7 @@ export async function requestEmployeeDocUpload(
   mimeType: string,
   sizeBytes: number
 ): Promise<RequestDocUploadResult> {
-  await requireUser();
+  await requireNotInstaller();
   if (sizeBytes > MAX_FILE_BYTES) return { error: "File is larger than 25MB." };
 
   const storageKey = buildGenericStorageKey(`employees/${userId}`, fileName);
@@ -64,7 +64,7 @@ export async function confirmEmployeeDocUpload(params: {
   mimeType: string;
   sizeBytes: number;
 }): Promise<EmployeeFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const { userId, storageKey, fileName, docType, mimeType, sizeBytes } = params;
 
   await prisma.employeeDocument.create({
@@ -77,7 +77,7 @@ export async function confirmEmployeeDocUpload(params: {
 }
 
 export async function getEmployeeDocDownloadUrl(docId: string): Promise<{ url?: string; error?: string }> {
-  await requireUser();
+  await requireNotInstaller();
   const doc = await prisma.employeeDocument.findUnique({ where: { id: docId } });
   if (!doc) return { error: "Document not found." };
   const url = await getDownloadUrl(doc.storageKey, doc.fileName);

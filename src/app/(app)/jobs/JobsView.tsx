@@ -32,7 +32,7 @@ function ArchiveButton({ job, showArchived }: { job: JobRow; showArchived: boole
   );
 }
 
-export function JobsView({ jobs, showArchived }: { jobs: JobRow[]; showArchived: boolean }) {
+export function JobsView({ jobs, showArchived, canManage = true }: { jobs: JobRow[]; showArchived: boolean; canManage?: boolean }) {
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
 
   return (
@@ -74,9 +74,7 @@ export function JobsView({ jobs, showArchived }: { jobs: JobRow[]; showArchived:
                   <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
                 </td>
                 <td>{job.supplier ?? "—"}</td>
-                <td>
-                  <ArchiveButton job={job} showArchived={showArchived} />
-                </td>
+                <td>{canManage && <ArchiveButton job={job} showArchived={showArchived} />}</td>
               </tr>
             ))}
             {jobs.length === 0 && (
@@ -105,9 +103,11 @@ export function JobsView({ jobs, showArchived }: { jobs: JobRow[]; showArchived:
                 <AddressLink address={job.address} fallback="No address" />
                 {job.supplier && <><br />Supplier: {job.supplier}</>}
               </div>
-              <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)" }}>
-                <ArchiveButton job={job} showArchived={showArchived} />
-              </div>
+              {canManage && (
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)" }}>
+                  <ArchiveButton job={job} showArchived={showArchived} />
+                </div>
+              )}
             </div>
           ))}
           {jobs.length === 0 && <div className="hint">No jobs yet — add the first one below.</div>}

@@ -43,10 +43,12 @@ export function ScheduledTasksSection({
   jobNumber,
   tasks,
   staff,
+  readOnly = false,
 }: {
   jobNumber: string;
   tasks: ScheduledTaskRow[];
   staff: { id: string; name: string }[];
+  readOnly?: boolean;
 }) {
   return (
     <div className="card">
@@ -71,18 +73,18 @@ export function ScheduledTasksSection({
           </thead>
           <tbody>
             {tasks.map((t) => (
-              <TaskRow key={t.id} task={t} staff={staff} />
+              <TaskRow key={t.id} task={t} staff={staff} readOnly={readOnly} />
             ))}
           </tbody>
         </table>
       )}
 
-      <NewTaskForm jobNumber={jobNumber} staff={staff} />
+      {!readOnly && <NewTaskForm jobNumber={jobNumber} staff={staff} />}
     </div>
   );
 }
 
-function TaskRow({ task, staff }: { task: ScheduledTaskRow; staff: { id: string; name: string }[] }) {
+function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { id: string; name: string }[]; readOnly: boolean }) {
   const [editing, setEditing] = useState(false);
   const action = updateScheduledTask.bind(null, task.id);
   const [state, formAction, pending] = useActionState(action, initialState);
@@ -99,9 +101,11 @@ function TaskRow({ task, staff }: { task: ScheduledTaskRow; staff: { id: string;
         </td>
         <td>{task.notes ?? "—"}</td>
         <td>
-          <button type="button" className="btn light" onClick={() => setEditing(true)}>
-            Edit
-          </button>
+          {!readOnly && (
+            <button type="button" className="btn light" onClick={() => setEditing(true)}>
+              Edit
+            </button>
+          )}
         </td>
       </tr>
     );

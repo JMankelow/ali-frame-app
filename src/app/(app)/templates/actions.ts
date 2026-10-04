@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface TemplateFormState {
@@ -10,7 +10,7 @@ export interface TemplateFormState {
 }
 
 export async function createEmailTemplate(_prevState: TemplateFormState, formData: FormData): Promise<TemplateFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const name = String(formData.get("name") ?? "").trim();
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
@@ -26,7 +26,7 @@ export async function createEmailTemplate(_prevState: TemplateFormState, formDat
 }
 
 export async function updateEmailTemplate(id: string, _prevState: TemplateFormState, formData: FormData): Promise<TemplateFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const name = String(formData.get("name") ?? "").trim();
   const subject = String(formData.get("subject") ?? "").trim();
   const body = String(formData.get("body") ?? "").trim();
@@ -42,7 +42,7 @@ export async function updateEmailTemplate(id: string, _prevState: TemplateFormSt
 }
 
 export async function deleteEmailTemplate(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.emailTemplate.delete({ where: { id } });
   await logAudit({ userId: user.id, action: "email_template_deleted", entityType: "EmailTemplate", entityId: id });
   revalidatePath("/templates");

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getXeroConnectionStatus } from "@/lib/xero";
 import { getProfitAndLoss, getBalanceSheet, getBankSummary, type ParsedReport } from "@/lib/xeroReports";
@@ -46,7 +46,7 @@ function ReportTable({ title, report, error }: { title: string; report: ParsedRe
 }
 
 export default async function MonthlyManagementReportPage() {
-  const user = await requireUser();
+  const user = await requireSuperUser();
   const connection = await getXeroConnectionStatus();
 
   const now = new Date();

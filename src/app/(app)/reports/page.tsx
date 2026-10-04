@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 
 const REPORTS = [
   { label: "Profit & Loss", href: "/reports/profit-loss", hint: "This/last month, this/last FY, or a custom range." },
@@ -11,7 +11,7 @@ const REPORTS = [
 ];
 
 export default async function ReportsHubPage() {
-  await requireUser();
+  await requireSuperUser();
 
   return (
     <div>

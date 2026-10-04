@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/prisma";
 import type { Role, User } from "@prisma/client";
+import { isInstallerProfile } from "@/lib/permissions";
 
 export const SESSION_COOKIE = "af_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14; // 14 days
@@ -110,6 +111,16 @@ export async function requireRole(...roles: Role[]): Promise<SessionUser> {
   if (!roles.includes(user.role) && !user.isSuperUser) {
     throw new AuthError("You do not have permission to do that.");
   }
+  return user;
+}
+
+/**
+ * Throws for field staff (installer roles). Use on every server action that installers must not run —
+ * the layout hides pages from them, but a server action can be invoked directly, so each one checks.
+ */
+export async function requireNotInstaller(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (isInstallerProfile(user)) throw new AuthError("You do not have permission to do that.");
   return user;
 }
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { sendPlainNotificationEmail } from "@/lib/email";
 
@@ -15,7 +15,7 @@ export interface RemedialFormState {
 }
 
 export async function createRemedialItem(_prevState: RemedialFormState, formData: FormData): Promise<RemedialFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const jobNumber = String(formData.get("jobNumber") ?? "").trim();
   const issue = String(formData.get("issue") ?? "").trim();
@@ -45,7 +45,7 @@ export async function createRemedialItem(_prevState: RemedialFormState, formData
 }
 
 export async function resolveRemedialItem(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const item = await prisma.remedialItem.update({ where: { id }, data: { status: "Resolved", resolvedAt: new Date() } });
   await logAudit({ userId: user.id, action: "remedial_resolved", entityType: "Job", entityId: item.jobNumber });
   revalidatePath("/remedial");

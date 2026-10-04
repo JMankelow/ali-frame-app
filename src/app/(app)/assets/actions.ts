@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { isInstallerProfile } from "@/lib/permissions";
 import { ASSET_TYPES } from "./assetTypes";
 
 export interface AssetFormState {
@@ -11,7 +12,7 @@ export interface AssetFormState {
 }
 
 export async function createAsset(_prevState: AssetFormState, formData: FormData): Promise<AssetFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
 
   const name = String(formData.get("name") ?? "").trim();
   const assetType = String(formData.get("assetType") ?? "Other");
@@ -50,7 +51,7 @@ export interface VehicleFormState {
 }
 
 export async function createVehicle(_prevState: VehicleFormState, formData: FormData): Promise<VehicleFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const name = String(formData.get("name") ?? "").trim();
   const rego = String(formData.get("rego") ?? "").trim();
 
@@ -66,7 +67,7 @@ export async function createVehicle(_prevState: VehicleFormState, formData: Form
 }
 
 export async function retireAsset(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.asset.update({ where: { id }, data: { status: "Retired" } });
   await logAudit({ userId: user.id, action: "asset_retired", entityType: "Asset", entityId: id });
   revalidatePath("/assets");
@@ -83,6 +84,10 @@ export async function reportAssetIssue(_prevState: AssetIssueFormState, formData
 
   if (!assetId) return { error: "Select an asset." };
   if (!description) return { error: "Describe the issue." };
+  if (isInstallerProfile(user)) {
+    const mine = await prisma.asset.findFirst({ where: { id: assetId, OR: [{ assignedToUserId: user.id }, { assignedToVehicle: { assignedToUserId: user.id } }] } });
+    if (!mine) return { error: "That asset isn't assigned to you." };
+  }
 
   await prisma.assetIssue.create({ data: { assetId, description, raisedById: user.id } });
   await logAudit({ userId: user.id, action: "asset_issue_reported", entityType: "AssetIssue", metadata: { assetId } });
@@ -91,7 +96,7 @@ export async function reportAssetIssue(_prevState: AssetIssueFormState, formData
 }
 
 export async function resolveAssetIssue(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.assetIssue.update({ where: { id }, data: { status: "Resolved", resolvedAt: new Date() } });
   await logAudit({ userId: user.id, action: "asset_issue_resolved", entityType: "AssetIssue", entityId: id });
   revalidatePath("/assets");

@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendSiteMeasureEmail } from "@/lib/email";
@@ -22,7 +22,7 @@ export async function sendSiteMeasureSheetEmail(params: {
   pageCount: number;
   storageKeys: string[];
 }): Promise<SendSiteMeasureState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const { jobNumber, supplierEmail, pageCount, storageKeys } = params;
 
   const job = await prisma.job.findUnique({ where: { number: jobNumber } });

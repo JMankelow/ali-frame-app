@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/session";
+import { requireSuperUser } from "@/lib/session";
 import { getXeroConnectionStatus } from "@/lib/xero";
 import { getBankSummary } from "@/lib/xeroReports";
 
 export default async function CashflowPage() {
-  await requireUser();
+  await requireSuperUser();
   const connection = await getXeroConnectionStatus();
 
   if (!connection) {

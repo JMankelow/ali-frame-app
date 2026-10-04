@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getXeroConnectionStatus } from "@/lib/xero";
+import { isInstallerProfile } from "@/lib/permissions";
+import { InstallerDashboard } from "./InstallerDashboard";
 
 function money(v: number): string {
   return v.toLocaleString("en-NZ", { style: "currency", currency: "NZD", maximumFractionDigits: 0 });
@@ -9,6 +11,7 @@ function money(v: number): string {
 
 export default async function DashboardPage() {
   const user = await requireUser();
+  if (isInstallerProfile(user)) return <InstallerDashboard userId={user.id} name={user.name} />;
 
   const [
     jobCount,
@@ -72,11 +75,13 @@ export default async function DashboardPage() {
           <div className="metric">{newLeadCount}</div>
           <div className="hint">{leadCount} total leads</div>
         </div>
-        <Link href="/wip" className="card" style={{ textDecoration: "none", color: "inherit" }}>
+        {user.isSuperUser && (
+<Link href="/wip" className="card" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="label">Quoted Value In Progress</div>
           <div className="metric">{money(wipTotal)}</div>
           <div className="hint">{wipJobs.length} job(s) in progress</div>
         </Link>
+)}
         <Link href="/remedial" className="card" style={{ textDecoration: "none", color: "inherit" }}>
           <div className="label">Open Remedials</div>
           <div className="metric">{openRemedialCount}</div>
@@ -93,7 +98,8 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="card">
+      {user.isSuperUser && (
+<div className="card">
         <div className="topbar" style={{ marginBottom: 0 }}>
           <div className="label">Xero</div>
           {xeroConnection ? (
@@ -105,6 +111,7 @@ export default async function DashboardPage() {
           )}
         </div>
       </div>
+)}
 
       <div className="notice" style={{ marginTop: 16 }}>
         This is the new, real, shared version of the Ali-Frame Job Management System — data

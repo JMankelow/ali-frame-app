@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface EstimateFormState {
@@ -16,7 +16,7 @@ function num(v: FormDataEntryValue | null): number | null {
 }
 
 export async function createEstimate(_prevState: EstimateFormState, formData: FormData): Promise<EstimateFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const clientName = String(formData.get("clientName") ?? "").trim();
   if (!clientName) return { error: "Client name is required." };
 

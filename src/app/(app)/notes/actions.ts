@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser } from "@/lib/session";
+import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 
 export interface NoteFormState {
@@ -10,7 +10,7 @@ export interface NoteFormState {
 }
 
 export async function createNote(_prevState: NoteFormState, formData: FormData): Promise<NoteFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const text = String(formData.get("text") ?? "").trim();
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
 
@@ -27,7 +27,7 @@ export async function createNote(_prevState: NoteFormState, formData: FormData):
 }
 
 export async function updateNoteText(id: string, _prevState: NoteFormState, formData: FormData): Promise<NoteFormState> {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const text = String(formData.get("text") ?? "").trim();
   if (!text) return { error: "Task text can't be empty." };
 
@@ -40,7 +40,7 @@ export async function updateNoteText(id: string, _prevState: NoteFormState, form
 }
 
 export async function resolveNote(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.note.update({ where: { id }, data: { status: "Done", resolvedAt: new Date() } });
   await logAudit({ userId: user.id, action: "note_resolved", entityType: "Note", entityId: id });
   revalidatePath("/notes");
@@ -54,7 +54,7 @@ export async function resolveNote(id: string) {
  * before it's really Done.
  */
 export async function completeAndReturnToCreator(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   const note = await prisma.note.findUnique({ where: { id } });
   if (!note) return;
 
@@ -68,7 +68,7 @@ export async function completeAndReturnToCreator(id: string) {
 }
 
 export async function reopenNote(id: string) {
-  const user = await requireUser();
+  const user = await requireNotInstaller();
   await prisma.note.update({ where: { id }, data: { status: "Open", resolvedAt: null } });
   await logAudit({ userId: user.id, action: "note_reopened", entityType: "Note", entityId: id });
   revalidatePath("/notes");
