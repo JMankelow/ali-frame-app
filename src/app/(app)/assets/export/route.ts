@@ -21,7 +21,7 @@ export async function GET() {
     include: { assignedToUser: { select: { name: true } }, assignedToVehicle: { select: { name: true } } },
     orderBy: [{ assetCode: "asc" }, { name: "asc" }],
   });
-  const header = ["Asset code", "Name", "Type", "Serial number", "Purchase date", "Value (NZD)", "Assigned to", "Vehicle", "Test & tag due", "Status"];
+  const header = ["Asset code", "Name", "Type", "Serial / model no.", "Purchase date", "Value (NZD)", "Assigned to", "Vehicle", "Test & tag due", "Status"];
   const lines = [header.map(cell).join(",")];
   for (const a of assets) {
     lines.push(

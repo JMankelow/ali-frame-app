@@ -94,7 +94,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
               {!installer && <th>Code</th>}
               <th>Asset</th>
               <th>Type</th>
-              <th>Serial Number</th>
+              <th>Serial / Model No.</th>
               {!installer && <th>Purchased</th>}
               {!installer && <th>Value</th>}
               <th>Description</th>
@@ -151,7 +151,7 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
                           <form action={updateAssetRegister.bind(null, a.id)} style={{ marginTop: 8, minWidth: 260, display: "grid", gap: 6 }}>
                             <input name="name" defaultValue={a.name} placeholder="Name" />
                             <input name="assetCode" defaultValue={a.assetCode ?? ""} placeholder="Asset code" />
-                            <input name="serialNumber" defaultValue={a.serialNumber ?? ""} placeholder="Serial number" />
+                            <input name="serialNumber" defaultValue={a.serialNumber ?? ""} placeholder="Serial / model no." />
                             <input name="estimatedValue" type="number" step="0.01" min="0" defaultValue={a.estimatedValue ?? ""} placeholder="Value ($)" />
                             <input name="purchaseDate" type="date" defaultValue={a.purchaseDate ? a.purchaseDate.toISOString().slice(0, 10) : ""} />
                             <button type="submit" className="btn primary">Save</button>
