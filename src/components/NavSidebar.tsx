@@ -100,6 +100,7 @@ export function NavSidebar({ isSuperUser, pins, selectedSection }: { isSuperUser
       <NavItem item={{ label: "Dashboard", href: "/dashboard" }} pathname={pathname} pins={pins} />
       <NavItem item={{ label: "Tasks", href: "/tasks" }} pathname={pathname} pins={pins} />
       <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />
+      <NavItem item={{ label: "Calendar", href: "/calendar" }} pathname={pathname} pins={pins} />
       {activeGroup && (
         <div className="navSectionLabel">{activeGroup.label}</div>
       )}

@@ -30,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const pathname = (await headers()).get("x-pathname") ?? "";
   const sections = findAllSectionsForPath(NAV_TREE, pathname).filter((s): s is Section => SECTIONS.includes(s as Section));
   // Company Policies sit under Human Resources in the nav but are open to every signed-in user.
-  const isOpenToAll = pathname === "/policies" || pathname.startsWith("/policies/");
+  const isOpenToAll = ["/policies", "/calendar"].some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   // Payroll and Accounts: super users only. Field staff: only the installer pages.
   if (isSuperOnlyPath(pathname) && !user.isSuperUser) redirect("/dashboard");

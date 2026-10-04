@@ -21,9 +21,13 @@ export async function sendSiteMeasureSheetEmail(params: {
   supplierEmail: string;
   pageCount: number;
   storageKeys: string[];
+  subject?: string;
+  body?: string;
 }): Promise<SendSiteMeasureState> {
   const user = await requireNotInstaller();
   const { jobNumber, supplierEmail, pageCount, storageKeys } = params;
+  const subject = (params.subject ?? "").trim().slice(0, 200) || undefined;
+  const body = (params.body ?? "").trim().slice(0, 5000) || undefined;
 
   const job = await prisma.job.findUnique({ where: { number: jobNumber } });
   if (!job) return { error: `Job ${jobNumber} not found.` };
@@ -52,6 +56,8 @@ export async function sendSiteMeasureSheetEmail(params: {
     fromName: user.name,
     pageCount,
     attachments,
+    subject,
+    body,
   });
 
   await logAudit({

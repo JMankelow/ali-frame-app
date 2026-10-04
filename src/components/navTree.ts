@@ -66,7 +66,6 @@ function salesSection(): NavGroup {
   return {
     label: "Sales",
     items: [
-      { label: "Calendar", href: "/calendar" },
       {
         label: "Commercial",
         items: [

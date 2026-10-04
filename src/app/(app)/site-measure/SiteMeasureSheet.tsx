@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { OpeningCanvas } from "./OpeningCanvas";
 import { requestUpload, confirmUpload } from "../files/actions";
 import { sendSiteMeasureSheetEmail } from "./actions";
@@ -72,11 +72,13 @@ function OpeningBlock({
   pageNum,
   openingIndex,
   color,
+  tool,
   registerCanvas,
 }: {
   pageNum: number;
   openingIndex: number;
   color: string;
+  tool: "line" | "text";
   registerCanvas: (id: string, el: HTMLCanvasElement | null) => void;
 }) {
   const prefix = `page${pageNum}_opening${openingIndex}`;
@@ -86,7 +88,7 @@ function OpeningBlock({
       <div className="label">Opening {openingIndex}</div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ flex: "1 1 320px", minWidth: 260 }}>
-          <OpeningCanvas id={canvasId} color={color} registerRef={registerCanvas} />
+          <OpeningCanvas id={canvasId} color={color} tool={tool} registerRef={registerCanvas} />
         </div>
         <div style={{ flex: "1 1 320px", minWidth: 260, fontSize: 13 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 16 }}>
@@ -120,12 +122,14 @@ function PageBlock({
   pageNum,
   job,
   color,
+  tool,
   openings,
   registerCanvas,
 }: {
   pageNum: number;
   job: JobOption;
   color: string;
+  tool: "line" | "text";
   openings: number[];
   registerCanvas: (id: string, el: HTMLCanvasElement | null) => void;
 }) {
@@ -189,18 +193,37 @@ function PageBlock({
         </div>
       </div>
       {openings.map((i) => (
-        <OpeningBlock key={i} pageNum={pageNum} openingIndex={i} color={color} registerCanvas={registerCanvas} />
+        <OpeningBlock key={i} pageNum={pageNum} openingIndex={i} color={color} tool={tool} registerCanvas={registerCanvas} />
       ))}
     </div>
   );
 }
 
-export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppliers: SupplierContact[] }) {
+export interface EmailTemplateOption {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+}
+
+const DEFAULT_SUPPLIER_TEMPLATE = "Please Quote — Supplier";
+
+function fillPlaceholders(text: string, values: Record<string, string>): string {
+  let out = text;
+  for (const [k, v] of Object.entries(values)) out = out.replaceAll(`{${k}}`, v).replaceAll(`[${k}]`, v);
+  return out;
+}
+
+export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOption[]; suppliers: SupplierContact[]; templates: EmailTemplateOption[] }) {
   const [selectedJobNumber, setSelectedJobNumber] = useState("");
   const [opened, setOpened] = useState(false);
   const [openings, setOpenings] = useState<number[]>([]);
   const [color, setColor] = useState(PEN_COLORS[0].value);
+  const [tool, setTool] = useState<"line" | "text">("line");
   const [supplierEmail, setSupplierEmail] = useState("");
+  const [templateId, setTemplateId] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -208,6 +231,27 @@ export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppl
   const canvasesRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
 
   const job = useMemo(() => jobs.find((j) => j.number === selectedJobNumber) ?? null, [jobs, selectedJobNumber]);
+
+  function applyTemplate(id: string) {
+    setTemplateId(id);
+    const t = templates.find((x) => x.id === id);
+    if (!t || !job) {
+      setEmailSubject("");
+      setEmailBody("");
+      return;
+    }
+    const values = { "Job Number": job.number, "Client Name": job.client?.name ?? job.title, Address: job.address ?? "" };
+    setEmailSubject(fillPlaceholders(t.subject, values));
+    setEmailBody(fillPlaceholders(t.body, values));
+  }
+
+  // Default to the "Please Quote — Supplier" template as soon as a job is open.
+  useEffect(() => {
+    if (!opened || !job || templateId) return;
+    const def = templates.find((t) => t.name === DEFAULT_SUPPLIER_TEMPLATE);
+    if (def) applyTemplate(def.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [opened, job]);
 
   const contacts = useMemo(() => {
     if (!job?.supplier) return [];
@@ -321,6 +365,8 @@ export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppl
         supplierEmail,
         pageCount: 1,
         storageKeys,
+        subject: emailSubject,
+        body: emailBody,
       });
       if (sendError) throw new Error(sendError);
 
@@ -370,20 +416,33 @@ export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppl
                   key={c.value}
                   type="button"
                   className="btn light"
-                  style={color === c.value ? { outline: `2px solid ${c.value}` } : undefined}
-                  onClick={() => setColor(c.value)}
+                  style={color === c.value && tool === "line" ? { outline: `2px solid ${c.value}` } : undefined}
+                  onClick={() => {
+                    setColor(c.value);
+                    setTool("line");
+                  }}
                 >
                   {c.label}
                 </button>
               ))}
+              <button
+                type="button"
+                className="btn light"
+                style={tool === "text" ? { outline: `2px solid ${color}`, fontWeight: 900 } : undefined}
+                onClick={() => setTool(tool === "text" ? "line" : "text")}
+                title="Tap this, then tap the sketch where the text should go"
+              >
+                Aa Add Text
+              </button>
               <button type="button" className="btn primary" onClick={addOpening}>
                 + Add New Box
               </button>
             </div>
+            {tool === "text" && <div className="hint" style={{ marginTop: 6 }}>Text mode: tap the sketch where the text should go, then type it. Pick a pen colour to go back to drawing lines.</div>}
           </div>
 
           <form ref={formRef}>
-            <PageBlock pageNum={1} job={job} color={color} openings={openings} registerCanvas={registerCanvas} />
+            <PageBlock pageNum={1} job={job} color={color} tool={tool} openings={openings} registerCanvas={registerCanvas} />
           </form>
 
           <div className="card" style={{ marginTop: 16 }}>
@@ -397,6 +456,25 @@ export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppl
                     No contact matched “{job.supplier}” automatically — search for the right one above.
                   </div>
                 )}
+              </div>
+            </div>
+            <div className="form" style={{ marginTop: 12 }}>
+              <div>
+                <label>Email Template</label>
+                <select value={templateId} onChange={(e) => applyTemplate(e.target.value)}>
+                  <option value="">— Write my own —</option>
+                  {templates.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label>Subject</label>
+                <input value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} placeholder="Please Quote — job number" />
+              </div>
+              <div className="full">
+                <label>Message (edit before sending — your name is added at the end)</label>
+                <textarea value={emailBody} onChange={(e) => setEmailBody(e.target.value)} rows={8} style={{ width: "100%" }} />
               </div>
             </div>
             <div className="actions" style={{ marginTop: 12 }}>

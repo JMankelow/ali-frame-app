@@ -7,9 +7,18 @@ interface Point {
   y: number;
 }
 interface Stroke {
+  kind: "line";
   color: string;
   points: Point[];
 }
+interface TextNote {
+  kind: "text";
+  color: string;
+  x: number;
+  y: number;
+  text: string;
+}
+type Item = Stroke | TextNote;
 
 function drawBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
   ctx.clearRect(0, 0, w, h);
@@ -41,14 +50,18 @@ function drawBackground(ctx: CanvasRenderingContext2D, w: number, h: number) {
 export function OpeningCanvas({
   id,
   color,
+  tool = "line",
   registerRef,
 }: {
   id: string;
   color: string;
+  tool?: "line" | "text";
   registerRef: (id: string, el: HTMLCanvasElement | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const strokesRef = useRef<Stroke[]>([]);
+  const strokesRef = useRef<Item[]>([]);
+  const toolRef = useRef(tool);
+  toolRef.current = tool;
   const currentRef = useRef<Stroke | null>(null);
   const colorRef = useRef(color);
   colorRef.current = color;
@@ -72,7 +85,14 @@ export function OpeningCanvas({
     drawBackground(ctx, canvas.width, canvas.height);
   }, []);
 
-  function drawStroke(ctx: CanvasRenderingContext2D, s: Stroke) {
+  function drawStroke(ctx: CanvasRenderingContext2D, s: Item) {
+    if (s.kind === "text") {
+      ctx.fillStyle = s.color;
+      ctx.font = "bold 18px Arial";
+      ctx.textBaseline = "middle";
+      ctx.fillText(s.text, s.x, s.y);
+      return;
+    }
     if (s.points.length < 2) return;
     ctx.strokeStyle = s.color;
     ctx.lineWidth = 2.5;
@@ -108,9 +128,19 @@ export function OpeningCanvas({
   // where it went up, rather than tracing the wobbly path in between.
   function handlePointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
     e.preventDefault();
-    e.currentTarget.setPointerCapture(e.pointerId);
     const start = pos(e);
-    currentRef.current = { color: colorRef.current, points: [start, start] };
+    if (toolRef.current === "text") {
+      // Add Text: tap where the label should go, type it (e.g. a measurement or note).
+      const text = window.prompt("Text to add to the sketch (e.g. 1200 x 900):");
+      if (text && text.trim()) {
+        strokesRef.current.push({ kind: "text", color: colorRef.current, x: start.x, y: start.y, text: text.trim().slice(0, 60) });
+        markHasStrokes();
+        redraw();
+      }
+      return;
+    }
+    e.currentTarget.setPointerCapture(e.pointerId);
+    currentRef.current = { kind: "line", color: colorRef.current, points: [start, start] };
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -152,7 +182,7 @@ export function OpeningCanvas({
           id={id}
           width={600}
           height={420}
-          style={{ width: "100%", display: "block", cursor: "crosshair", touchAction: "none" }}
+          style={{ width: "100%", display: "block", cursor: tool === "text" ? "text" : "crosshair", touchAction: "none" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -161,7 +191,7 @@ export function OpeningCanvas({
       </div>
       <div className="actions" style={{ marginTop: 8 }}>
         <button type="button" className="btn light" onClick={removeLine}>
-          Remove Line
+          Undo Last
         </button>
         <button type="button" className="btn light" onClick={clear}>
           Clear Drawing

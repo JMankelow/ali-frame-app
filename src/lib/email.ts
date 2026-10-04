@@ -58,6 +58,9 @@ export async function sendSiteMeasureEmail(params: {
   fromName: string;
   pageCount: number;
   attachments: EmailAttachment[];
+  /** Optional template-based wording; falls back to the standard request if blank. */
+  subject?: string;
+  body?: string;
 }) {
   const from = process.env.EMAIL_FROM;
   if (!process.env.RESEND_API_KEY || !from) {
@@ -74,9 +77,12 @@ export async function sendSiteMeasureEmail(params: {
   const result = await getResend().emails.send({
     from,
     to: params.to,
-    subject: `Site Measure Sheet — ${params.jobNumber} ${params.jobTitle}`,
-    text:
-      `Hi,\n\n` +
+    subject: params.subject || `Site Measure Sheet — ${params.jobNumber} ${params.jobTitle}`,
+    text: params.body
+      ? params.body.includes(params.fromName)
+        ? params.body
+        : `${params.body}\n\n${params.fromName}`
+      : `Hi,\n\n` +
       `Please find attached the measure for ${params.jobNumber} ${params.jobTitle}.\n\n` +
       `Could you kindly provide a quote based on the attached details.\n\n` +
       `If you have any questions or need further information, feel free to get in touch.\n\n` +
