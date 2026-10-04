@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { EstimateForm } from "./EstimateForm";
 import { QuickEstimateForm } from "./QuickEstimateForm";
+import { AddressLink } from "@/components/AddressLink";
 
 const STATUS_COLOR: Record<string, string> = {
   Quoted: "blue",
@@ -46,7 +47,7 @@ export default async function EstimatesPage() {
                   <Link href={`/estimates/${e.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none", display: "block" }}>
                     {e.clientName}
                   </Link>
-                  <div className="hint">{e.address}</div>
+                  <div className="hint"><AddressLink address={e.address} /></div>
                 </td>
                 <td>{e.category ?? "—"}</td>
                 <td>{e.size ?? (e.widthMM && e.heightMM ? `${e.widthMM} x ${e.heightMM}mm` : "—")}</td>

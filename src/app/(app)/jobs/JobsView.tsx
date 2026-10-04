@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { archiveJob, reactivateJob } from "./actions";
 import { JOB_STATUS_COLOR } from "@/lib/jobStatus";
+import { AddressLink } from "@/components/AddressLink";
 
 export interface JobRow {
   number: string;
@@ -67,7 +68,7 @@ export function JobsView({ jobs, showArchived }: { jobs: JobRow[]; showArchived:
                   </Link>
                 </td>
                 <td>{job.clientName ?? job.title}</td>
-                <td>{job.address ?? "—"}</td>
+                <td><AddressLink address={job.address} /></td>
                 <td>{job.type === "COMMERCIAL" ? "Commercial" : "Residential"}</td>
                 <td>
                   <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
@@ -101,7 +102,7 @@ export function JobsView({ jobs, showArchived }: { jobs: JobRow[]; showArchived:
                 <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
               </div>
               <div className="hint">
-                {job.address ?? "No address"}
+                <AddressLink address={job.address} fallback="No address" />
                 {job.supplier && <><br />Supplier: {job.supplier}</>}
               </div>
               <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)" }}>

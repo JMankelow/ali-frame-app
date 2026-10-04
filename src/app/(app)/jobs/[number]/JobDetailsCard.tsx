@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { JobEditForm } from "./JobEditForm";
 import { JOB_STATUS_COLOR } from "@/lib/jobStatus";
+import { AddressLink } from "@/components/AddressLink";
 
 export function JobDetailsCard({
   jobNumber,
@@ -95,7 +96,7 @@ export function JobDetailsCard({
           </div>
           <div className="full">
             <label>Address</label>
-            <div>{address || "—"}</div>
+            <div><AddressLink address={address} /></div>
           </div>
           <div>
             <label>Customer</label>
