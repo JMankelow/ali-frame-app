@@ -18,6 +18,7 @@ export function JobDetailsCard({
   assignedUserId,
   priceType,
   leadSource,
+  installDays,
   staff,
   suppliers,
 }: {
@@ -33,6 +34,7 @@ export function JobDetailsCard({
   assignedUserId: string;
   priceType: string;
   leadSource: string;
+  installDays: string;
   staff: { id: string; name: string }[];
   suppliers: { id: string; companyName: string }[];
 }) {
@@ -62,6 +64,7 @@ export function JobDetailsCard({
           assignedUserId={assignedUserId}
           priceType={priceType}
           leadSource={leadSource}
+          installDays={installDays}
           staff={staff}
           suppliers={suppliers}
           onDone={() => setEditing(false)}
@@ -77,6 +80,10 @@ export function JobDetailsCard({
           <div>
             <label>Type</label>
             <div>{type === "COMMERCIAL" ? "Commercial" : "Residential"}</div>
+          </div>
+          <div>
+            <label>Install Days</label>
+            <div>{installDays || "—"}</div>
           </div>
           <div>
             <label>Price Type</label>

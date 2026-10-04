@@ -18,6 +18,7 @@ export function JobEditForm({
   assignedUserId,
   priceType,
   leadSource,
+  installDays,
   staff,
   suppliers,
   onDone,
@@ -33,6 +34,7 @@ export function JobEditForm({
   assignedUserId: string;
   priceType: string;
   leadSource: string;
+  installDays: string;
   staff: { id: string; name: string }[];
   suppliers: { id: string; companyName: string }[];
   onDone: () => void;
@@ -70,6 +72,10 @@ export function JobEditForm({
             <option value="RESIDENTIAL">Residential</option>
             <option value="COMMERCIAL">Commercial</option>
           </select>
+        </div>
+        <div>
+          <label>Install Days (required when accepting)</label>
+          <input name="installDays" type="number" step="0.5" min="0.5" defaultValue={installDays} placeholder="e.g. 2" />
         </div>
         <div>
           <label>Price Type</label>

@@ -214,6 +214,7 @@ model Job {
   priority       String?
   priceType      String?
   leadSource     String? // "How did they hear about us?"
+  installDays    Float? // asked when the job is accepted; sets the length of its Calendar booking
   dueDate        DateTime?
   startDate      DateTime?
   assignedUserId String?

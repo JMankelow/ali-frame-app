@@ -61,12 +61,22 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
   const leadSource = String(formData.get("leadSource") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
   const assignedUserId = String(formData.get("assignedUserId") ?? "").trim();
+  const installDaysRaw = String(formData.get("installDays") ?? "").trim();
+  const installDays = installDaysRaw ? parseFloat(installDaysRaw) : null;
 
   if (!clientName) return { error: "Customer name is required." };
   if (!status) return { error: "Status is required." };
 
   const job = await prisma.job.findUnique({ where: { number }, include: { client: true } });
   if (!job) return { error: `Job ${number} not found.` };
+
+  if (installDays != null && (!Number.isFinite(installDays) || installDays <= 0 || installDays > 60)) {
+    return { error: "Install days must be a number between 0.5 and 60." };
+  }
+  // Accepting a job means it needs to go on the Calendar, so we need to know for how long.
+  if (status === "Quote Accepted" && job.status !== "Quote Accepted" && !(installDays ?? job.installDays)) {
+    return { error: "How many install days does this job need? Enter it before marking the quote accepted." };
+  }
 
   // Acceptances are never entered by hand — the moment Sales moves a job's
   // status to "Quote Accepted" we log it automatically, and the job then
@@ -119,6 +129,7 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
       status,
       type,
       supplier: supplier || null,
+      installDays: installDays ?? null,
       priceType: priceType || null,
       leadSource: leadSource || null,
       address: address || null,
@@ -180,12 +191,27 @@ export async function createScheduledTask(
   if (!scheduledDateRaw) return { error: "A date is required." };
   if (endDateRaw && endDateRaw < scheduledDateRaw) return { error: "To date can't be before the from date." };
 
+  // A multi-day install with no end date given runs for the job's install days (working days, skipping weekends).
+  let endDate: Date | null = endDateRaw ? new Date(endDateRaw) : null;
+  if (!endDate && type === "Installation") {
+    const j = await prisma.job.findUnique({ where: { number: jobNumber }, select: { installDays: true } });
+    const days = Math.ceil(j?.installDays ?? 1);
+    if (days > 1) {
+      endDate = new Date(scheduledDateRaw);
+      let remaining = days - 1;
+      while (remaining > 0) {
+        endDate.setDate(endDate.getDate() + 1);
+        if (endDate.getDay() !== 0 && endDate.getDay() !== 6) remaining -= 1;
+      }
+    }
+  }
+
   const task = await prisma.jobScheduledTask.create({
     data: {
       jobNumber,
       type,
       scheduledDate: new Date(scheduledDateRaw),
-      endDate: endDateRaw ? new Date(endDateRaw) : null,
+      endDate,
       status,
       notes: notes || null,
       createdById: user.id,

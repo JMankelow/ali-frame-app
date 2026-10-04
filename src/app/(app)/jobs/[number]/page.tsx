@@ -122,6 +122,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         address={job.address ?? ""}
         assignedUserName={job.assignedUser?.name ?? ""}
         assignedUserId={job.assignedUserId ?? ""}
+        installDays={job.installDays != null ? String(job.installDays) : ""}
         priceType={job.priceType ?? ""}
         leadSource={job.leadSource ?? ""}
         staff={salesStaff}
