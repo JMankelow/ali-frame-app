@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/session";
 import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { AssetForm } from "./AssetForm";
-import { retireAsset, resolveAssetIssue } from "./actions";
+import { retireAsset, resolveAssetIssue, updateAssetRegister } from "./actions";
 import { AssetIssueForm } from "./AssetIssueForm";
 
 export default async function AssetsPage({ searchParams }: { searchParams: Promise<{ add?: string }> }) {
@@ -145,6 +145,19 @@ export default async function AssetsPage({ searchParams }: { searchParams: Promi
                   </td>
                   {!installer && (
                     <td>
+                      {user.isSuperUser && (
+                        <details style={{ marginBottom: 6 }}>
+                          <summary className="btn light" style={{ display: "inline-block", cursor: "pointer" }}>Edit</summary>
+                          <form action={updateAssetRegister.bind(null, a.id)} style={{ marginTop: 8, minWidth: 260, display: "grid", gap: 6 }}>
+                            <input name="name" defaultValue={a.name} placeholder="Name" />
+                            <input name="assetCode" defaultValue={a.assetCode ?? ""} placeholder="Asset code" />
+                            <input name="serialNumber" defaultValue={a.serialNumber ?? ""} placeholder="Serial number" />
+                            <input name="estimatedValue" type="number" step="0.01" min="0" defaultValue={a.estimatedValue ?? ""} placeholder="Value ($)" />
+                            <input name="purchaseDate" type="date" defaultValue={a.purchaseDate ? a.purchaseDate.toISOString().slice(0, 10) : ""} />
+                            <button type="submit" className="btn primary">Save</button>
+                          </form>
+                        </details>
+                      )}
                       <form action={retireAsset.bind(null, a.id)}>
                         <button type="submit" className="btn light">
                           Retire

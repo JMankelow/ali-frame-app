@@ -40,6 +40,7 @@ export default async function MonthlyChecklistPage({ params }: { params: Promise
           checklistId={checklist.id}
           vehicleName={checklist.vehicle.name}
           operatorName={checklist.assignedTo.name}
+          signerName={user.name}
           defaults={{
             date: new Date().toISOString().slice(0, 10),
             wofExpiry: iso(checklist.vehicle.wofDueDate),

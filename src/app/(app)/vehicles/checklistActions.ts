@@ -202,6 +202,13 @@ export async function submitMonthlyChecklist(id: string, _prev: MonthlyChecklist
 
   const signedBy = get("signedBy");
   if (signedBy.length < 3) return { error: "Type your full name to sign off." };
+  // The name against the check must be the signed-in person's own — nobody can sign for someone else.
+  const tokens = (v: string) => v.toLowerCase().replace(/[^a-z' -]/g, " ").split(/\s+/).filter(Boolean);
+  const mine = tokens(user.name);
+  const typed = tokens(signedBy);
+  if (mine.length > 0 && !(typed.includes(mine[0]) && typed.includes(mine[mine.length - 1]))) {
+    return { error: `Sign with your own name (${user.name}). You can't sign for someone else.` };
+  }
   if (fd.get("confirm") !== "on") return { error: "Tick the box to confirm the check is accurate." };
 
   const responses: MonthlyResponses = {

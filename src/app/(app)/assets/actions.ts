@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireUser, requireNotInstaller } from "@/lib/session";
+import { requireUser, requireNotInstaller, requireSuperUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { isInstallerProfile } from "@/lib/permissions";
 import { ASSET_TYPES } from "./assetTypes";
@@ -99,5 +99,27 @@ export async function resolveAssetIssue(id: string) {
   const user = await requireNotInstaller();
   await prisma.assetIssue.update({ where: { id }, data: { status: "Resolved", resolvedAt: new Date() } });
   await logAudit({ userId: user.id, action: "asset_issue_resolved", entityType: "AssetIssue", entityId: id });
+  revalidatePath("/assets");
+}
+
+/** Fill in or correct a register entry (value, purchase date, serial, code). Super users only — it carries values. */
+export async function updateAssetRegister(id: string, formData: FormData) {
+  const user = await requireSuperUser();
+  const text = (k: string) => String(formData.get(k) ?? "").trim() || null;
+  const valueRaw = String(formData.get("estimatedValue") ?? "").trim().replace(/[$,]/g, "");
+  const value = valueRaw === "" ? null : Number(valueRaw);
+  if (value != null && (!Number.isFinite(value) || value < 0)) return;
+  const purchase = String(formData.get("purchaseDate") ?? "").trim();
+  await prisma.asset.update({
+    where: { id },
+    data: {
+      estimatedValue: value,
+      purchaseDate: purchase ? new Date(purchase) : null,
+      serialNumber: text("serialNumber"),
+      assetCode: text("assetCode"),
+      name: text("name") ?? undefined,
+    },
+  });
+  await logAudit({ userId: user.id, action: "asset_register_updated", entityType: "Asset", entityId: id });
   revalidatePath("/assets");
 }
