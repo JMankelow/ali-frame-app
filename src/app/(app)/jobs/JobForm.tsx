@@ -9,7 +9,7 @@ export function JobForm() {
   const [state, formAction, pending] = useActionState(createJob, initialState);
 
   return (
-    <div className="card" style={{ marginTop: 16 }}>
+    <div id="add-job" className="card" style={{ marginTop: 16, scrollMarginTop: 110 }}>
       <div className="label">Add Job</div>
       <form action={formAction} className="form" style={{ marginTop: 10 }}>
         <div>

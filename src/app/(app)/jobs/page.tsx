@@ -37,6 +37,11 @@ export default async function JobsPage({
             {jobs.length} {showArchived ? "inactive" : "active"} job(s) — shared, real-time for everyone signed in.
           </div>
         </div>
+        {!readOnly && (
+          <a href="#add-job" className="btn primary">
+            + New Job
+          </a>
+        )}
       </div>
 
       <JobsView jobs={jobs} showArchived={showArchived} canManage={!readOnly} />
