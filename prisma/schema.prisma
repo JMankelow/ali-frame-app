@@ -81,6 +81,10 @@ model User {
   employeeDocumentsUploaded EmployeeDocument[]    @relation("EmployeeDocumentUploadedBy")
   jobQuoteInputsUpdated     JobQuoteInputs[]
   invites                   InviteToken[]         @relation("UserInvites")
+  hsCompetencies            HsCompetency[]        @relation("UserCompetency")
+  preStartsCompleted        HsPreStart[]          @relation("PreStartsCompleted")
+  jsasPrepared              HsJsa[]               @relation("JsasPrepared")
+  inductions                HsInduction[]         @relation("Inductions")
 }
 
 // HR files (contracts, ID, certifications) — same R2-backed upload pipeline
@@ -239,6 +243,9 @@ model Job {
   scheduledTasks       JobScheduledTask[]
   notes                Note[]
   quoteInputs          JobQuoteInputs?
+  preStarts            HsPreStart[]          @relation("JobPreStarts")
+  jsas                 HsJsa[]               @relation("JobJsas")
+  sssp                 HsSssp?               @relation("JobSssp")
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -432,6 +439,7 @@ model VehicleChecklist {
   vehicleId          String
   vehicle            Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
   items              String
+  template           String    @default("basic") // "basic" (free-text) | "monthly" (structured 26-point check)
   assignedToId       String
   assignedTo         User      @relation("VehicleChecklistAssignee", fields: [assignedToId], references: [id], onDelete: Cascade)
   dueDate            DateTime
@@ -805,4 +813,156 @@ model InviteToken {
   createdAt DateTime  @default(now())
 
   @@index([userId])
+}
+
+// ---- Health & Safety (Ali-Frame's own system; structure only, no third-party content) ----
+
+// Mirrors Ali-Frame's "Training and Competency Register". One row per person
+// (staff or contractor). userId is optional so contractors who aren't app users can be listed.
+model HsCompetency {
+  id              String    @id @default(cuid())
+  name            String
+  userId          String?
+  user            User?     @relation("UserCompetency", fields: [userId], references: [id], onDelete: SetNull)
+  siteSafeNumber  String?
+  keyRole         String?
+  qualifications  String?
+  expiryDate      DateTime?
+  yearsExperience String?
+  competency      Int? // 1-5
+  sortOrder       Int       @default(0)
+  active          Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+
+  @@index([expiryDate])
+}
+
+// Company Hazard and Risk Register (initial vs residual risk, 4 levels: CRITICAL/HIGH/MEDIUM/LOW).
+model HsRisk {
+  id            String    @id @default(cuid())
+  activity      String
+  hazard        String
+  potentialHarm String?
+  initialRisk   String // CRITICAL | HIGH | MEDIUM | LOW
+  controls      String
+  residualRisk  String // CRITICAL | HIGH | MEDIUM | LOW
+  ownerName     String?
+  reviewDate    DateTime?
+  status        String    @default("Open")
+  createdAt     DateTime  @default(now())
+}
+
+model HsPreStart {
+  id            String   @id @default(cuid())
+  date          DateTime
+  jobNumber     String?
+  job           Job?     @relation("JobPreStarts", fields: [jobNumber], references: [number], onDelete: SetNull)
+  completedById String
+  completedBy   User     @relation("PreStartsCompleted", fields: [completedById], references: [id], onDelete: Cascade)
+  crewNames     String?
+  checks        Json // { "<check label>": "Pass" | "Fail" | "N/A" }
+  issues        String?
+  createdAt     DateTime @default(now())
+
+  @@index([date])
+}
+
+model HsJsa {
+  id           String   @id @default(cuid())
+  jobNumber    String
+  job          Job      @relation("JobJsas", fields: [jobNumber], references: [number], onDelete: Cascade)
+  task         String
+  steps        Json // [{ step, hazard, risk, control }]
+  preparedById String
+  preparedBy   User     @relation("JsasPrepared", fields: [preparedById], references: [id], onDelete: Cascade)
+  status       String   @default("Draft")
+  createdAt    DateTime @default(now())
+
+  @@index([jobNumber])
+}
+
+// Site Specific Safety Plan — one per job. Fixed company content (policy, procedures, PPE,
+// emergency plan, training register) is assembled at print time from HsDocument / HsCompetency / HsRisk.
+model HsSssp {
+  id                  String         @id @default(cuid())
+  jobNumber           String         @unique
+  job                 Job            @relation("JobSssp", fields: [jobNumber], references: [number], onDelete: Cascade)
+  siteAddress         String?
+  siteActivities      String?
+  mainContractor      String?
+  pcbu1ProjectManager String?
+  pcbu1SiteManager    String?
+  pcbu1HsRep          String?
+  pcbu2ProjectManager String?
+  pcbu2SiteManager    String?
+  pcbu2HsRep          String?
+  pcbu1SignedBy       String?
+  pcbu1SignedAt       DateTime?
+  pcbu2SignedBy       String?
+  pcbu2SignedAt       DateTime?
+  approvedToStartBy   String?
+  approvedToStartAt   DateTime?
+  siteNotes           String?
+  status              String         @default("Draft")
+  updatedById         String?
+  updatedAt           DateTime       @updatedAt
+  signOns             HsSsspSignOn[]
+}
+
+model HsSsspSignOn {
+  id            String    @id @default(cuid())
+  ssspId        String
+  sssp          HsSssp    @relation(fields: [ssspId], references: [id], onDelete: Cascade)
+  name          String
+  company       String?
+  inductionDate DateTime?
+  recordedById  String?
+  createdAt     DateTime  @default(now())
+
+  @@index([ssspId])
+}
+
+model HsInduction {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation("Inductions", fields: [userId], references: [id], onDelete: Cascade)
+  jobNumber  String?
+  siteName   String?
+  inductedBy String
+  date       DateTime
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+}
+
+// Company H&S documents (policy, procedures, PPE, emergency plan...). Seeded from Ali-Frame's
+// own signed Word documents; "approved" is only ever set by a named super user.
+model HsDocument {
+  slug           String    @id
+  title          String
+  sortOrder      Int       @default(0)
+  version        String?
+  status         String    @default("PENDING ORGANISATION REVIEW")
+  effectiveDate  DateTime?
+  nextReviewDate DateTime?
+  content        String
+  updatedByName  String?
+  updatedAt      DateTime  @updatedAt
+}
+
+// Unhandled server errors, recorded by src/instrumentation.ts and looked up by the digest shown on the error page.
+model ErrorLog {
+  id        String   @id @default(cuid())
+  digest    String?
+  path      String
+  method    String?
+  routeType String?
+  errorName String?
+  message   String
+  stack     String?
+  createdAt DateTime @default(now())
+
+  @@index([digest])
+  @@index([createdAt])
 }

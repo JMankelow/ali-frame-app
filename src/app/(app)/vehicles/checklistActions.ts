@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
-import { sendVehicleChecklistEmail, sendVehicleChecklistOverdueAlert } from "@/lib/email";
+import { redirect } from "next/navigation";
+import { sendVehicleChecklistEmail, sendVehicleChecklistOverdueAlert, sendPlainNotificationEmail } from "@/lib/email";
+import { MONTHLY_QUESTIONS, MONTHLY_ITEM_SUMMARY, isFailure, type ChecklistAnswer, type MonthlyResponses } from "@/lib/vehicleChecklist";
 
 export interface ChecklistFormState {
   error?: string;
@@ -74,32 +76,31 @@ export async function completeVehicleChecklist(id: string, formData: FormData) {
   revalidatePath("/assets");
 }
 
-const MONTHLY_DEFAULT_ITEMS = [
-  "Oil level",
-  "Tyre condition & pressure",
-  "Lights working",
-  "Warning lights on dash",
-  "Vehicle clean/tidy",
-  "Damage to report",
-].join("\n");
+const MONTHLY_DEFAULT_ITEMS = MONTHLY_ITEM_SUMMARY.join("\n");
 
 /**
- * Creates and emails one checklist for every vehicle that has a driver
- * assigned, unless one has already been created for that vehicle this
- * calendar month. Called by the monthly cron route
- * (src/app/api/cron/vehicle-checklists-monthly) — not wired to any button.
+ * Creates and emails the structured monthly vehicle check to the driver of every vehicle that has
+ * an active driver assigned, unless one has already been created for that vehicle this calendar
+ * month. Vehicles with no active driver are listed in an email to management so none is missed.
+ * Called by the daily cron dispatcher (src/app/api/cron/daily) on the 1st of each month, and by
+ * src/app/api/cron/vehicle-checklists-monthly.
  */
-export async function createMonthlyVehicleChecklists(): Promise<{ created: number; skipped: number }> {
+export async function createMonthlyVehicleChecklists(): Promise<{ created: number; skipped: number; unassigned: string[] }> {
   const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const vehicles = await prisma.vehicle.findMany({ where: { assignedToUserId: { not: null } }, include: { assignedToUser: true } });
+  const vehicles = await prisma.vehicle.findMany({ include: { assignedToUser: true }, orderBy: { name: "asc" } });
 
   let created = 0;
   let skipped = 0;
+  const unassigned: string[] = [];
 
   for (const vehicle of vehicles) {
-    if (!vehicle.assignedToUser) continue;
+    const driver = vehicle.assignedToUser;
+    if (!driver || !driver.isActive) {
+      unassigned.push(vehicle.name);
+      continue;
+    }
     const alreadyThisMonth = await prisma.vehicleChecklist.findFirst({
-      where: { vehicleId: vehicle.id, createdAt: { gte: startOfMonth } },
+      where: { vehicleId: vehicle.id, template: "monthly", createdAt: { gte: startOfMonth } },
     });
     if (alreadyThisMonth) {
       skipped += 1;
@@ -108,32 +109,152 @@ export async function createMonthlyVehicleChecklists(): Promise<{ created: numbe
 
     const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     const checklist = await prisma.vehicleChecklist.create({
-      data: {
-        vehicleId: vehicle.id,
-        assignedToId: vehicle.assignedToUser.id,
-        dueDate,
-        items: MONTHLY_DEFAULT_ITEMS,
-      },
+      data: { vehicleId: vehicle.id, assignedToId: driver.id, dueDate, items: MONTHLY_DEFAULT_ITEMS, template: "monthly" },
     });
 
     await sendVehicleChecklistEmail({
-      to: vehicle.assignedToUser.email,
+      to: driver.email,
       vehicleName: vehicle.name,
-      items: MONTHLY_DEFAULT_ITEMS.split("\n"),
+      items: MONTHLY_ITEM_SUMMARY,
       dueDate,
-      checklistUrl: `${appUrl()}/vehicles/${encodeURIComponent(vehicle.name)}`,
+      checklistUrl: `${appUrl()}/vehicles/checklist/${checklist.id}`,
     });
 
     await logAudit({
       action: "vehicle_checklist_monthly_created",
       entityType: "VehicleChecklist",
       entityId: checklist.id,
-      metadata: { vehicleId: vehicle.id, assignedToId: vehicle.assignedToUser.id },
+      metadata: { vehicleId: vehicle.id, assignedToId: driver.id },
     });
     created += 1;
   }
 
-  return { created, skipped };
+  if (unassigned.length > 0) {
+    const managers = await prisma.user.findMany({ where: { isSuperUser: true, isActive: true }, select: { email: true } });
+    if (managers.length > 0) {
+      await sendPlainNotificationEmail({
+        to: managers.map((m) => m.email),
+        subject: "Monthly vehicle check — vehicles with no driver assigned",
+        text:
+          "The monthly vehicle check could not be sent for these vehicles because no active driver is assigned:\n\n" +
+          unassigned.map((n) => `- ${n}`).join("\n") +
+          `\n\nAssign a driver on the Vehicles page (${appUrl()}/vehicles) so they receive it next month, or ask one of the drivers to complete it manually.`,
+      });
+    }
+  }
+
+  return { created, skipped, unassigned };
+}
+
+export interface MonthlyChecklistState {
+  error?: string;
+}
+
+function cleanDate(v: string): string | null {
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)) ? v : null;
+}
+
+/** Saves the structured monthly check, updates the vehicle's records, and raises issues/alerts for any failed answers. */
+export async function submitMonthlyChecklist(id: string, _prev: MonthlyChecklistState, fd: FormData): Promise<MonthlyChecklistState> {
+  const user = await requireUser();
+  const checklist = await prisma.vehicleChecklist.findUnique({ where: { id }, include: { vehicle: true, assignedTo: true } });
+  if (!checklist || checklist.template !== "monthly") return { error: "Checklist not found." };
+  if (checklist.status === "Completed") return { error: "This checklist has already been completed." };
+  if (checklist.assignedToId !== user.id && !user.isSuperUser) return { error: "This checklist is assigned to someone else." };
+
+  const get = (k: string) => String(fd.get(k) ?? "").trim();
+  const date = cleanDate(get("date"));
+  const wofExpiry = cleanDate(get("wofExpiry"));
+  const regoExpiry = cleanDate(get("regoExpiry"));
+  const serviceDate = cleanDate(get("serviceDate"));
+  const odometerKm = Math.round(Number(get("odometerKm")));
+  if (!date) return { error: "Enter today's date." };
+  if (!Number.isFinite(odometerKm) || odometerKm <= 0) return { error: "Enter the current odometer reading." };
+  if (checklist.vehicle.currentOdometerKm && odometerKm < checklist.vehicle.currentOdometerKm - 1) {
+    return {
+      error: `The odometer (${odometerKm.toLocaleString()} km) is lower than the last recorded reading (${checklist.vehicle.currentOdometerKm.toLocaleString()} km). Please check it.`,
+    };
+  }
+  if (!wofExpiry) return { error: "Enter the WOF expiry date." };
+  if (!regoExpiry) return { error: "Enter the registration expiry date." };
+  if (!serviceDate) return { error: "Enter the last service date." };
+  const serviceKms = get("serviceKms");
+
+  const answers: MonthlyResponses["answers"] = {};
+  const failures: { text: string; reason: string; critical: boolean }[] = [];
+  for (const q of MONTHLY_QUESTIONS) {
+    const answer = get(`q_${q.key}`) as ChecklistAnswer;
+    const allowed: ChecklistAnswer[] = q.allowNA ? ["Yes", "No", "N/A"] : ["Yes", "No"];
+    if (!allowed.includes(answer)) return { error: `Answer every question — missing: "${q.text}"` };
+    const reason = get(`r_${q.key}`);
+    if (isFailure(q, answer)) {
+      if (!reason) return { error: `A reason is required for: "${q.text}"` };
+      failures.push({ text: q.text, reason, critical: !!q.critical });
+    }
+    answers[q.key] = { answer, reason };
+  }
+
+  const signedBy = get("signedBy");
+  if (signedBy.length < 3) return { error: "Type your full name to sign off." };
+  if (fd.get("confirm") !== "on") return { error: "Tick the box to confirm the check is accurate." };
+
+  const responses: MonthlyResponses = {
+    version: 1,
+    date,
+    odometerKm,
+    wofExpiry,
+    regoExpiry,
+    serviceDate,
+    serviceKms,
+    answers,
+    signedBy,
+    signedAt: new Date().toISOString(),
+  };
+
+  await prisma.$transaction([
+    prisma.vehicleChecklist.update({ where: { id }, data: { status: "Completed", completedAt: new Date(), responses: JSON.stringify(responses) } }),
+    prisma.vehicle.update({
+      where: { id: checklist.vehicleId },
+      data: { currentOdometerKm: odometerKm, wofDueDate: new Date(wofExpiry), regoDueDate: new Date(regoExpiry), lastServiceDate: new Date(serviceDate) },
+    }),
+    ...failures.map((f) =>
+      prisma.vehicleIssue.create({
+        data: {
+          vehicleId: checklist.vehicleId,
+          type: "Issue",
+          description: `Monthly check${f.critical ? " — NOT SAFE TO OPERATE" : ""}: ${f.text} — ${f.reason}`,
+          raisedById: user.id,
+        },
+      }),
+    ),
+  ]);
+
+  await logAudit({
+    userId: user.id,
+    action: "vehicle_checklist_completed",
+    entityType: "VehicleChecklist",
+    entityId: id,
+    metadata: { failures: failures.length, critical: failures.some((f) => f.critical) },
+  });
+
+  if (failures.length > 0) {
+    const managers = await prisma.user.findMany({ where: { isSuperUser: true, isActive: true }, select: { email: true } });
+    const critical = failures.some((f) => f.critical);
+    if (managers.length > 0) {
+      await sendPlainNotificationEmail({
+        to: managers.map((m) => m.email),
+        subject: `${critical ? "CRITICAL — " : ""}Vehicle check issues: ${checklist.vehicle.name}`,
+        text:
+          `${checklist.assignedTo.name} completed the monthly check for ${checklist.vehicle.name} and reported ${failures.length} issue(s):\n\n` +
+          failures.map((f) => `- ${f.text}\n  Reason: ${f.reason}`).join("\n") +
+          `\n\n${critical ? "The driver has said the vehicle is NOT safe to operate. " : ""}View: ${appUrl()}/vehicles/${encodeURIComponent(checklist.vehicle.name)}`,
+      }).catch(() => undefined);
+    }
+  }
+
+  revalidatePath("/vehicles");
+  revalidatePath(`/vehicles/${encodeURIComponent(checklist.vehicle.name)}`);
+  redirect(`/vehicles/${encodeURIComponent(checklist.vehicle.name)}`);
 }
 
 /**

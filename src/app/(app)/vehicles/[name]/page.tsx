@@ -167,6 +167,7 @@ export default async function VehicleDetailPage({ params }: { params: Promise<{ 
                   items={c.items}
                   dueDate={c.dueDate.toISOString()}
                   status={c.status}
+                  template={c.template}
                 />
               ))}
             </tbody>

@@ -146,6 +146,7 @@ export default async function VehiclesPage() {
                   items={c.items}
                   dueDate={c.dueDate.toISOString()}
                   status={c.status}
+                  template={c.template}
                 />
               ))}
             </tbody>

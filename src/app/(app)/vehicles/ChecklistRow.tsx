@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { completeVehicleChecklist } from "./checklistActions";
 
 export function ChecklistRow({
@@ -10,6 +11,7 @@ export function ChecklistRow({
   items,
   dueDate,
   status,
+  template = "basic",
 }: {
   id: string;
   vehicleName: string;
@@ -17,6 +19,7 @@ export function ChecklistRow({
   items: string;
   dueDate: string;
   status: string;
+  template?: string;
 }) {
   const [open, setOpen] = useState(false);
   const isOverdue = status === "Pending" && new Date(dueDate) < new Date();
@@ -32,7 +35,12 @@ export function ChecklistRow({
         </span>
       </td>
       <td>
-        {status !== "Completed" &&
+        {template === "monthly" && (
+          <Link href={`/vehicles/checklist/${id}`} className="btn light">
+            {status === "Completed" ? "View" : "Complete"}
+          </Link>
+        )}
+        {template !== "monthly" && status !== "Completed" &&
           (open ? (
             <form
               action={async (formData) => {

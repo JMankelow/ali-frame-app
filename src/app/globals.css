@@ -137,3 +137,5 @@ textarea{min-height:82px}
   .topUtilityBar{overflow-x:auto}
   .syncBtn{flex:0 0 auto}
 }
+
+@media print{aside,.topUtilityBar,.no-print{display:none !important}.app{display:block}body{background:#fff}.pagebreak{break-before:page}.card{box-shadow:none;border:1px solid #ccc}}
