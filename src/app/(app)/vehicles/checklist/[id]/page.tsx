@@ -14,7 +14,7 @@ export default async function MonthlyChecklistPage({ params }: { params: Promise
   const user = await requireUser();
   const { id } = await params;
   const checklist = await prisma.vehicleChecklist.findUnique({ where: { id }, include: { vehicle: true, assignedTo: true } });
-  if (!checklist || checklist.template !== "monthly") notFound();
+  if (!checklist) notFound();
   if (checklist.assignedToId !== user.id && !user.isSuperUser) notFound();
 
   const done = checklist.status === "Completed";

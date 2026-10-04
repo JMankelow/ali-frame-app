@@ -2,7 +2,6 @@
 
 import { useActionState } from "react";
 import { createVehicleChecklist, type ChecklistFormState } from "./checklistActions";
-import { DEFAULT_CHECKLIST_ITEMS } from "./checklistDefaults";
 
 const initialState: ChecklistFormState = {};
 
@@ -54,10 +53,7 @@ export function ChecklistForm({
             <label htmlFor="dueDate">Due Date</label>
             <input id="dueDate" name="dueDate" type="date" required />
           </div>
-          <div className="full">
-            <label htmlFor="items">Checklist Items (one per line)</label>
-            <textarea id="items" name="items" rows={9} defaultValue={DEFAULT_CHECKLIST_ITEMS} />
-          </div>
+          <div className="full hint">The driver gets the standard Yes/No vehicle check (interior, exterior, sign-off) and signs it with their own name.</div>
         </div>
         {state.error && <div className="authError">{state.error}</div>}
         <div className="actions" style={{ marginTop: 12 }}>

@@ -1,27 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import { completeVehicleChecklist } from "./checklistActions";
 
+/** One row in a checklist list. "Complete" always opens the full Yes/No vehicle check — never an inline notes box. */
 export function ChecklistRow({
   id,
   vehicleName,
   assignedName,
-  items,
   dueDate,
   status,
-  template = "basic",
 }: {
   id: string;
   vehicleName: string;
   assignedName: string;
-  items: string;
+  items?: string;
   dueDate: string;
   status: string;
   template?: string;
 }) {
-  const [open, setOpen] = useState(false);
   const isOverdue = status === "Pending" && new Date(dueDate) < new Date();
 
   return (
@@ -35,35 +31,9 @@ export function ChecklistRow({
         </span>
       </td>
       <td>
-        {template === "monthly" && (
-          <Link href={`/vehicles/checklist/${id}`} className="btn light">
-            {status === "Completed" ? "View" : "Complete"}
-          </Link>
-        )}
-        {template !== "monthly" && status !== "Completed" &&
-          (open ? (
-            <form
-              action={async (formData) => {
-                await completeVehicleChecklist(id, formData);
-                setOpen(false);
-              }}
-            >
-              <div style={{ fontSize: 12, whiteSpace: "pre-wrap", marginBottom: 6 }}>{items}</div>
-              <textarea name="responses" rows={2} placeholder="Notes (optional)" style={{ width: "100%" }} />
-              <div className="actions" style={{ marginTop: 6 }}>
-                <button type="submit" className="btn primary">
-                  Mark Complete
-                </button>
-                <button type="button" className="btn light" onClick={() => setOpen(false)}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          ) : (
-            <button type="button" className="btn light" onClick={() => setOpen(true)}>
-              Complete
-            </button>
-          ))}
+        <Link href={`/vehicles/checklist/${id}`} className={status === "Completed" ? "btn light" : "btn primary"}>
+          {status === "Completed" ? "View" : "Complete check"}
+        </Link>
       </td>
     </tr>
   );

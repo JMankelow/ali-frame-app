@@ -23,7 +23,6 @@ export async function createVehicleChecklist(_prevState: ChecklistFormState, for
   const vehicleId = String(formData.get("vehicleId") ?? "").trim();
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
   const dueDate = String(formData.get("dueDate") ?? "").trim();
-  const itemsText = String(formData.get("items") ?? "").trim();
 
   if (!vehicleId) return { error: "Select a vehicle." };
   if (!assignedToId) return { error: "Select who this is assigned to." };
@@ -36,10 +35,8 @@ export async function createVehicleChecklist(_prevState: ChecklistFormState, for
   if (!vehicle) return { error: "Vehicle not found." };
   if (!assignedTo) return { error: "Assigned user not found." };
 
-  const items = itemsText
-    .split("\n")
-    .map((l) => l.trim())
-    .filter(Boolean);
+  // Every vehicle check is the same standard Yes/No form — no free-text item lists.
+  const items = MONTHLY_ITEM_SUMMARY;
 
   const checklist = await prisma.vehicleChecklist.create({
     data: {
@@ -47,6 +44,7 @@ export async function createVehicleChecklist(_prevState: ChecklistFormState, for
       assignedToId,
       dueDate: new Date(dueDate),
       items: items.join("\n"),
+      template: "monthly",
       createdById: user.id,
     },
   });
@@ -56,7 +54,7 @@ export async function createVehicleChecklist(_prevState: ChecklistFormState, for
     vehicleName: vehicle.name,
     items,
     dueDate: checklist.dueDate,
-    checklistUrl: `${appUrl()}/assets`,
+    checklistUrl: `${appUrl()}/vehicles/checklist/${checklist.id}`,
   });
 
   await logAudit({ userId: user.id, action: "vehicle_checklist_created", entityType: "VehicleChecklist", entityId: checklist.id, metadata: { vehicleId, assignedToId } });
@@ -164,7 +162,7 @@ function cleanDate(v: string): string | null {
 export async function submitMonthlyChecklist(id: string, _prev: MonthlyChecklistState, fd: FormData): Promise<MonthlyChecklistState> {
   const user = await requireUser();
   const checklist = await prisma.vehicleChecklist.findUnique({ where: { id }, include: { vehicle: true, assignedTo: true } });
-  if (!checklist || checklist.template !== "monthly") return { error: "Checklist not found." };
+  if (!checklist) return { error: "Checklist not found." };
   if (checklist.status === "Completed") return { error: "This checklist has already been completed." };
   if (checklist.assignedToId !== user.id && !user.isSuperUser) return { error: "This checklist is assigned to someone else." };
 
