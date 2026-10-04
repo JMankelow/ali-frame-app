@@ -7,7 +7,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireSuperUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
-import { PRESTART_CHECKS, RISK_LEVELS, HS_IMPORT_STATUS } from "@/lib/hsDocs";
+import { redirect } from "next/navigation";
+import { sendPlainNotificationEmail } from "@/lib/email";
+import { PRESTART_ITEMS, WEATHER_OPTIONS, RISK_LEVELS, HS_IMPORT_STATUS } from "@/lib/hsDocs";
 
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const optDate = (fd: FormData, k: string) => {
@@ -80,22 +82,113 @@ export async function closeRisk(id: string) {
 }
 
 // ---- Pre-starts and Task Analyses (JSA) ----
-export async function createPreStart(fd: FormData) {
+export interface PreStartState {
+  error?: string;
+}
+
+const SAFETY_NOTIFY_EMAIL = "tanya@aliframe.co.nz";
+
+function parseJson<T>(raw: string, fallback: T, maxLen = 20000): T {
+  if (!raw || raw.length > maxLen) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
+ * Daily pre-start: site & weather, hazard check (Yes / No / N/A; a "No" on a critical check is a stop-work),
+ * today's hazards & controls, work discussion, and crew sign-on. A critical "No" also raises a hazard
+ * report and notifies the H&S representative.
+ */
+export async function submitPreStart(_prev: PreStartState, fd: FormData): Promise<PreStartState> {
   const user = await requireUser();
-  const checks: Record<string, string> = {};
-  for (let i = 0; i < PRESTART_CHECKS.length; i++) checks[PRESTART_CHECKS[i]] = str(fd, `check_${i}`) || "N/A";
+
   const jobNumber = str(fd, "jobNumber") || null;
-  await prisma.hsPreStart.create({
-    data: { date: optDate(fd, "date") ?? new Date(), jobNumber, completedById: user.id, crewNames: str(fd, "crewNames") || null, checks, issues: str(fd, "issues") || null },
+  let siteAddress = str(fd, "siteAddress");
+  if (jobNumber) {
+    const job = await prisma.job.findUnique({ where: { number: jobNumber }, select: { address: true } });
+    if (!job) return { error: "That job couldn't be found." };
+    if (!siteAddress) siteAddress = job.address ?? "";
+  }
+  if (!siteAddress) return { error: "Enter the site address (or pick a job)." };
+
+  const answers = parseJson<Record<string, string>>(str(fd, "answers"), {});
+  const checks: Record<string, string> = {};
+  const failed: string[] = [];
+  const criticalFailed: string[] = [];
+  for (const item of PRESTART_ITEMS) {
+    const a = answers[item.key];
+    const allowed = item.critical ? ["Yes", "No"] : ["Yes", "No", "N/A"];
+    if (!allowed.includes(a)) return { error: `Answer every check — missing: ${item.label}.` };
+    checks[item.label] = a === "Yes" ? "Pass" : a === "No" ? "Fail" : "N/A";
+    if (a === "No") {
+      failed.push(item.label);
+      if (item.critical) criticalFailed.push(item.label);
+    }
+  }
+
+  const weather = parseJson<string[]>(str(fd, "weather"), []).filter((w) => WEATHER_OPTIONS.includes(w));
+  const hazards = parseJson<{ hazard?: string; risk?: string; control?: string }[]>(str(fd, "hazards"), [])
+    .slice(0, 20)
+    .map((h) => ({ hazard: String(h.hazard ?? "").trim().slice(0, 200), risk: RISK_LEVELS.includes(h.risk as (typeof RISK_LEVELS)[number]) ? h.risk : "", control: String(h.control ?? "").trim().slice(0, 400) }))
+    .filter((h) => h.hazard);
+  const crew = parseJson<{ name?: string; userId?: string }[]>(str(fd, "crew"), [])
+    .slice(0, 30)
+    .map((c) => ({ name: String(c.name ?? "").trim().slice(0, 100), userId: c.userId ? String(c.userId) : undefined }))
+    .filter((c) => c.name);
+  if (crew.length === 0) return { error: "Sign on at least one person to the crew." };
+
+  const startTime = str(fd, "startTime").slice(0, 8) || null;
+  const stopWork = criticalFailed.length > 0;
+  const weatherNote = str(fd, "weatherNote").slice(0, 300);
+  const issues = [weatherNote && `Conditions: ${weatherNote}`, failed.length ? `Failed checks: ${failed.join("; ")}` : ""].filter(Boolean).join(" — ") || null;
+
+  const created = await prisma.hsPreStart.create({
+    data: {
+      date: new Date(),
+      jobNumber,
+      completedById: user.id,
+      crewNames: crew.map((c) => c.name).join(", "),
+      checks,
+      issues,
+      siteAddress,
+      startTime,
+      weather,
+      hazards,
+      workNotes: str(fd, "workNotes").slice(0, 2000) || null,
+      crewSignOn: crew,
+      stopWork,
+    },
   });
+
+  if (stopWork) {
+    await prisma.safetyIncident.create({
+      data: {
+        type: "Hazard",
+        severity: "High",
+        description: `STOP WORK — pre-start critical check answered No: ${criticalFailed.join("; ")}. Site: ${siteAddress}. Recorded by ${user.name}.`,
+        jobNumber,
+        reportedById: user.id,
+      },
+    });
+    await sendPlainNotificationEmail({
+      to: SAFETY_NOTIFY_EMAIL,
+      subject: `STOP WORK — pre-start critical check failed${jobNumber ? ` (job ${jobNumber})` : ""}`,
+      text: `${user.name} answered NO to: ${criticalFailed.join("; ")}\nSite: ${siteAddress}\n\nWork must not start until this is resolved. A hazard report has been opened in Health & Safety.`,
+    }).catch(() => undefined);
+  }
+
   await logAudit({
     userId: user.id,
     action: "hs_prestart_completed",
     entityType: jobNumber ? "Job" : "HsPreStart",
-    entityId: jobNumber ?? undefined,
-    metadata: { failed: Object.values(checks).filter((v) => v === "Fail").length },
+    entityId: jobNumber ?? created.id,
+    metadata: { failed: failed.length, criticalFailed: criticalFailed.length, crew: crew.length },
   });
   done();
+  redirect("/health-safety");
 }
 
 export async function createJsa(fd: FormData) {

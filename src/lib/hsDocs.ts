@@ -413,3 +413,42 @@ export const PRESTART_CHECKS = [
   "Hazardous substances labelled, secured, SDS in vehicle",
   "First aid kit available; emergency contacts and assembly point known",
 ];
+
+/**
+ * Daily pre-start checklist. Wording is Ali-Frame's own, drawn from the Company Hazard & Risk Register
+ * (vehicle movements and working at height are CRITICAL there, so they're critical here). A "No" on a
+ * critical check means stop work: the app records it and raises a hazard report.
+ */
+export interface PreStartItem {
+  key: string;
+  label: string;
+  hint: string;
+  critical: boolean;
+}
+export const PRESTART_ITEMS: PreStartItem[] = [
+  { key: "height", label: "Working at height / fall protection", hint: "Edge protection, scaffold, EWP or fall protection in place and checked? No unsecured ladders.", critical: true },
+  { key: "access", label: "Access, ladders & scaffold", hint: "Safe access set up? Scaffold tagged, ladders secured?", critical: true },
+  { key: "vehicles", label: "Vehicle movements & deliveries", hint: "Trained spotter for reversing, vehicle and pedestrian routes separated, deliveries planned?", critical: true },
+  { key: "asbestos", label: "Asbestos / hazardous materials", hint: "Asbestos status known, and no suspect material will be disturbed?", critical: true },
+  { key: "lifting", label: "Heavy frames & manual handling", hint: "Team lift for frames over 20kg? Trolleys or hoist ready, paths clear?", critical: false },
+  { key: "glass", label: "Glass handling", hint: "Gloves on, lifting aids ready, broken-glass plan known?", critical: false },
+  { key: "tools", label: "Power tools & leads", hint: "Tools test-tagged, guards fitted, RCD in use, leads off walkways?", critical: false },
+  { key: "site", label: "Site environment & other trades", hint: "Exclusion zones set, trip hazards cleared, work above or below by others coordinated?", critical: false },
+  { key: "weather", label: "Weather, wind & wet surfaces", hint: "OK for lifting and glazing today?", critical: false },
+  { key: "chemicals", label: "Sealants, foam & chemicals", hint: "Labelled, ventilated, SDS in the vehicle?", critical: false },
+  { key: "public", label: "Public, occupants & pets", hint: "Occupants, children and pets kept clear of the work area?", critical: false },
+  { key: "ppe", label: "PPE", hint: "Boots, hi-vis, safety glasses and gloves on (hard hat / hearing where required)?", critical: false },
+  { key: "firstaid", label: "First aid & emergency", hint: "First aid kit available, assembly point and emergency contact known?", critical: false },
+];
+export const WEATHER_OPTIONS = ["Fine", "Overcast", "Light wind", "Strong wind", "Showers", "Rain", "Hot", "Cold / frost", "Wet surfaces"];
+export const COMMON_HAZARDS = [
+  "Glass on site",
+  "Work above or below by other trades",
+  "Pets or children on site",
+  "Overhead power lines",
+  "Suspected asbestos",
+  "Uneven or wet ground",
+  "Tight access / stairs",
+  "Scaffold in place",
+  "Vehicle movements",
+];

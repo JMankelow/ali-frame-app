@@ -15,7 +15,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
   const employee = await prisma.user.findUnique({
     where: { id },
-    include: { vehiclesDriven: { select: { name: true } } },
+    include: { vehiclesDriven: { select: { name: true } }, employeeDetail: true },
   });
   if (!employee) notFound();
 
@@ -75,6 +75,24 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 isSuperUser={employee.isSuperUser}
                 vehicle={employee.vehiclesDriven.map((v) => v.name).join(", ") || null}
                 canEdit={currentUser.isSuperUser}
+                detail={
+                  currentUser.isSuperUser && employee.employeeDetail
+                    ? {
+                        preferredName: employee.employeeDetail.preferredName ?? "",
+                        personalEmail: employee.employeeDetail.personalEmail ?? "",
+                        address: employee.employeeDetail.address ?? "",
+                        jobTitle: employee.employeeDetail.jobTitle ?? "",
+                        startDate: employee.employeeDetail.startDate?.toISOString().slice(0, 10) ?? "",
+                        finishDate: employee.employeeDetail.finishDate?.toISOString().slice(0, 10) ?? "",
+                        inviteTo: employee.employeeDetail.inviteTo,
+                        isManagement: employee.employeeDetail.isManagement,
+                        hoursPerWeek: employee.employeeDetail.hoursPerWeek,
+                        payRate: employee.employeeDetail.payRate,
+                        payType: employee.employeeDetail.payType ?? "",
+                        annualSalary: employee.employeeDetail.annualSalary,
+                      }
+                    : null
+                }
               />
             ),
           },

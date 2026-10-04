@@ -66,3 +66,34 @@ export function excelDate(serial) {
   if (typeof serial !== "number") return null;
   return new Date(Date.UTC(1899, 11, 30) + Math.round(serial) * 86400000 + 12 * 3600000);
 }
+
+/** Raw 2D grid (array of rows, each an array of cell values) — for sheets that aren't a clean table. */
+export function readGrid(path, { sheet = 1 } = {}) {
+  const files = unzipSync(new Uint8Array(readFileSync(path)));
+  const text = (name) => (files[name] ? strFromU8(files[name]) : null);
+  const strings = [];
+  const ss = text("xl/sharedStrings.xml");
+  if (ss) for (const m of ss.matchAll(/<si>([\s\S]*?)<\/si>/g)) strings.push(decode([...m[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join("")));
+  const xml = text(`xl/worksheets/sheet${sheet}.xml`);
+  if (!xml) throw new Error(`Sheet ${sheet} not found`);
+  const grid = [];
+  for (const rowM of xml.matchAll(/<row [^>]*?(?:\/>|>([\s\S]*?)<\/row>)/g)) {
+    const rowNum = Number(rowM[0].match(/r="(\d+)"/)?.[1] ?? grid.length + 1);
+    const row = [];
+    for (const c of (rowM[1] ?? "").matchAll(/<c ([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
+      const ref = c[1].match(/r="([A-Z]+\d+)"/)?.[1];
+      if (!ref) continue;
+      const type = c[1].match(/t="([^"]+)"/)?.[1];
+      const body = c[2] ?? "";
+      const raw = body.match(/<v>([\s\S]*?)<\/v>/)?.[1];
+      let v = null;
+      if (type === "s" && raw != null) v = strings[+raw] ?? null;
+      else if (type === "inlineStr") v = decode([...body.matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map((t) => t[1]).join(""));
+      else if (type === "str") v = raw != null ? decode(raw) : null;
+      else if (raw != null) v = Number.isNaN(Number(raw)) ? decode(raw) : Number(raw);
+      row[colIndex(ref)] = v;
+    }
+    grid[rowNum - 1] = row;
+  }
+  return grid;
+}

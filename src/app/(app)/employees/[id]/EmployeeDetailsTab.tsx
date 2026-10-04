@@ -8,6 +8,23 @@ import { ROLE_OPTIONS, ROLE_LABELS } from "@/lib/roles";
 
 const initialState: EmployeeFormState = {};
 
+export interface EmployeeDetailData {
+  preferredName: string;
+  personalEmail: string;
+  address: string;
+  jobTitle: string;
+  startDate: string;
+  finishDate: string;
+  inviteTo: string;
+  isManagement: boolean;
+  hoursPerWeek: number | null;
+  payRate: number | null;
+  payType: string;
+  annualSalary: number | null;
+}
+
+const money = (v: number | null) => (v == null ? "—" : v.toLocaleString("en-NZ", { style: "currency", currency: "NZD" }));
+
 export function EmployeeDetailsTab({
   userId,
   name,
@@ -17,6 +34,7 @@ export function EmployeeDetailsTab({
   isSuperUser,
   vehicle,
   canEdit,
+  detail,
 }: {
   userId: string;
   name: string;
@@ -26,6 +44,7 @@ export function EmployeeDetailsTab({
   isSuperUser: boolean;
   vehicle: string | null;
   canEdit: boolean;
+  detail: EmployeeDetailData | null;
 }) {
   const [editing, setEditing] = useState(false);
   const action = updateEmployeeDetails.bind(null, userId);
@@ -56,6 +75,37 @@ export function EmployeeDetailsTab({
             <div>
               <label>Phone</label>
               <input name="phone" defaultValue={phone} />
+            </div>
+            <div>
+              <label>Personal email</label>
+              <input name="personalEmail" type="email" defaultValue={detail?.personalEmail ?? ""} />
+            </div>
+            <div>
+              <label>Send invites &amp; alerts to</label>
+              <select name="inviteTo" defaultValue={detail?.inviteTo ?? "work"}>
+                <option value="work">Work email</option>
+                <option value="personal">Personal email</option>
+              </select>
+            </div>
+            <div>
+              <label>Preferred name</label>
+              <input name="preferredName" defaultValue={detail?.preferredName ?? ""} />
+            </div>
+            <div>
+              <label>Job title</label>
+              <input name="jobTitle" defaultValue={detail?.jobTitle ?? ""} />
+            </div>
+            <div className="full">
+              <label>Home address</label>
+              <input name="address" defaultValue={detail?.address ?? ""} />
+            </div>
+            <div>
+              <label>Start date</label>
+              <input name="startDate" type="date" defaultValue={detail?.startDate ?? ""} />
+            </div>
+            <div>
+              <label>Finish date</label>
+              <input name="finishDate" type="date" defaultValue={detail?.finishDate ?? ""} />
             </div>
           </div>
           {state.error && <div className="authError">{state.error}</div>}
@@ -112,6 +162,27 @@ export function EmployeeDetailsTab({
             <label>Assigned Vehicle</label>
             <div>{vehicle ?? "—"}</div>
           </div>
+          {detail && (
+            <>
+              <div><label>Personal email</label><div>{detail.personalEmail || "—"}</div></div>
+              <div><label>Invites &amp; alerts go to</label><div>{detail.inviteTo === "personal" ? "Personal email" : "Work email"}</div></div>
+              <div><label>Job title</label><div>{detail.jobTitle || "—"}</div></div>
+              <div><label>Preferred name</label><div>{detail.preferredName || "—"}</div></div>
+              <div><label>Start date</label><div>{detail.startDate ? new Date(detail.startDate).toLocaleDateString("en-NZ") : "—"}</div></div>
+              <div><label>Hours per week</label><div>{detail.hoursPerWeek ?? "—"}</div></div>
+              <div className="full"><label>Home address</label><div>{detail.address || "—"}</div></div>
+              <div className="full">
+                <label>Pay (super users only)</label>
+                <div>
+                  {detail.isManagement
+                    ? "Not held here — management pay is kept out of the employment details."
+                    : detail.payRate != null
+                      ? `${money(detail.payRate)} ${detail.payType || ""}${detail.annualSalary ? ` · ${money(detail.annualSalary)} a year` : ""}`
+                      : "—"}
+                </div>
+              </div>
+            </>
+          )}
           {canEdit && (
             <div className="full">
               <Link href="/users" style={{ color: "var(--blueDark)", fontWeight: 700, textDecoration: "none" }}>

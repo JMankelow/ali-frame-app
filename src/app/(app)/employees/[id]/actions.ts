@@ -27,7 +27,27 @@ export async function updateEmployeeDetails(
   const clash = await prisma.user.findFirst({ where: { email, NOT: { id: userId } } });
   if (clash) return { error: "Another account already uses that email address." };
 
+  const personalEmail = String(formData.get("personalEmail") ?? "").trim().toLowerCase();
+  if (personalEmail && !personalEmail.includes("@")) return { error: "Enter a valid personal email address." };
+  const inviteTo = formData.get("inviteTo") === "personal" ? "personal" : "work";
+  if (inviteTo === "personal" && !personalEmail) return { error: "Add a personal email before choosing to send invites there." };
+  const optDate = (k: string) => {
+    const v = String(formData.get(k) ?? "").trim();
+    return v ? new Date(v) : null;
+  };
+  const optText = (k: string) => String(formData.get(k) ?? "").trim() || null;
+
   await prisma.user.update({ where: { id: userId }, data: { name, phone: phone || null, email } });
+  const detail = {
+    preferredName: optText("preferredName"),
+    personalEmail: personalEmail || null,
+    address: optText("address"),
+    jobTitle: optText("jobTitle"),
+    startDate: optDate("startDate"),
+    finishDate: optDate("finishDate"),
+    inviteTo,
+  };
+  await prisma.employeeDetail.upsert({ where: { userId }, create: { userId, ...detail }, update: detail });
   await logAudit({ userId: actor.id, action: "employee_details_updated", entityType: "User", entityId: userId });
   revalidatePath(`/employees/${userId}`);
   revalidatePath("/employees");

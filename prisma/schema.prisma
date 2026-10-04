@@ -82,6 +82,7 @@ model User {
   jobQuoteInputsUpdated     JobQuoteInputs[]
   invites                   InviteToken[]         @relation("UserInvites")
   hsCompetencies            HsCompetency[]        @relation("UserCompetency")
+  employeeDetail            EmployeeDetail?       @relation("EmployeeDetail")
   preStartsCompleted        HsPreStart[]          @relation("PreStartsCompleted")
   jsasPrepared              HsJsa[]               @relation("JsasPrepared")
   inductions                HsInduction[]         @relation("Inductions")
@@ -469,6 +470,8 @@ model Asset {
   testTagDueDate      DateTime?
   serialNumber        String?
   estimatedValue      Float?
+  assetCode           String? // register code, e.g. AF-GTU764-001
+  purchaseDate        DateTime?
   receiptNote         String? // purchase reference / where the receipt is kept — not a file upload (yet)
   status              String    @default("Active")
   createdAt           DateTime  @default(now())
@@ -862,6 +865,13 @@ model HsPreStart {
   crewNames     String?
   checks        Json // { "<check label>": "Pass" | "Fail" | "N/A" }
   issues        String?
+  siteAddress   String?
+  startTime     String?
+  weather       Json? // ["Fine", "Light wind", ...]
+  hazards       Json? // [{ hazard, risk, control }]
+  workNotes     String?
+  crewSignOn    Json? // [{ name, userId? }]
+  stopWork      Boolean  @default(false)
   createdAt     DateTime @default(now())
 
   @@index([date])
@@ -983,4 +993,27 @@ model CompanyPolicy {
   updatedAt    DateTime @updatedAt
 
   @@index([category, sortOrder])
+}
+
+// HR details for one person. Kept apart from User so personal and pay data stay isolated: shown and
+// edited by super users only. Pay is never stored for management. IRD numbers, bank accounts and tax
+// details are deliberately NOT held here — they stay in iPayroll.
+model EmployeeDetail {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  user          User      @relation("EmployeeDetail", fields: [userId], references: [id], onDelete: Cascade)
+  preferredName String?
+  personalEmail String?
+  address       String?
+  jobTitle      String?
+  startDate     DateTime?
+  finishDate    DateTime?
+  hoursPerWeek  Float?
+  isManagement  Boolean   @default(false)
+  payRate       Float?
+  payType       String? // "per hour" | "per annum"
+  annualSalary  Float?
+  inviteTo      String    @default("work") // which address invites/alerts go to: "work" | "personal"
+  source        String?
+  updatedAt     DateTime  @updatedAt
 }

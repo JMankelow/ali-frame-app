@@ -101,14 +101,18 @@ export async function sendInvite(userId: string): Promise<{ error?: string; sent
   if (!user || !user.isActive) return { error: "That account isn't active." };
   if (user.email.endsWith(".local")) return { error: "That account has no real email address." };
 
+  // Invites go to the work address unless this person's details say to use their personal email.
+  const detail = await prisma.employeeDetail.findUnique({ where: { userId: user.id }, select: { personalEmail: true, inviteTo: true } });
+  const sendTo = detail?.inviteTo === "personal" && detail.personalEmail ? detail.personalEmail : user.email;
+
   const token = await createInviteToken(user.id);
   try {
-    await sendInviteEmail({ to: user.email, name: user.name, link: `${appUrl()}/accept-invite?token=${token}`, invitedBy: actor.name });
+    await sendInviteEmail({ to: sendTo, name: user.name, link: `${appUrl()}/accept-invite?token=${token}`, invitedBy: actor.name });
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Could not send the invite email." };
   }
 
-  await logAudit({ userId: actor.id, action: "user_invite_sent", entityType: "User", entityId: user.id, metadata: { email: user.email } });
+  await logAudit({ userId: actor.id, action: "user_invite_sent", entityType: "User", entityId: user.id, metadata: { email: sendTo } });
   revalidatePath("/users");
   return { sent: true };
 }

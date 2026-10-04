@@ -10,8 +10,8 @@ import { SafetyIncidentForm } from "./SafetyIncidentForm";
 import { PrintButton } from "./PrintButton";
 import { OpenSsspForm } from "./OpenSsspForm";
 import { resolveSafetyIncident } from "./actions";
-import { saveCompetency, archiveCompetency, saveRisk, closeRisk, createPreStart, createJsa, createInduction, saveDocument } from "./hsActions";
-import { PRESTART_CHECKS, RISK_LEVELS, RISK_COLOR } from "@/lib/hsDocs";
+import { saveCompetency, archiveCompetency, saveRisk, closeRisk, createJsa, createInduction, saveDocument } from "./hsActions";
+import { RISK_LEVELS, RISK_COLOR } from "@/lib/hsDocs";
 import { ensureHsDocuments } from "@/lib/hsSeed";
 import { isInstallerProfile } from "@/lib/permissions";
 
@@ -100,34 +100,25 @@ export default async function HealthSafetyPage() {
   const preStartTab = (
     <div>
       <div className="card">
-        <div className="label">New Pre-start</div>
-        <form action={createPreStart} style={{ marginTop: 10 }}>
-          <div className="form">
-            <div><label>Date</label><input type="date" name="date" defaultValue={iso(today)} /></div>
-            <div><label>Job (optional)</label><select name="jobNumber" defaultValue=""><option value="">— None —</option>{jobOptions}</select></div>
-            <div className="full"><label>Crew on site</label><input name="crewNames" placeholder="Names" /></div>
-            {PRESTART_CHECKS.map((c, i) => (
-              <div key={c} className="full" style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                <span style={{ fontWeight: 600 }}>{c}</span>
-                <select name={`check_${i}`} defaultValue="Pass" style={{ flex: "0 0 auto" }}><option>Pass</option><option>Fail</option><option>N/A</option></select>
-              </div>
-            ))}
-            <div className="full"><label>Issues / actions</label><textarea name="issues" rows={2} /></div>
-          </div>
-          <div className="actions" style={{ marginTop: 12 }}><button className="btn primary" type="submit">Record Pre-start</button></div>
-        </form>
+        <div className="label">Daily Pre-start</div>
+        <div className="hint" style={{ marginTop: 4 }}>
+          Site and weather, hazard check, today&apos;s hazards and controls, and crew sign-on. A &ldquo;No&rdquo; on a critical check means stop work.
+        </div>
+        <div className="actions" style={{ marginTop: 10 }}>
+          <Link href="/health-safety/prestart" className="btn primary">Start today&apos;s pre-start</Link>
+        </div>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
         <div className="label">Recent Pre-starts</div>
         <table style={{ marginTop: 8 }}>
-          <thead><tr><th>Date</th><th>Job</th><th>Completed by</th><th>Crew</th><th>Fails</th><th>Issues</th></tr></thead>
+          <thead><tr><th>Date</th><th>Site / job</th><th>Completed by</th><th>Crew</th><th>Result</th><th>Notes</th></tr></thead>
           <tbody>
             {preStarts.map((p) => {
               const fails = Object.values(p.checks as Record<string, string>).filter((v) => v === "Fail").length;
               return (
                 <tr key={p.id}>
-                  <td>{fmt(p.date)}</td><td>{p.jobNumber ?? "—"}</td><td>{p.completedBy.name}</td><td>{p.crewNames ?? "—"}</td>
-                  <td>{fails ? <span className="status red">{fails}</span> : "—"}</td><td>{p.issues ?? "—"}</td>
+                  <td>{fmt(p.date)}{p.startTime ? " " + p.startTime : ""}</td><td>{p.jobNumber ? p.jobNumber + " · " : ""}{p.siteAddress ?? "—"}</td><td>{p.completedBy.name}</td><td>{p.crewNames ?? "—"}</td>
+                  <td>{p.stopWork ? <span className="status red">STOP WORK</span> : fails ? <span className="status orange">{fails} fail</span> : <span className="status green">All clear</span>}</td><td>{p.issues ?? "—"}</td>
                 </tr>
               );
             })}

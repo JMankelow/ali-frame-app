@@ -1,0 +1,13 @@
+import { readSheet } from "./lib/readXlsx.mjs";
+import { unzipSync, strFromU8 } from "fflate";
+import { readFileSync } from "fs";
+const f = process.argv[2];
+const z = unzipSync(new Uint8Array(readFileSync(f)));
+console.log("sheets:", (strFromU8(z["xl/workbook.xml"]).match(/<sheet [^>]*name="[^"]+"/g) || []).join(" | "));
+const { headers, rows } = readSheet(f, { sheet: 1 });
+console.log("HEADERS:", JSON.stringify(headers));
+console.log("rows:", rows.length);
+for (const r of rows.slice(0, 3)) console.log(JSON.stringify(r).slice(0, 400));
+const mention = rows.filter((r) => JSON.stringify(r).toLowerCase().includes("siauane"));
+console.log("rows mentioning Siauane:", mention.length);
+for (const r of mention.slice(0, 40)) console.log("  ", JSON.stringify(r).slice(0, 260));
