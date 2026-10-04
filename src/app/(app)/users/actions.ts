@@ -8,6 +8,8 @@ import { hashPassword } from "@/lib/password";
 import { logAudit } from "@/lib/audit";
 import type { Role } from "@prisma/client";
 import { ROLE_OPTIONS as VALID_ROLES } from "@/lib/roles";
+import { createInviteToken, appUrl } from "@/lib/invite";
+import { sendInviteEmail } from "@/lib/email";
 
 export interface UserFormState {
   error?: string;
@@ -90,4 +92,40 @@ export async function reactivateUser(userId: string) {
   await prisma.user.update({ where: { id: userId }, data: { isActive: true } });
   await logAudit({ userId: actor.id, action: "user_reactivated", entityType: "User", entityId: userId });
   revalidatePath("/users");
+}
+
+/** Emails one person a one-time link to set their own password. No password is ever sent or shown. */
+export async function sendInvite(userId: string): Promise<{ error?: string; sent?: boolean }> {
+  const actor = await requireSuperUser();
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user || !user.isActive) return { error: "That account isn't active." };
+  if (user.email.endsWith(".local")) return { error: "That account has no real email address." };
+
+  const token = await createInviteToken(user.id);
+  try {
+    await sendInviteEmail({ to: user.email, name: user.name, link: `${appUrl()}/accept-invite?token=${token}`, invitedBy: actor.name });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Could not send the invite email." };
+  }
+
+  await logAudit({ userId: actor.id, action: "user_invite_sent", entityType: "User", entityId: user.id, metadata: { email: user.email } });
+  revalidatePath("/users");
+  return { sent: true };
+}
+
+/** Invites everyone who hasn't set their own password yet. */
+export async function sendAllPendingInvites(): Promise<{ sent: number; failed: string[] }> {
+  await requireSuperUser();
+  const pending = await prisma.user.findMany({
+    where: { isActive: true, mustResetPassword: true, NOT: { email: { endsWith: ".local" } } },
+    select: { id: true, name: true },
+  });
+  let sent = 0;
+  const failed: string[] = [];
+  for (const u of pending) {
+    const result = await sendInvite(u.id);
+    if (result.sent) sent += 1;
+    else failed.push(`${u.name}: ${result.error}`);
+  }
+  return { sent, failed };
 }

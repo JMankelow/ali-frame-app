@@ -252,3 +252,31 @@ export async function sendVehicleChecklistOverdueAlert(params: {
     throw new Error(`Failed to send overdue checklist alert: ${result.error.message}`);
   }
 }
+
+export async function sendInviteEmail(params: { to: string; name: string; link: string; invitedBy: string }) {
+  const from = process.env.EMAIL_FROM;
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    }
+    console.log(`[DEV ONLY — no email sent] Invite for ${params.to} (link not logged)`);
+    return;
+  }
+
+  const result = await getResend().emails.send({
+    from,
+    to: params.to,
+    subject: "Your Ali-Frame Job Management login",
+    text:
+      `Hi ${params.name},\n\n` +
+      `${params.invitedBy} has set you up on the Ali-Frame Job Management System.\n\n` +
+      `Use this link to choose your own password (it works once and expires in 72 hours):\n${params.link}\n\n` +
+      `After that, sign in at ${new URL(params.link).origin}/login with this email address and your new password. ` +
+      `You'll also be sent a 6-digit code by email each time you sign in.\n\n` +
+      `If you weren't expecting this, ignore it — nothing happens unless the link is used.`,
+  });
+
+  if (result.error) {
+    throw new Error(`Failed to send invite email: ${result.error.message}`);
+  }
+}

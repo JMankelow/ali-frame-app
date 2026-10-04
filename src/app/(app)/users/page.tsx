@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { deactivateUser, reactivateUser } from "./actions";
 import { UserForm } from "./UserForm";
 import { PermissionsMatrix } from "./PermissionsMatrix";
+import { InviteButton, InviteAllButton } from "./InviteButtons";
 import { UserTasksSection } from "./UserTasksSection";
 import { ROLE_LABELS } from "@/lib/roles";
 
@@ -28,6 +29,8 @@ export default async function UsersPage() {
         </div>
       </div>
 
+      <InviteAllButton pendingCount={users.filter((u) => u.isActive && u.mustResetPassword && !u.email.endsWith(".local")).length} />
+
       <div className="card">
         <table>
           <thead>
@@ -37,6 +40,7 @@ export default async function UsersPage() {
               <th>Role</th>
               <th>Status</th>
               <th>First login</th>
+              <th>Invite</th>
               <th></th>
             </tr>
           </thead>
@@ -52,6 +56,7 @@ export default async function UsersPage() {
                   </span>
                 </td>
                 <td>{u.mustResetPassword ? "Pending" : "Done"}</td>
+                <td>{u.isActive && !u.email.endsWith(".local") && <InviteButton userId={u.id} firstLoginDone={!u.mustResetPassword} />}</td>
                 <td>
                   {u.isActive ? (
                     <form action={deactivateUser.bind(null, u.id)}>

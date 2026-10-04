@@ -50,6 +50,10 @@ export function EmployeeDetailsTab({
               <input name="name" defaultValue={name} required />
             </div>
             <div>
+              <label>Email (sign-in + invite address — must be a real mailbox)</label>
+              <input name="email" type="email" defaultValue={email} required />
+            </div>
+            <div>
               <label>Phone</label>
               <input name="phone" defaultValue={phone} />
             </div>

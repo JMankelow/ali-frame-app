@@ -79,6 +79,8 @@ model User {
   leaveCreated              StaffLeave[]          @relation("StaffLeaveCreatedBy")
   employeeDocuments         EmployeeDocument[]    @relation("EmployeeDocumentOwner")
   employeeDocumentsUploaded EmployeeDocument[]    @relation("EmployeeDocumentUploadedBy")
+  jobQuoteInputsUpdated     JobQuoteInputs[]
+  invites                   InviteToken[]         @relation("UserInvites")
 }
 
 // HR files (contracts, ID, certifications) — same R2-backed upload pipeline
@@ -235,6 +237,7 @@ model Job {
   quotes               Quote[]
   scheduledTasks       JobScheduledTask[]
   notes                Note[]
+  quoteInputs          JobQuoteInputs?
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -686,6 +689,24 @@ model Quote {
   @@index([jobNumber])
 }
 
+// Raw pricing inputs captured once (in Prepare Price) and reused for Send
+// Quote, rather than asking Sales to type the same supplier price/margin/
+// install figures twice. Send Quote applies its own formula (+2.5%
+// overheads on top) to these same inputs — see the Quote Wording skill —
+// which differs from Prepare Price's own itemised repricing total.
+model JobQuoteInputs {
+  id               String   @id @default(cuid())
+  jobNumber        String   @unique
+  job              Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  supplierPrice    Float
+  marginIsPercent  Boolean
+  marginValue      Float
+  installAllowance Float // installation + materials + rubbish removal + other, combined
+  updatedById      String?
+  updatedBy        User?    @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedAt        DateTime @updatedAt
+}
+
 // A monthly snapshot of Residential/Commercial WIP so past month-ends can
 // be looked back on even as the live Job/JobCosting data keeps changing.
 // jobNumbers is the list of Job.number values included, for an audit trail.
@@ -769,4 +790,18 @@ model StaffLeave {
   createdAt   DateTime  @default(now())
 
   @@index([fromDate])
+}
+
+// One-time "set your password" invite links. Only a SHA-256 hash of the
+// token is stored; the raw token exists only in the emailed link.
+model InviteToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation("UserInvites", fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }

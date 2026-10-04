@@ -19,10 +19,15 @@ export async function updateEmployeeDetails(
 
   const name = String(formData.get("name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
   if (!name) return { error: "Name is required." };
+  if (!email || !email.includes("@")) return { error: "Enter a valid email address." };
 
-  await prisma.user.update({ where: { id: userId }, data: { name, phone: phone || null } });
+  const clash = await prisma.user.findFirst({ where: { email, NOT: { id: userId } } });
+  if (clash) return { error: "Another account already uses that email address." };
+
+  await prisma.user.update({ where: { id: userId }, data: { name, phone: phone || null, email } });
   await logAudit({ userId: actor.id, action: "employee_details_updated", entityType: "User", entityId: userId });
   revalidatePath(`/employees/${userId}`);
   revalidatePath("/employees");
