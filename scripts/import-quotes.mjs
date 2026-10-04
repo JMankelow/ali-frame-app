@@ -2,9 +2,9 @@
 // quotes entirely, per Jo's instruction (dropped at import, not just
 // hidden). Idempotent: upserts by quoteNumber, safe to re-run.
 import { PrismaClient } from "@prisma/client";
-import XLSX from "xlsx";
+import { readSheet } from "./lib/readXlsx.mjs";
 
-const FILE_PATH = "C:\\Users\\Jo Mankelow - New\\Downloads\\Quotes (1).xlsx";
+const FILE_PATH = process.argv[2]; // Usage: node scripts/import-quotes.mjs "<Quotes export .xlsx>"
 
 function parseCurrency(v) {
   if (v == null) return null;
@@ -30,8 +30,7 @@ function extractJobNumber(reference) {
 }
 
 async function main() {
-  const wb = XLSX.readFile(FILE_PATH);
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets["Sheet1"], { defval: null });
+  const { rows } = readSheet(FILE_PATH, { sheet: 1 });
   console.log(`Read ${rows.length} rows`);
 
   const prisma = new PrismaClient();
@@ -70,7 +69,7 @@ async function main() {
         quoteDate: parseDate(row["Quote Date"]),
         dateSent: parseDate(row["Date Sent"]),
         expiryDate: parseDate(row["Expiry Date"]),
-        hasFiles: Boolean(row["Has Files"]),
+        hasFiles: row["Has Files"] === true || String(row["Has Files"]).toLowerCase() === "true",
       };
 
       const existing = await prisma.quote.findUnique({ where: { quoteNumber } });

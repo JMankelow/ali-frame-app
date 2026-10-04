@@ -1,0 +1,10 @@
+import { readSheet } from "./lib/readXlsx.mjs";
+const f = process.argv[2];
+const { headers, rows } = readSheet(f, { sheet: 1 });
+console.log("HEADERS:", JSON.stringify(headers));
+console.log("ROWS:", rows.length);
+const n = Number(process.argv[3] ?? 3);
+for (const r of rows.slice(0, n)) console.log(JSON.stringify(r));
+const status = {};
+for (const r of rows) status[r["Status"]] = (status[r["Status"]] ?? 0) + 1;
+if (headers.includes("Status")) console.log("STATUS COUNTS:", JSON.stringify(status));

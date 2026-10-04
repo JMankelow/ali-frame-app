@@ -2,6 +2,8 @@
 // Proprietary and confidential. Unauthorised copying, use or distribution is prohibited.
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
 
+"use client";
+
 /** An address that opens in Google Maps (search link — no API key or account needed). */
 export function AddressLink({ address, fallback = "—" }: { address: string | null | undefined; fallback?: string }) {
   const text = (address ?? "").trim();
