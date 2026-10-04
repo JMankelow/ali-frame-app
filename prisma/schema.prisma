@@ -966,3 +966,21 @@ model ErrorLog {
   @@index([digest])
   @@index([createdAt])
 }
+
+// Company-wide policy PDFs (Human Resources > Company Policies). Readable by every signed-in user; only super users add/replace/archive.
+model CompanyPolicy {
+  id           String   @id @default(cuid())
+  title        String
+  category     String
+  fileName     String
+  storageKey   String
+  mimeType     String   @default("application/pdf")
+  sizeBytes    Int
+  sortOrder    Int      @default(0)
+  active       Boolean  @default(true)
+  uploadedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([category, sortOrder])
+}

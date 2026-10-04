@@ -56,6 +56,9 @@ export default async function DashboardPage() {
           <h2>Dashboard</h2>
           <div className="subtitle">Welcome back, {user.name.split(" ")[0]}.</div>
         </div>
+        <Link href="/policies" className="btn light">
+          Company Policies
+        </Link>
       </div>
 
       <div className="cards">

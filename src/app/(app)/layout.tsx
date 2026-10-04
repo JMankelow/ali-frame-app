@@ -29,7 +29,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // pages as outside the tree.
   const pathname = (await headers()).get("x-pathname") ?? "";
   const sections = findAllSectionsForPath(NAV_TREE, pathname).filter((s): s is Section => SECTIONS.includes(s as Section));
-  if (sections.length > 0 && !sections.some((s) => hasSectionAccess(user, s))) {
+  // Company Policies sit under Human Resources in the nav but are open to every signed-in user.
+  const isOpenToAll = pathname === "/policies" || pathname.startsWith("/policies/");
+  if (!isOpenToAll && sections.length > 0 && !sections.some((s) => hasSectionAccess(user, s))) {
     redirect("/dashboard");
   }
 
