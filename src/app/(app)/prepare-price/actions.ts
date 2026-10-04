@@ -47,6 +47,26 @@ export async function generateRepricing(_prevState: GeneratePdfResult, formData:
   const input = parseInput(formData);
   const { lines, total } = calculateRepricing(input);
 
+  // Keep the raw inputs so Send Quote can build the initial quote total without re-typing them.
+  await prisma.jobQuoteInputs.upsert({
+    where: { jobNumber },
+    create: {
+      jobNumber,
+      supplierPrice: input.supplierPrice,
+      marginIsPercent: input.marginIsPercent,
+      marginValue: input.marginMode === "margin" ? input.marginValue : 0,
+      installAllowance: input.installAllowance + input.materials + input.rubbishRemoval + input.scaffolding + input.otherAmount,
+      updatedById: user.id,
+    },
+    update: {
+      supplierPrice: input.supplierPrice,
+      marginIsPercent: input.marginIsPercent,
+      marginValue: input.marginMode === "margin" ? input.marginValue : 0,
+      installAllowance: input.installAllowance + input.materials + input.rubbishRemoval + input.scaffolding + input.otherAmount,
+      updatedById: user.id,
+    },
+  });
+
   const pdfBuffer = await generateRepricingPdf({
     jobNumber,
     clientName: job.client?.name ?? job.title,

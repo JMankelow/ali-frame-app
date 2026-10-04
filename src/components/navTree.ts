@@ -57,10 +57,9 @@ function salesSection(): NavGroup {
     label: "Quotes",
     items: [
       { label: "Quote Register", href: "/quotes" },
+      { label: "Send Quote", href: "/send-quote" },
       { label: "Prepare Price", href: "/prepare-price" },
-      { label: "Convert Schedule", href: "/quotes" },
       { label: "Quote Comparison", href: "/quote-comparison" },
-      { label: "Quote Wording", href: "/quote-wording" },
     ],
   });
 

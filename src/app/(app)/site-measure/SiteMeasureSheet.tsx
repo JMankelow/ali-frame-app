@@ -5,6 +5,7 @@ import { OpeningCanvas } from "./OpeningCanvas";
 import { requestUpload, confirmUpload } from "../files/actions";
 import { sendSiteMeasureSheetEmail } from "./actions";
 import { JobPicker } from "@/components/JobPicker";
+import { ContactPicker } from "@/components/ContactPicker";
 
 export interface SupplierContact {
   companyName: string;
@@ -163,7 +164,12 @@ function PageBlock({
         </div>
         <div>
           <label>Cladding</label>
-          <input type="text" name={`${p}_cladding`} />
+          <select name={`${p}_cladding`} defaultValue="">
+            <option value="">— Select —</option>
+            {["Brick", "Weatherboard", "Plaster", "Hardiplank", "Cedar"].map((c) => (
+              <option key={c}>{c}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label>Colour Matched / Thermally Broken</label>
@@ -213,6 +219,17 @@ export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppl
       .filter((s) => s.email)
       .map((s) => ({ name: s.contactName ? `${s.contactName} (${s.companyName})` : s.companyName, email: s.email as string }));
   }, [job, suppliers]);
+
+  // Every contact in the system, unfiltered — lets Sales search and pick any
+  // supplier contact directly, for testing or when a job's supplier field
+  // doesn't cleanly match a real Supplier row.
+  const allContacts = useMemo(
+    () =>
+      suppliers
+        .filter((s) => s.email)
+        .map((s) => ({ name: s.contactName ? `${s.contactName} (${s.companyName})` : s.companyName, email: s.email as string })),
+    [suppliers]
+  );
 
   const preferredEmail = useMemo(() => {
     if (!job?.supplier || contacts.length === 0) return contacts[0]?.email ?? "";
@@ -374,14 +391,12 @@ export function SiteMeasureSheet({ jobs, suppliers }: { jobs: JobOption[]; suppl
             <div className="form">
               <div>
                 <label>Supplier Contact</label>
-                <select value={supplierEmail} onChange={(e) => setSupplierEmail(e.target.value)}>
-                  {contacts.length === 0 && <option value="">No contact on file for this supplier</option>}
-                  {contacts.map((c) => (
-                    <option key={c.email} value={c.email}>
-                      {c.name} ({c.email})
-                    </option>
-                  ))}
-                </select>
+                <ContactPicker contacts={allContacts} value={supplierEmail} onChange={setSupplierEmail} />
+                {contacts.length === 0 && job?.supplier && (
+                  <div className="hint" style={{ marginTop: 4 }}>
+                    No contact matched “{job.supplier}” automatically — search for the right one above.
+                  </div>
+                )}
               </div>
             </div>
             <div className="actions" style={{ marginTop: 12 }}>

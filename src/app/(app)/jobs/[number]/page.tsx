@@ -11,6 +11,7 @@ import { JobNotesSection, type JobFeedItem } from "./JobNotesSection";
 import { JobChecklistSection, type ChecklistItem } from "./JobChecklistSection";
 import { PhotosSection } from "./PhotosSection";
 import { BookCheckMeasureForm } from "../../email-client/BookCheckMeasureForm";
+import { SendTemplateEmailForm } from "./SendTemplateEmailForm";
 
 function money(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -33,10 +34,11 @@ const AUDIT_LABELS: Record<string, (m: Record<string, unknown> | null) => string
   remedial_created: (m) => `Remedial raised (${m?.priority ?? "Normal"} priority) — Tanya and Tristam notified.`,
   remedial_auto_raised: () => "Remedial auto-raised on status change to Remedial Work Required.",
   remedial_resolved: () => "Remedial marked resolved.",
+  templated_email_sent: (m) => `Emailed ${m?.to ?? "client"}: ${m?.subject ?? ""}`,
 };
 
 export default async function JobDetailPage({ params }: { params: Promise<{ number: string }> }) {
-  await requireUser();
+  const currentUser = await requireUser();
   const { number } = await params;
 
   const [job, salesStaff, allStaff, suppliers] = await Promise.all([
@@ -50,13 +52,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
   ]);
   if (!job) notFound();
 
-  const [files, scheduledTasks, notes, auditLogs, quotes, purchaseOrders] = await Promise.all([
+  const [files, scheduledTasks, notes, auditLogs, quotes, purchaseOrders, emailTemplates] = await Promise.all([
     prisma.fileAsset.findMany({ where: { jobNumber: number }, include: { uploadedBy: true }, orderBy: { createdAt: "desc" } }),
     prisma.jobScheduledTask.findMany({ where: { jobNumber: number }, include: { assignees: true }, orderBy: { scheduledDate: "asc" } }),
     prisma.note.findMany({ where: { jobNumber: number }, include: { author: true }, orderBy: { createdAt: "desc" } }),
     prisma.auditLog.findMany({ where: { entityType: "Job", entityId: number }, include: { user: true }, orderBy: { createdAt: "desc" } }),
     prisma.quote.findMany({ where: { jobNumber: number }, orderBy: { quoteDate: "desc" } }),
     prisma.purchaseOrder.findMany({ where: { jobNumber: number }, include: { orderedBy: true }, orderBy: { createdAt: "desc" } }),
+    prisma.emailTemplate.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, subject: true, body: true } }),
   ]);
 
   const siteMeasureFiles = files.filter((f) => f.fileType === "Site Measure");
@@ -408,9 +411,21 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },
           {
             key: "emailclient",
-            label: "Email Client",
+            label: "Emails",
             content: (
-              <BookCheckMeasureForm fixedJobNumber={job.number} fixedClientName={job.client?.name ?? job.title} />
+              <>
+                <SendTemplateEmailForm
+                  jobNumber={job.number}
+                  clientName={job.client?.name ?? job.title}
+                  address={job.address ?? ""}
+                  clientEmail={job.client?.email ?? job.email ?? ""}
+                  senderName={currentUser.name}
+                  templates={emailTemplates}
+                />
+                <div style={{ marginTop: 16 }}>
+                  <BookCheckMeasureForm fixedJobNumber={job.number} fixedClientName={job.client?.name ?? job.title} />
+                </div>
+              </>
             ),
           },
           { key: "charges", label: "Charges", content: comingSoon("Charges") },

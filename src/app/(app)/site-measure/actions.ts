@@ -27,14 +27,12 @@ export async function sendSiteMeasureSheetEmail(params: {
 
   const job = await prisma.job.findUnique({ where: { number: jobNumber } });
   if (!job) return { error: `Job ${jobNumber} not found.` };
-  if (!job.supplier) return { error: "This job has no supplier set." };
 
-  const target = job.supplier.trim().toLowerCase();
-  const suppliers = await prisma.supplier.findMany({ where: { email: supplierEmail } });
-  const contact = suppliers.find(
-    (s) => s.companyName.toLowerCase() === target || target.includes(s.companyName.toLowerCase()) || s.companyName.toLowerCase().includes(target)
-  );
-  if (!contact) return { error: "Unrecognized supplier contact for this job." };
+  // Any contact on the real Supplier list may be chosen (Sales can search all
+  // of them), but never an address typed in freehand — so this still can't
+  // be used as an open email relay.
+  const contact = await prisma.supplier.findFirst({ where: { email: supplierEmail } });
+  if (!contact) return { error: "That address isn't a known supplier contact." };
 
   if (storageKeys.length === 0) return { error: "Draw at least one opening before emailing the sheet." };
 

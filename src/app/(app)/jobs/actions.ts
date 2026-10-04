@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { sendPlainNotificationEmail } from "@/lib/email";
 
 export interface JobFormState {
   error?: string;
@@ -263,4 +264,35 @@ export async function reactivateJob(number: string) {
   await prisma.job.update({ where: { number }, data: { archived: false } });
   await logAudit({ userId: user.id, action: "job_reactivated", entityType: "Job", entityId: number });
   revalidatePath("/jobs");
+}
+
+export interface SendTemplateState {
+  error?: string;
+  success?: boolean;
+}
+
+/** Sends a (possibly hand-edited) templated email about a job, recorded on that job's activity feed. */
+export async function sendTemplatedEmail(_prevState: SendTemplateState, formData: FormData): Promise<SendTemplateState> {
+  const user = await requireUser();
+  const jobNumber = String(formData.get("jobNumber") ?? "").trim();
+  const to = String(formData.get("to") ?? "").trim();
+  const subject = String(formData.get("subject") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+
+  if (!jobNumber) return { error: "Missing job." };
+  if (!to || !to.includes("@")) return { error: "Enter a valid recipient email." };
+  if (!subject || !body) return { error: "Subject and body can't be empty." };
+
+  const job = await prisma.job.findUnique({ where: { number: jobNumber } });
+  if (!job) return { error: `Job ${jobNumber} not found.` };
+
+  try {
+    await sendPlainNotificationEmail({ to, subject, text: body });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Could not send the email." };
+  }
+
+  await logAudit({ userId: user.id, action: "templated_email_sent", entityType: "Job", entityId: jobNumber, metadata: { to, subject } });
+  revalidatePath(`/jobs/${jobNumber}`);
+  return { success: true };
 }
