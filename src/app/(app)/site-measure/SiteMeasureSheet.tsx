@@ -78,7 +78,7 @@ function OpeningBlock({
   pageNum: number;
   openingIndex: number;
   color: string;
-  tool: "line" | "text";
+  tool: "line" | "curve" | "text";
   registerCanvas: (id: string, el: HTMLCanvasElement | null) => void;
 }) {
   const prefix = `page${pageNum}_opening${openingIndex}`;
@@ -129,7 +129,7 @@ function PageBlock({
   pageNum: number;
   job: JobOption;
   color: string;
-  tool: "line" | "text";
+  tool: "line" | "curve" | "text";
   openings: number[];
   registerCanvas: (id: string, el: HTMLCanvasElement | null) => void;
 }) {
@@ -219,7 +219,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
   const [opened, setOpened] = useState(false);
   const [openings, setOpenings] = useState<number[]>([]);
   const [color, setColor] = useState(PEN_COLORS[0].value);
-  const [tool, setTool] = useState<"line" | "text">("line");
+  const [tool, setTool] = useState<"line" | "curve" | "text">("line");
   const [supplierEmail, setSupplierEmail] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
@@ -297,7 +297,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
     if (!selectedJobNumber) return setError("Select a job first.");
     setError("");
     canvasesRef.current.clear();
-    setOpenings([1, 2, 3, 4]);
+    setOpenings([1]);
     setOpened(true);
     setSupplierEmail(preferredEmail);
   }
@@ -416,15 +416,33 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
                   key={c.value}
                   type="button"
                   className="btn light"
-                  style={color === c.value && tool === "line" ? { outline: `2px solid ${c.value}` } : undefined}
+                  style={color === c.value && tool !== "text" ? { outline: `2px solid ${c.value}` } : undefined}
                   onClick={() => {
                     setColor(c.value);
-                    setTool("line");
+                    if (tool === "text") setTool("line");
                   }}
                 >
                   {c.label}
                 </button>
               ))}
+              <button
+                type="button"
+                className="btn light"
+                style={tool === "line" ? { outline: `2px solid ${color}`, fontWeight: 900 } : undefined}
+                onClick={() => setTool("line")}
+                title="Drag to draw a straight line"
+              >
+                ╱ Straight Line
+              </button>
+              <button
+                type="button"
+                className="btn light"
+                style={tool === "curve" ? { outline: `2px solid ${color}`, fontWeight: 900 } : undefined}
+                onClick={() => setTool("curve")}
+                title="Draw a curly / freehand line"
+              >
+                ∿ Curly Line
+              </button>
               <button
                 type="button"
                 className="btn light"
@@ -438,7 +456,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
                 + Add New Box
               </button>
             </div>
-            {tool === "text" && <div className="hint" style={{ marginTop: 6 }}>Text mode: tap the sketch where the text should go, then type it. Pick a pen colour to go back to drawing lines.</div>}
+            {tool === "text" && <div className="hint" style={{ marginTop: 6 }}>Text mode: tap the sketch where the text should go, then type it. Pick Straight Line or Curly Line to go back to drawing.</div>}
           </div>
 
           <form ref={formRef}>

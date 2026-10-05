@@ -110,7 +110,7 @@ export async function createQuickEstimate(_prevState: QuickEstimateState, formDa
     // Don't leave a half-finished estimate behind (a retry would otherwise create a duplicate).
     console.error("[estimates] could not store the PDF", e);
     await prisma.estimate.delete({ where: { id: estimate.id } }).catch(() => undefined);
-    return { error: "The estimate PDF couldn't be saved — file storage isn't connected on the server yet. Nothing was created; please let an administrator know." };
+    return { error: `The estimate PDF couldn't be saved — file storage problem. Nothing was created; please let an administrator know. (Reason: ${e instanceof Error ? e.message.slice(0, 160) : "unknown"})` };
   }
   await prisma.estimate.update({ where: { id: estimate.id }, data: { pdfStorageKey: storageKey } });
 

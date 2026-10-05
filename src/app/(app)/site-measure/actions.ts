@@ -50,7 +50,7 @@ export async function sendSiteMeasureSheetEmail(params: {
     attachments = await Promise.all(files.map(async (f) => ({ filename: f.fileName, content: await getObjectBuffer(f.storageKey) })));
   } catch (e) {
     console.error("[site-measure] could not read the sketches from storage", e);
-    return { error: "File storage isn't connected on the server yet (Render settings missing) — nothing was sent or saved. Please let an administrator know." };
+    return { error: `File storage problem — nothing was sent or saved. Please let an administrator know. (Reason: ${e instanceof Error ? e.message.slice(0, 160) : "unknown"})` };
   }
 
   await sendSiteMeasureEmail({

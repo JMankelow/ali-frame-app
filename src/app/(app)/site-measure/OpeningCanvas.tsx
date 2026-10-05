@@ -10,6 +10,8 @@ interface Stroke {
   kind: "line";
   color: string;
   points: Point[];
+  /** Curly line: follows the pointer and is drawn smoothed, instead of one straight segment. */
+  curve?: boolean;
 }
 interface TextNote {
   kind: "text";
@@ -55,7 +57,7 @@ export function OpeningCanvas({
 }: {
   id: string;
   color: string;
-  tool?: "line" | "text";
+  tool?: "line" | "curve" | "text";
   registerRef: (id: string, el: HTMLCanvasElement | null) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -97,9 +99,21 @@ export function OpeningCanvas({
     ctx.strokeStyle = s.color;
     ctx.lineWidth = 2.5;
     ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     ctx.beginPath();
     ctx.moveTo(s.points[0].x, s.points[0].y);
-    for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+    if (s.curve && s.points.length > 2) {
+      // Smooth the freehand path with quadratic curves through the midpoints.
+      for (let i = 1; i < s.points.length - 1; i++) {
+        const mx = (s.points[i].x + s.points[i + 1].x) / 2;
+        const my = (s.points[i].y + s.points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(s.points[i].x, s.points[i].y, mx, my);
+      }
+      const last = s.points[s.points.length - 1];
+      ctx.lineTo(last.x, last.y);
+    } else {
+      for (let i = 1; i < s.points.length; i++) ctx.lineTo(s.points[i].x, s.points[i].y);
+    }
     ctx.stroke();
   }
 
@@ -140,14 +154,23 @@ export function OpeningCanvas({
       return;
     }
     e.currentTarget.setPointerCapture(e.pointerId);
-    currentRef.current = { kind: "line", color: colorRef.current, points: [start, start] };
+    currentRef.current = { kind: "line", color: colorRef.current, points: [start, start], curve: toolRef.current === "curve" };
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!currentRef.current) return;
     e.preventDefault();
-    const start = currentRef.current.points[0];
-    currentRef.current.points = [start, pos(e)];
+    if (currentRef.current.curve) {
+      // Curly line: keep every point (skipping tiny moves) so the stroke follows the pen.
+      const pts = currentRef.current.points;
+      const p = pos(e);
+      const prev = pts[pts.length - 1];
+      if (pts.length === 2 && pts[0] === pts[1]) pts.pop();
+      if (Math.hypot(p.x - prev.x, p.y - prev.y) >= 3) pts.push(p);
+    } else {
+      const start = currentRef.current.points[0];
+      currentRef.current.points = [start, pos(e)];
+    }
 
     const ctx = canvasRef.current?.getContext("2d");
     if (!ctx) return;

@@ -92,7 +92,7 @@ export async function generateQuote(_prevState: GenerateQuoteResult, formData: F
     }
   } catch (e) {
     console.error("[send-quote] could not read source documents", e);
-    return { error: "File storage isn't connected on the server yet, so the measure sheet and supplier schedule can't be read. Nothing was created." };
+    return { error: `File storage problem — the measure sheet and supplier schedule couldn't be read. Nothing was created. (Reason: ${e instanceof Error ? e.message.slice(0, 160) : "unknown"})` };
   }
   const { pdf: packBuffer, skipped } = await buildQuotePack(pdfBuffer, parts, includeProfile);
 
@@ -102,7 +102,7 @@ export async function generateQuote(_prevState: GenerateQuoteResult, formData: F
     await putObjectBuffer(storageKey, packBuffer, "application/pdf");
   } catch (e) {
     console.error("[send-quote] could not store the quote pack", e);
-    return { error: "File storage isn't connected on the server yet — the quote PDF couldn't be saved. Nothing was created." };
+    return { error: `File storage problem — the quote PDF couldn't be saved. Nothing was created. (Reason: ${e instanceof Error ? e.message.slice(0, 160) : "unknown"})` };
   }
 
   await prisma.fileAsset.create({

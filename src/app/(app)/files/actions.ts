@@ -40,7 +40,7 @@ export async function requestUpload(
     uploadUrl = await getUploadUrl(storageKey, mimeType || "application/octet-stream");
   } catch (e) {
     console.error("[files] file storage unavailable", e);
-    return { error: "File storage isn't connected on the server yet (Render settings missing) — nothing was sent or saved. Please let an administrator know." };
+    return { error: `File storage problem — nothing was sent or saved. Please let an administrator know. (Reason: ${e instanceof Error ? e.message.slice(0, 160) : "unknown"})` };
   }
   return { storageKey, uploadUrl };
 }
