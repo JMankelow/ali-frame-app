@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { installEndDate } from "@/lib/installDates";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
@@ -140,6 +141,12 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
     },
   });
 
+  // Install days feed the Calendar: every active Installation booking for this job now runs for that many working days.
+  if (installDays != null && installDays !== job.installDays) {
+    const installs = await prisma.jobScheduledTask.findMany({ where: { jobNumber: number, type: "Installation", status: { not: "Cancelled" } }, select: { id: true, scheduledDate: true } });
+    for (const t of installs) await prisma.jobScheduledTask.update({ where: { id: t.id }, data: { endDate: installEndDate(t.scheduledDate, installDays) } });
+  }
+
   await logAudit({
     userId: user.id,
     action: "job_updated",
@@ -201,15 +208,7 @@ export async function createScheduledTask(
   let endDate: Date | null = endDateRaw ? new Date(endDateRaw) : null;
   if (!endDate && type === "Installation") {
     const j = await prisma.job.findUnique({ where: { number: jobNumber }, select: { installDays: true } });
-    const days = Math.ceil(j?.installDays ?? 1);
-    if (days > 1) {
-      endDate = new Date(scheduledDateRaw);
-      let remaining = days - 1;
-      while (remaining > 0) {
-        endDate.setDate(endDate.getDate() + 1);
-        if (endDate.getDay() !== 0 && endDate.getDay() !== 6) remaining -= 1;
-      }
-    }
+    endDate = installEndDate(new Date(scheduledDateRaw), j?.installDays);
   }
 
   const task = await prisma.jobScheduledTask.create({
@@ -266,7 +265,7 @@ export async function updateScheduledTask(
     data: {
       type,
       scheduledDate: new Date(scheduledDateRaw),
-      endDate: endDateRaw ? new Date(endDateRaw) : null,
+      endDate: endDateRaw ? new Date(endDateRaw) : type === "Installation" ? installEndDate(new Date(scheduledDateRaw), (await prisma.job.findUnique({ where: { number: existing.jobNumber }, select: { installDays: true } }))?.installDays) : null,
       startTime: timeOf(formData.get("startTime")),
       endTime: timeOf(formData.get("endTime")),
       notes: notes || null,
