@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
-export const ALL_TYPES = ["Installation", "Check Measure", "Sales Measure", "Remedial", "Leave", "Vehicle Maintenance"];
+import { ALL_TYPES } from "./types";
 
 export function CalendarFilters({ activeTypes }: { activeTypes: string[] }) {
   const router = useRouter();

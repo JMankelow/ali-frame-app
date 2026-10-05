@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { CalendarFilters, ALL_TYPES } from "./CalendarFilters";
+import { CalendarFilters } from "./CalendarFilters";
+import { ALL_TYPES } from "./types";
 import { AddLeaveForm } from "./AddLeaveForm";
 
 interface Chip {
