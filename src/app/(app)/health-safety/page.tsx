@@ -427,7 +427,11 @@ export default async function HealthSafetyPage() {
           <h2>Health &amp; Safety</h2>
           <div className="subtitle">Daily toolboxes, task analyses, site safety plans, incidents, training, inductions, risks and company documents.</div>
         </div>
-        <Link href="/health-safety/qa" className="btn primary">QA Reporting</Link>
+        <div className="actions">
+          <Link href="/health-safety/incident/new" className="btn primary">Report an accident / incident</Link>
+          <Link href="/health-safety/incident" className="btn light">Incident reports</Link>
+          <Link href="/health-safety/qa" className="btn light">QA Reporting</Link>
+        </div>
       </div>
       <TabStrip
         tabs={[

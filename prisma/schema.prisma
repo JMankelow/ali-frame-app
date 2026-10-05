@@ -84,6 +84,7 @@ model User {
   jobQuoteInputsUpdated     JobQuoteInputs[]
   invites                   InviteToken[]         @relation("UserInvites")
   qaReportsCreated          QaReport[]            @relation("QaReportCreator")
+  incidentReportsSubmitted  IncidentReport[]      @relation("IncidentReportSubmittedBy")
   hsCompetencies            HsCompetency[]        @relation("UserCompetency")
   employeeDetail            EmployeeDetail?       @relation("EmployeeDetail")
   reviewsAsEmployee         Review360[]           @relation("ReviewEmployee")
@@ -1166,4 +1167,26 @@ model NoteAttachment {
   createdAt  DateTime @default(now())
 
   @@index([noteId])
+}
+
+// Accident / Incident & Near-Miss reports (the digitised paper Accident Report form). The answers are stored whole in `data`
+// (keys from src/lib/incidentSpec.ts); the columns below are for listing/filtering. Contains health information (Privacy Act 2020):
+// only H&S / management staff may read everyone's; field staff only their own.
+model IncidentReport {
+  id               String   @id @default(cuid())
+  reference        String   @unique // INC-0001
+  personName       String
+  siteName         String
+  outcome          String
+  notifiable       Boolean  @default(false)
+  accidentDate     DateTime
+  status           String   @default("Open") // Open | Closed
+  data             Json
+  signature        String?  @db.Text // PNG data URL of the signature
+  submittedById    String
+  submittedBy      User     @relation("IncidentReportSubmittedBy", fields: [submittedById], references: [id], onDelete: Cascade)
+  submittedAt      DateTime @default(now())
+  safetyIncidentId String?
+
+  @@index([status, submittedAt])
 }
