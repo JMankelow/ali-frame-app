@@ -112,7 +112,7 @@ export function SheetEditor(p: Props) {
   );
 }
 
-// ---------- item tabs ----------
+// ---------- item picker ----------
 
 interface Tab {
   id: string;
@@ -120,37 +120,32 @@ interface Tab {
   state: "Complete" | "In progress" | "Not started";
   fails?: number;
 }
-/** Item 1 | Item 2 | Item 3 … across the top of the sheet — click one to work on it. */
+/** Item picker: a dropdown of every item (with its status), plus Previous / Next and + Item — stays on screen while you scroll. */
 function ItemTabs({ tabs, cur, onSelect, onAdd, locked }: { tabs: Tab[]; cur: string; onSelect: (id: string) => void; onAdd: () => void; locked: boolean }) {
-  const dot = { Complete: "#1f8a4c", "In progress": "#f59e0b", "Not started": "#9ca3af" } as const;
+  const mark = { Complete: "\u2705", "In progress": "\u{1F7E0}", "Not started": "\u26AA" } as const;
+  const idx = Math.max(0, tabs.findIndex((t) => t.id === cur));
+  const done = tabs.filter((t) => t.state === "Complete").length;
+  const go = (n: number) => { if (tabs[n]) onSelect(tabs[n].id); };
   return (
     <div className="card" style={{ position: "sticky", top: 92, zIndex: 4, padding: 8, boxShadow: "0 2px 10px rgba(0,0,0,.08)" }}>
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }} role="tablist" aria-label="Items">
-        {tabs.map((t, n) => {
-          const on = t.id === cur;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={on}
-              onClick={() => onSelect(t.id)}
-              title={t.title}
-              style={{
-                flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap",
-                border: `1.5px solid ${on ? "#0057b8" : "var(--line)"}`, background: on ? "#0057b8" : "#fff", color: on ? "#fff" : "inherit",
-              }}
-            >
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: dot[t.state], border: on ? "1.5px solid #fff" : "none" }} />
-              {t.title || `Item ${n + 1}`}
-              {!!t.fails && <span style={{ background: "#c62828", color: "#fff", borderRadius: 999, padding: "0 6px", fontSize: 11 }}>{t.fails}</span>}
-            </button>
-          );
-        })}
-        {!locked && (
-          <button type="button" onClick={onAdd} className="btn light" style={{ flex: "0 0 auto" }}>+ Item</button>
-        )}
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        <button type="button" className="btn light" onClick={() => go(idx - 1)} disabled={idx <= 0} aria-label="Previous item">&larr;</button>
+        <select
+          value={cur}
+          onChange={(e) => onSelect(e.target.value)}
+          aria-label="Choose item"
+          style={{ flex: "1 1 220px", minWidth: 0, fontWeight: 700, padding: "8px 10px" }}
+        >
+          {tabs.map((t, n) => (
+            <option key={t.id} value={t.id}>
+              {mark[t.state]} {t.title || `Item ${n + 1}`}{t.fails ? `  (${t.fails} fail${t.fails === 1 ? "" : "s"})` : ""}
+            </option>
+          ))}
+        </select>
+        <button type="button" className="btn light" onClick={() => go(idx + 1)} disabled={idx >= tabs.length - 1} aria-label="Next item">&rarr;</button>
+        {!locked && <button type="button" onClick={onAdd} className="btn light">+ Item</button>}
       </div>
+      <div className="hint" style={{ marginTop: 4 }}>Item {idx + 1} of {tabs.length} &middot; {done} complete</div>
     </div>
   );
 }
