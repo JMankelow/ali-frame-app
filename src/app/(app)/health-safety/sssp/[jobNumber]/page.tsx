@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { DocContent } from "@/components/DocContent";
 import { ensureHsDocuments } from "@/lib/hsSeed";
 import { DEFAULT_SSSP_ACTIVITIES, RISK_COLOR } from "@/lib/hsDocs";
-import { PrintButton } from "../../PrintButton";
+import { PdfButton } from "../../PdfButton";
 import { saveSssp, addSsspSignOn } from "../../hsActions";
 
 const fmt = (d: Date | null | undefined) => (d ? d.toLocaleDateString("en-NZ") : "");
@@ -57,7 +57,7 @@ export default async function SsspPage({ params }: { params: Promise<{ jobNumber
           <div className="subtitle">{job.client?.name ?? job.title} · {job.address ?? "no address"}</div>
         </div>
         <div className="actions">
-          <PrintButton label="Print full SSSP / Save PDF" />
+          <PdfButton href={`/health-safety/sssp/${encodeURIComponent(jobNumber)}/pdf`} label="Download full SSSP (PDF)" />
           <Link href="/health-safety" className="btn light">← Health &amp; Safety</Link>
         </div>
       </div>

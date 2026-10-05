@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { PrintButton } from "../../../health-safety/PrintButton";
+import { PdfButton } from "../../../health-safety/PdfButton";
 import { AckForm } from "./AckForm";
 import { getReviewTemplate, scoreRatings, fmt1, type Ratings, type OutcomeData } from "@/lib/reviewTemplates";
 
@@ -69,7 +69,7 @@ export default async function OutcomePage({ params }: { params: Promise<{ id: st
           <div className="subtitle">{review.period}</div>
         </div>
         <div className="actions">
-          <PrintButton />
+          <PdfButton href={`/reviews/${review.id}/outcome/pdf`} label="Download PDF" />
           <Link href={`/reviews/${review.id}`} className="btn light">← Overview</Link>
         </div>
       </div>

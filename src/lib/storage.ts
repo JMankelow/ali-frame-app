@@ -5,10 +5,22 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 let client: S3Client | null = null;
 
+/** Env values pasted into a dashboard often carry quotes/spaces; trim them so a harmless slip can't break storage. */
+const clean = (v: string | undefined) => v?.trim().replace(/^["']|["']$/g, "").trim();
+
+/** The account id is a 32-character hex string. Accept it even if the whole endpoint URL (https://<id>.r2.cloudflarestorage.com) was pasted. */
+function accountIdFromEnv(): string | undefined {
+  const raw = clean(process.env.R2_ACCOUNT_ID);
+  if (!raw) return undefined;
+  const hex = raw.match(/[0-9a-fA-F]{32}/)?.[0];
+  if (hex) return hex.toLowerCase();
+  throw new Error("R2_ACCOUNT_ID isn't a 32-character account id (find it on the R2 overview page in Cloudflare)");
+}
+
 function getClient(): S3Client {
-  const accountId = process.env.R2_ACCOUNT_ID;
-  const accessKeyId = process.env.R2_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+  const accountId = accountIdFromEnv();
+  const accessKeyId = clean(process.env.R2_ACCESS_KEY_ID);
+  const secretAccessKey = clean(process.env.R2_SECRET_ACCESS_KEY);
   if (!accountId || !accessKeyId || !secretAccessKey) {
     throw new Error("R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY must be set");
   }
@@ -23,7 +35,7 @@ function getClient(): S3Client {
 }
 
 function getBucket(): string {
-  const bucket = process.env.R2_BUCKET_NAME;
+  const bucket = clean(process.env.R2_BUCKET_NAME);
   if (!bucket) throw new Error("R2_BUCKET_NAME is not set");
   return bucket;
 }

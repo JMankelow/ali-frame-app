@@ -1,27 +1,10 @@
+// Copyright (c) 2026 BLB Consultants Limited T/A Ali-Frame Windows & Doors. All rights reserved.
+// Proprietary and confidential. Unauthorised copying, use or distribution is prohibited.
+// Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
 import "server-only";
-import { Document, Page, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
-import path from "path";
+import { Doc, Footer, Header, Page, Text, View, pdf, renderToBuffer } from "@/lib/pdfKit";
 import { formatMoney } from "./repricing";
 import type { RepricingLine } from "./repricing";
-
-const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 11, fontFamily: "Helvetica" },
-  logo: { width: 160, marginBottom: 16 },
-  title: { fontSize: 18, fontWeight: 700, marginBottom: 4, color: "#0057b8" },
-  subtitle: { fontSize: 10, color: "#64748b", marginBottom: 16 },
-  row: { flexDirection: "row", marginBottom: 3 },
-  label: { width: 110, color: "#64748b" },
-  value: { flex: 1 },
-  table: { marginTop: 18, borderTop: "1px solid #e5e7eb" },
-  tr: { flexDirection: "row", borderBottom: "1px solid #e5e7eb", paddingVertical: 6 },
-  tdDesc: { flex: 1 },
-  tdAmount: { width: 90, textAlign: "right" },
-  totalRow: { flexDirection: "row", marginTop: 10, paddingTop: 10, borderTop: "2px solid #0057b8" },
-  totalLabel: { flex: 1, fontSize: 13, fontWeight: 700, color: "#0f356b" },
-  totalValue: { width: 90, textAlign: "right", fontSize: 13, fontWeight: 700, color: "#0057b8" },
-  gstBasis: { fontSize: 9, color: "#64748b", marginTop: 6, textAlign: "right" },
-  footer: { marginTop: 30, fontSize: 9, color: "#64748b" },
-});
 
 export interface RepricingPdfInput {
   jobNumber: string;
@@ -33,48 +16,51 @@ export interface RepricingPdfInput {
   gstBasis: "excluding" | "including";
 }
 
-function RepricingDocument(input: RepricingPdfInput) {
-  const logoPath = path.join(process.cwd(), "public", "aliframe-logo.png");
-
+function RepricingDocument(i: RepricingPdfInput) {
   return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        {/* eslint-disable-next-line jsx-a11y/alt-text */}
-        <Image src={logoPath} style={styles.logo} />
-        <Text style={styles.title}>Revised Install Pricing</Text>
-        <Text style={styles.subtitle}>
-          Job {input.jobNumber} — {input.date}
-        </Text>
+    <Doc title={`Revised install pricing — job ${i.jobNumber}`}>
+      <Page size="A4" style={pdf.page}>
+        <Header title="REVISED INSTALL PRICING" sub={`Job ${i.jobNumber}`} />
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Client</Text>
-          <Text style={styles.value}>{input.clientName}</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Site Address</Text>
-          <Text style={styles.value}>{input.siteAddress || "—"}</Text>
-        </View>
-
-        <View style={styles.table}>
-          {input.lines.map((l, i) => (
-            <View key={i} style={styles.tr}>
-              <Text style={styles.tdDesc}>{l.label}</Text>
-              <Text style={styles.tdAmount}>{formatMoney(l.amount)}</Text>
-            </View>
-          ))}
+        <View style={pdf.panel}>
+          <View style={pdf.panelCol}>
+            <Text style={pdf.label}>Prepared for</Text>
+            <Text>{i.clientName}</Text>
+            <Text>{i.siteAddress || "—"}</Text>
+          </View>
+          <View style={pdf.panelCol}>
+            <Text style={pdf.label}>Details</Text>
+            <Text>Job: {i.jobNumber}</Text>
+            <Text>Date: {i.date}</Text>
+          </View>
         </View>
 
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{formatMoney(input.total)}</Text>
+        <Text style={pdf.h2}>Pricing</Text>
+        <View style={pdf.th}>
+          <Text style={[pdf.thText, { flex: 1 }]}>Description</Text>
+          <Text style={[pdf.thText, { width: 100, textAlign: "right" }]}>Amount</Text>
         </View>
-        <Text style={styles.gstBasis}>{input.gstBasis === "including" ? "Prices include GST." : "Prices exclude GST."}</Text>
+        {i.lines.map((l, idx) => (
+          <View key={idx} style={pdf.tr} wrap={false}>
+            <Text style={{ flex: 1 }}>{l.label}</Text>
+            <Text style={{ width: 100, textAlign: "right" }}>{formatMoney(l.amount)}</Text>
+          </View>
+        ))}
 
-        <Text style={styles.footer}>
-          Warranty: 10-year joinery, 12-year glass, 2-year installation, 2-year hardware.
-        </Text>
+        <View style={pdf.totalBar} wrap={false}>
+          <Text style={pdf.totalLabel}>TOTAL</Text>
+          <Text>
+            <Text style={pdf.totalValue}>{formatMoney(i.total)}</Text>
+            <Text style={pdf.totalLabel}> {i.gstBasis === "including" ? "including GST" : "plus GST"}</Text>
+          </Text>
+        </View>
+
+        <Text style={pdf.h2}>Warranty</Text>
+        <Text>10-year joinery, 12-year glass, 2-year installation and 2-year hardware.</Text>
+
+        <Footer />
       </Page>
-    </Document>
+    </Doc>
   );
 }
 

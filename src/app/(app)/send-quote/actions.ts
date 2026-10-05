@@ -71,14 +71,17 @@ export async function generateQuote(_prevState: GenerateQuoteResult, formData: F
   const job = await prisma.job.findUnique({ where: { number: jobNumber }, include: { client: true } });
   if (!job) return { error: `Job ${jobNumber} not found.` };
 
-  const totalLine = `Total ${total.toLocaleString("en-NZ", { style: "currency", currency: "NZD" })}${gstBasis === "excluding" ? " + GST" : " (incl. GST)"}`;
-
   const pdfBuffer = await generateQuotePdf({
     quoteNumber,
     clientName: job.client?.name ?? job.title,
     date: new Date().toLocaleDateString("en-NZ"),
-    totalLine,
+    validUntil: new Date(Date.now() + 30 * 86400000).toLocaleDateString("en-NZ"),
+    jobNumber,
+    siteAddress: job.address ?? undefined,
+    total,
+    gstBasis,
     wording,
+    preparedBy: user.name,
   });
 
   // One PDF: quote, then the measure sheet and supplier schedule from this job, then the company profile.

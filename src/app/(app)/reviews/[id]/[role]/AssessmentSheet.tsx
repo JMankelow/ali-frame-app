@@ -401,7 +401,7 @@ export function AssessmentSheet({
             </button>
           </>
         )}
-        <button type="button" className="btn light" onClick={() => window.print()}>Print / Save PDF</button>
+        <a href={`/reviews/${reviewId}/${role}/pdf`} target="_blank" rel="noopener noreferrer" className="btn light">Download PDF</a>
       </div>
       <div className="foot"><span>Ali-Frame Windows &amp; Doors — {template.title}</span><span>© BLB Consultants Limited T/A Ali-Frame Windows &amp; Doors — Confidential</span></div>
     </form>

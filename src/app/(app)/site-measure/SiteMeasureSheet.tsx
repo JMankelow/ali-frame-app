@@ -317,6 +317,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
     setBusy(true);
     try {
       const storageKeys: string[] = [];
+      const keyByCanvas = new Map<string, string>();
       let uploaded = 0;
 
       // Snapshot the canvases up front — iterating the live Map directly is
@@ -344,13 +345,14 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
           jobNumber: job.number,
           storageKey,
           fileName,
-          fileType: "Site Measure",
+          fileType: "Other",
           mimeType: "image/png",
           sizeBytes: blob.size,
         });
         if (confirmError) throw new Error(confirmError);
 
         storageKeys.push(storageKey);
+        keyByCanvas.set(canvasId, storageKey);
         uploaded += 1;
       }
 
@@ -358,6 +360,34 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
         setError("Draw at least one opening before saving.");
         return;
       }
+
+      // Everything typed into the sheet's fields, grouped by page and opening, so the supplier gets one proper PDF.
+      const pageMap = new Map<number, { header: Record<string, string>; openings: Map<number, Record<string, string>> }>();
+      document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[name^="page"]').forEach((el) => {
+        const m = el.name.match(/^page(d+)_(?:opening(d+)_)?(.+)$/);
+        if (!m) return;
+        const page = Number(m[1]);
+        const entry: { header: Record<string, string>; openings: Map<number, Record<string, string>> } = pageMap.get(page) ?? { header: {}, openings: new Map() };
+        if (m[2]) {
+          const fields: Record<string, string> = entry.openings.get(Number(m[2])) ?? {};
+          fields[m[3]] = el.value;
+          entry.openings.set(Number(m[2]), fields);
+        } else entry.header[m[3]] = el.value;
+        pageMap.set(page, entry);
+      });
+      const sheet = {
+        pages: Array.from(pageMap.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([pageNum, e]) => ({
+            pageNum,
+            header: e.header,
+            openings: Array.from(e.openings.entries())
+              .sort((a, b) => a[0] - b[0])
+              .map(([index, fields]) => ({ index, fields, storageKey: keyByCanvas.get(`smCanvas_${pageNum}_${index}`) ?? "" }))
+              .filter((o) => o.storageKey),
+          }))
+          .filter((p) => p.openings.length > 0),
+      };
 
       setStatus("Emailing supplier...");
       const { error: sendError } = await sendSiteMeasureSheetEmail({
@@ -367,10 +397,11 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
         storageKeys,
         subject: emailSubject,
         body: emailBody,
+        sheet,
       });
       if (sendError) throw new Error(sendError);
 
-      setStatus(`Sent — uploaded ${uploaded} sketch(es) and emailed the sheet.`);
+      setStatus(`Sent — the measure sheet PDF (${uploaded} opening${uploaded === 1 ? "" : "s"}) was saved to the job and emailed.`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setStatus("");

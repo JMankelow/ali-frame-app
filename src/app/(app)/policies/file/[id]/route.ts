@@ -16,7 +16,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const policy = await prisma.companyPolicy.findFirst({ where: { id, active: true } });
   if (!policy) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const body = await getObjectBuffer(policy.storageKey);
+  let body: Buffer;
+  try {
+    body = await getObjectBuffer(policy.storageKey);
+  } catch (e) {
+    console.error("[policies] could not read the policy file from storage", e);
+    return NextResponse.json({ error: "The policy file couldn't be opened — file storage isn't working yet. Please let an administrator know." }, { status: 503 });
+  }
   const safeName = policy.fileName.replace(/[^a-zA-Z0-9._ -]/g, "_");
   return new NextResponse(new Uint8Array(body), {
     headers: {

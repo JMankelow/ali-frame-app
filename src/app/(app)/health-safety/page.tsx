@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { TabStrip } from "@/components/TabStrip";
 import { DocContent } from "@/components/DocContent";
 import { SafetyIncidentForm } from "./SafetyIncidentForm";
-import { PrintButton } from "./PrintButton";
+import { PdfButton } from "./PdfButton";
 import { OpenSsspForm } from "./OpenSsspForm";
 import { resolveSafetyIncident } from "./actions";
 import { saveCompetency, archiveCompetency, saveRisk, closeRisk, createJsa, createInduction, saveDocument } from "./hsActions";
@@ -392,7 +392,7 @@ export default async function HealthSafetyPage() {
               <span className={`status ${approved ? "green" : "orange"}`}>{d.status}</span>
             </summary>
             <div style={{ marginTop: 10 }}>
-              <PrintButton />
+              <PdfButton href={`/health-safety/pdf/${d.slug}`} label="Download PDF" />
               {isSuper ? (
                 <form action={saveDocument.bind(null, d.slug)} style={{ marginTop: 10 }}>
                   <div className="form">
