@@ -6,7 +6,7 @@ import { Image } from "@react-pdf/renderer";
 import { Doc, Footer, Header, KV, Page, PTable, SignLine, Text, View, pdf, renderToBuffer, type PCell } from "@/lib/pdfKit";
 import {
   COM_SECTIONS, RES_CHECKS, RES_CONFIRM, RES_FINAL, RES_REMEDIAL, checkKey, itemName, itemStatus,
-  type CommercialData, type PhotoMeta, type ResidentialData,
+  type CommercialData, type PhotoMeta, type ResidentialData, type ResItem,
 } from "@/lib/qaSheets";
 
 export type PhotoMap = Record<string, { data: Buffer; format: "jpg" | "png" }>;
@@ -62,42 +62,40 @@ function Panel({ c, title, date }: { c: Common; title: string; date: string }) {
 }
 
 export async function generateResidentialQaPdf(d: ResidentialData, c: Common): Promise<Buffer> {
-  const ans = (n: number): PCell[] => {
-    const x = d.answers[`q${n}`];
-    return [String(n), "", { t: x?.a || "—", bg: x?.a === "Yes" ? GREEN : x?.a === "No" ? RED : undefined, bold: true }, x?.reason ?? ""];
+  const row = (it: ResItem, n: number, t: string): PCell[] => {
+    const x = it.answers[`q${n}`];
+    return [String(n), t, { t: x?.a || "—", bg: x?.a === "Yes" ? GREEN : x?.a === "No" ? RED : undefined, bold: true }, x?.reason ?? ""];
   };
-  const row = (n: number, t: string): PCell[] => {
-    const r = ans(n);
-    r[1] = t;
-    return r;
-  };
+  const cols = [{ label: "#", w: 0.4 }, { label: "Check", w: 3 }, { label: "Answer", w: 0.8, align: "center" as const }, { label: "Reason", w: 2.4 }];
   return renderToBuffer(
     <Doc title={`Residential QA check sheet — job ${c.jobNumber}`}>
-      <Page size="A4" style={pdf.page}>
-        <Header title="RESIDENTIAL QA CHECK SHEET" sub={`Job ${c.jobNumber}`} />
-        <Panel c={c} title="Check sheet" date={d.date} />
+      {d.items.map((it, i) => (
+        <Page key={it.id} size="A4" style={pdf.page}>
+          <Header title="RESIDENTIAL QA CHECK SHEET" sub={`Job ${c.jobNumber} · Item ${i + 1} of ${d.items.length}`} />
+          <Panel c={c} title={`Item ${i + 1}: ${it.label || "(not labelled)"}`} date={d.date} />
 
-        <Text style={pdf.h2}>QA checks</Text>
-        <PTable cols={[{ label: "#", w: 0.4 }, { label: "Check", w: 3 }, { label: "Answer", w: 0.8, align: "center" }, { label: "Reason", w: 2.4 }]} rows={RES_CHECKS.map(([n, t]) => row(n, t))} />
+          <Text style={pdf.h2}>QA checks</Text>
+          <PTable cols={cols} rows={RES_CHECKS.map(([n, t]) => row(it, n, t))} />
 
-        <Text style={pdf.h2}>Final sign off</Text>
-        <PTable cols={[{ label: "#", w: 0.4 }, { label: "Item", w: 3 }, { label: "Answer", w: 0.8, align: "center" }, { label: "Reason", w: 2.4 }]} rows={[row(RES_FINAL[0], RES_FINAL[1]), row(RES_REMEDIAL[0], RES_REMEDIAL[1])]} />
+          <Text style={pdf.h2}>Final sign off</Text>
+          <PTable cols={cols} rows={[row(it, RES_FINAL[0], RES_FINAL[1]), row(it, RES_REMEDIAL[0], RES_REMEDIAL[1])]} />
 
-        <View wrap={false}>
-          <Text style={pdf.h2}>15. Final completion photo</Text>
-          <PhotoGrid ids={d.photoFileIds} photos={c.photos} meta={d.photoMeta ?? {}} />
-        </View>
-
-        <View wrap={false}>
-          <Text style={pdf.h2}>17. Team leader sign off</Text>
-          <KV rows={[["Team leader", d.teamLeaderName], ["Confirmation", d.confirmed ? `Confirmed: ${RES_CONFIRM}` : "Not confirmed"]]} />
-          <View style={{ flexDirection: "row", marginTop: 12 }}>
-            <SignLine caption="Team leader" value={d.teamLeaderName} />
-            <SignLine caption="Date" value={nz(d.date)} />
+          <View wrap={false}>
+            <Text style={pdf.h2}>15. Final completion photo</Text>
+            <PhotoGrid ids={it.photoFileIds} photos={c.photos} meta={it.photoMeta ?? {}} />
           </View>
-        </View>
-        <Footer />
-      </Page>
+
+          <View wrap={false}>
+            <Text style={pdf.h2}>17. Team leader sign off</Text>
+            <KV rows={[["Team leader", it.teamLeaderName], ["Confirmation", it.confirmed ? `Confirmed: ${RES_CONFIRM}` : "Not confirmed"]]} />
+            <View style={{ flexDirection: "row", marginTop: 12 }}>
+              <SignLine caption="Team leader" value={it.teamLeaderName} />
+              <SignLine caption="Date" value={nz(d.date)} />
+            </View>
+          </View>
+          <Footer />
+        </Page>
+      ))}
     </Doc>,
   );
 }

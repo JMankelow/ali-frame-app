@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/session";
 import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getDownloadUrl } from "@/lib/storage";
-import type { CommercialData, ResidentialData } from "@/lib/qaSheets";
+import { migrateResidential, type CommercialData, type ResidentialData } from "@/lib/qaSheets";
 import { canSignQa } from "../../sheetActions";
 import { SheetEditor } from "./SheetEditor";
 
@@ -19,9 +19,9 @@ export default async function QaSheetPage({ params }: { params: Promise<{ id: st
   if (isInstallerProfile(user) && sheet.createdById !== user.id) notFound();
 
   // Every photo referenced anywhere in the sheet → a short-lived preview URL.
-  const data = sheet.data as unknown as ResidentialData | CommercialData;
+  const data = sheet.kind === "RESIDENTIAL" ? migrateResidential(sheet.data) : (sheet.data as unknown as CommercialData);
   const ids = new Set<string>();
-  if (sheet.kind === "RESIDENTIAL") (data as ResidentialData).photoFileIds.forEach((x) => ids.add(x));
+  if (sheet.kind === "RESIDENTIAL") for (const it of (data as ResidentialData).items) it.photoFileIds.forEach((x) => ids.add(x));
   else for (const it of (data as CommercialData).items) for (const arr of Object.values(it.qa.photos)) arr.forEach((x) => ids.add(x));
   const files = ids.size ? await prisma.fileAsset.findMany({ where: { id: { in: [...ids] }, jobNumber: sheet.jobNumber } }) : [];
   const photoUrls: Record<string, string> = {};

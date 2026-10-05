@@ -9,7 +9,7 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { registerQaSheetPhotos, saveQaSheet, type SheetState } from "../../sheetActions";
 import {
   COM_SECTIONS, RES_CHECKS, RES_CONFIRM, RES_FINAL, RES_REMEDIAL, checkKey, emptyComItem, itemName, itemProblems, itemStatus,
-  residentialProblems, type PhotoMeta, type CommercialData, type ComItem, type ResidentialData, type Result,
+  resItemProblems, resItemStatus, emptyResItem, type PhotoMeta, type CommercialData, type ComItem, type ResidentialData, type ResItem, type Result,
 } from "@/lib/qaSheets";
 
 const initialState: SheetState = {};
@@ -138,12 +138,16 @@ function PhotoPicker({ sheetId, jobNumber, ids, urls, meta, onMeta, onAdd, onRem
 // ---------- residential ----------
 
 function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: ResidentialData; setD: (d: ResidentialData) => void; urls: Record<string, string>; addUrls: (x: Record<string, string>) => void; locked: boolean }) {
-  const set = (n: number, a: "Yes" | "No") => setD({ ...d, answers: { ...d.answers, [`q${n}`]: { a, reason: d.answers[`q${n}`]?.reason ?? "" } } });
-  const reason = (n: number, v: string) => setD({ ...d, answers: { ...d.answers, [`q${n}`]: { a: d.answers[`q${n}`]?.a ?? "", reason: v } } });
-  const problems = residentialProblems(d);
+  const [cur, setCur] = useState(d.items[0]?.id ?? "");
+  const idx = Math.max(0, d.items.findIndex((i) => i.id === cur));
+  const it = d.items[idx];
+  const upd = (patch: (i: ResItem) => ResItem) => setD({ ...d, items: d.items.map((x, n) => (n === idx ? patch(x) : x)) });
+  const set = (n: number, a: "Yes" | "No") => upd((x) => ({ ...x, answers: { ...x.answers, [`q${n}`]: { a, reason: x.answers[`q${n}`]?.reason ?? "" } } }));
+  const reason = (n: number, v: string) => upd((x) => ({ ...x, answers: { ...x.answers, [`q${n}`]: { a: x.answers[`q${n}`]?.a ?? "", reason: v } } }));
+  const probs = resItemProblems(it);
 
   const yn = (n: number, text: string, withReason: boolean) => {
-    const x = d.answers[`q${n}`];
+    const x = it.answers[`q${n}`];
     return (
       <div key={n} className="card" style={{ marginTop: 10, ...(x?.a === "No" && withReason && !x.reason.trim() ? { borderColor: "#dc2626" } : {}) }}>
         <div style={{ fontWeight: 700 }}><span style={{ color: "#667085", marginRight: 8 }}>{n}</span>{text} <span style={{ color: "#f26a1b" }}>*</span></div>
@@ -168,6 +172,33 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
         </div>
       </div>
 
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="label">Items — one full check sheet per window/door/opening</div>
+        <div className="hint" style={{ margin: "2px 0 8px" }}>Label the item, fill everything out, then add the next item.</div>
+        {d.items.map((x, n) => {
+          const st = resItemStatus(x);
+          return (
+            <button key={x.id} type="button" onClick={() => setCur(x.id)} className="btn light" style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 6, ...(x.id === it.id ? { outline: "2px solid #0057b8" } : {}) }}>
+              <b>{x.label.trim() ? `Item ${n + 1}: ${x.label}` : `Item ${n + 1} (not labelled yet)`}</b> —{" "}
+              <span className={`status ${st.label === "Complete" ? "green" : st.label === "In progress" ? "orange" : "grey"}`}>{st.label === "In progress" ? `${st.pct}%` : st.label}</span>
+            </button>
+          );
+        })}
+        {!locked && (
+          <div className="actions">
+            <button type="button" className="btn light" onClick={() => { const n = emptyResItem(); setD({ ...d, items: [...d.items, n] }); setCur(n.id); }}>+ Add new item</button>
+            {d.items.length > 1 && resItemStatus(it).label === "Not started" && (
+              <button type="button" className="btn light" onClick={() => { const rest = d.items.filter((x) => x.id !== it.id); setD({ ...d, items: rest }); setCur(rest[0].id); }}>Remove this item</button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="label">Item {idx + 1} label *</div>
+        <input disabled={locked} value={it.label} onChange={(e) => upd((x) => ({ ...x, label: e.target.value }))} placeholder="e.g. Lounge slider, Bedroom 2 window" style={!it.label.trim() && !locked ? { borderColor: "#dc2626", marginTop: 6 } : { marginTop: 6 }} />
+      </div>
+
       <div className="label" style={{ marginTop: 16 }}>2. QA Checks</div>
       {RES_CHECKS.map(([n, t]) => yn(n, t, true))}
 
@@ -175,11 +206,11 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
       {yn(RES_FINAL[0], RES_FINAL[1], true)}
       <div className="card" style={{ marginTop: 10 }}>
         <PhotoPicker
-          sheetId={p.sheetId} jobNumber={p.jobNumber} ids={d.photoFileIds} urls={urls} disabled={locked}
-          meta={d.photoMeta ?? {}} onMeta={(id, patch) => setD({ ...d, photoMeta: { ...(d.photoMeta ?? {}), [id]: { ...(d.photoMeta?.[id] ?? { label: "", description: "" }), ...patch } } })}
+          sheetId={p.sheetId} jobNumber={p.jobNumber} ids={it.photoFileIds} urls={urls} disabled={locked}
+          meta={it.photoMeta ?? {}} onMeta={(id, patch) => upd((x) => ({ ...x, photoMeta: { ...(x.photoMeta ?? {}), [id]: { ...(x.photoMeta?.[id] ?? { label: "", description: "" }), ...patch } } }))}
           label="15  Final Completion Photo Uploaded *"
-          onAdd={(a) => { addUrls(Object.fromEntries(a.map((x) => [x.id, x.url]))); setD({ ...d, photoFileIds: [...d.photoFileIds, ...a.map((x) => x.id)] }); }}
-          onRemove={(id) => setD({ ...d, photoFileIds: d.photoFileIds.filter((x) => x !== id) })}
+          onAdd={(a) => { addUrls(Object.fromEntries(a.map((y) => [y.id, y.url]))); upd((x) => ({ ...x, photoFileIds: [...x.photoFileIds, ...a.map((y) => y.id)] })); }}
+          onRemove={(id) => upd((x) => ({ ...x, photoFileIds: x.photoFileIds.filter((y) => y !== id) }))}
         />
       </div>
       {yn(RES_REMEDIAL[0], RES_REMEDIAL[1], false)}
@@ -188,18 +219,35 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
         <div style={{ fontWeight: 700 }}><span style={{ color: "#667085", marginRight: 8 }}>17</span>Team Leader Sign Off <span style={{ color: "#f26a1b" }}>*</span></div>
         <select
           disabled={locked}
-          value={d.teamLeaderId}
-          onChange={(e) => setD({ ...d, teamLeaderId: e.target.value, teamLeaderName: p.staff.find((s) => s.id === e.target.value)?.name ?? "" })}
+          value={it.teamLeaderId}
+          onChange={(e) => upd((x) => ({ ...x, teamLeaderId: e.target.value, teamLeaderName: p.staff.find((s) => s.id === e.target.value)?.name ?? "" }))}
           style={{ width: "100%", marginTop: 8 }}
         >
           <option value="">Select team leader…</option>
           {p.staff.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
         <label style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 10, fontWeight: 600 }}>
-          <input type="checkbox" disabled={locked} checked={d.confirmed} onChange={(e) => setD({ ...d, confirmed: e.target.checked })} /> {RES_CONFIRM}
+          <input type="checkbox" disabled={locked} checked={it.confirmed} onChange={(e) => upd((x) => ({ ...x, confirmed: e.target.checked }))} /> {RES_CONFIRM}
         </label>
       </div>
-      {!locked && problems.length > 0 && <div className="hint" style={{ marginTop: 8 }}>{problems.length} item{problems.length === 1 ? "" : "s"} still to complete before the sheet can be finished.</div>}
+
+      <div className="card" style={{ marginTop: 12 }}>
+        <div className="actions">
+          <button type="button" className="btn light" disabled={idx === 0} onClick={() => setCur(d.items[idx - 1].id)}>‹ Previous item</button>
+          <button type="button" className="btn light" disabled={idx >= d.items.length - 1} onClick={() => setCur(d.items[idx + 1].id)}>Next item ›</button>
+          {!locked && idx === d.items.length - 1 && probs.length === 0 && (
+            <button type="button" className="btn primary" onClick={() => { const n = emptyResItem(); setD({ ...d, items: [...d.items, n] }); setCur(n.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>This item is done — add new item</button>
+          )}
+        </div>
+        {probs.length > 0 ? (
+          <details style={{ marginTop: 8 }}>
+            <summary className="hint" style={{ cursor: "pointer" }}>{probs.length} thing{probs.length === 1 ? "" : "s"} still to do on this item</summary>
+            <ul style={{ margin: "6px 0 0 18px", fontSize: 13 }}>{probs.map((x, i) => <li key={i}>{x}</li>)}</ul>
+          </details>
+        ) : (
+          <div className="status green" style={{ display: "inline-block", marginTop: 8 }}>This item is fully complete.</div>
+        )}
+      </div>
     </div>
   );
 }

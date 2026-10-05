@@ -7,7 +7,7 @@ import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getObjectBuffer } from "@/lib/storage";
 import { generateCommercialQaPdf, generateResidentialQaPdf, type PhotoMap } from "@/lib/qaSheetPdf";
-import type { CommercialData, ResidentialData } from "@/lib/qaSheets";
+import { migrateResidential, type CommercialData, type ResidentialData } from "@/lib/qaSheets";
 
 /** A QA check sheet as a PDF. Installers can only open their own. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -17,9 +17,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const sheet = await prisma.qaCheckSheet.findUnique({ where: { id }, include: { job: { include: { client: true } }, createdBy: { select: { name: true } } } });
   if (!sheet || (isInstallerProfile(user) && sheet.createdById !== user.id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const data = sheet.data as unknown as ResidentialData | CommercialData;
+  const data = sheet.kind === "RESIDENTIAL" ? migrateResidential(sheet.data) : (sheet.data as unknown as CommercialData);
   const ids = new Set<string>();
-  if (sheet.kind === "RESIDENTIAL") (data as ResidentialData).photoFileIds.forEach((x) => ids.add(x));
+  if (sheet.kind === "RESIDENTIAL") for (const it of (data as ResidentialData).items) it.photoFileIds.forEach((x) => ids.add(x));
   else for (const it of (data as CommercialData).items) for (const arr of Object.values(it.qa.photos)) arr.forEach((x) => ids.add(x));
 
   const photos: PhotoMap = {};

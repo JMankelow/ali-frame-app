@@ -26,8 +26,10 @@ export const RES_CONFIRM = "I confirm this installation has been checked and mee
 export type PhotoMeta = Record<string, { label: string; description: string }>;
 
 export type YesNo = { a: "Yes" | "No" | ""; reason: string };
-export interface ResidentialData {
-  date: string;
+/** One residential item (window/door/opening) — each gets its own full check sheet. */
+export interface ResItem {
+  id: string;
+  label: string; // e.g. "Lounge slider" — required
   answers: Record<string, YesNo>; // keys q3..q12, q14, q16
   photoFileIds: string[]; // final completion photo(s)
   photoMeta: PhotoMeta;
@@ -35,23 +37,55 @@ export interface ResidentialData {
   teamLeaderName: string;
   confirmed: boolean;
 }
+export interface ResidentialData {
+  date: string;
+  items: ResItem[];
+}
 
-export const emptyResidential = (date: string): ResidentialData => ({ date, answers: {}, photoFileIds: [], photoMeta: {}, teamLeaderId: "", teamLeaderName: "", confirmed: false });
+export const emptyResItem = (): ResItem => ({ id: Math.random().toString(36).slice(2, 10), label: "", answers: {}, photoFileIds: [], photoMeta: {}, teamLeaderId: "", teamLeaderName: "", confirmed: false });
+export const emptyResidential = (date: string): ResidentialData => ({ date, items: [emptyResItem()] });
 
-/** What's still missing before a residential sheet can be completed. */
-export function residentialProblems(d: ResidentialData): string[] {
+/** Sheets started before items existed held one set of answers for the whole job — that becomes item 1. */
+export function migrateResidential(raw: unknown): ResidentialData {
+  const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  if (Array.isArray(r.items)) return r as unknown as ResidentialData;
+  return {
+    date: typeof r.date === "string" ? r.date : "",
+    items: [{ ...emptyResItem(), label: "Item 1", answers: (r.answers as ResItem["answers"]) ?? {}, photoFileIds: (r.photoFileIds as string[]) ?? [], photoMeta: (r.photoMeta as PhotoMeta) ?? {}, teamLeaderId: (r.teamLeaderId as string) ?? "", teamLeaderName: (r.teamLeaderName as string) ?? "", confirmed: r.confirmed === true }],
+  };
+}
+
+/** What's still missing on one residential item (empty = complete). */
+export function resItemProblems(it: ResItem): string[] {
   const out: string[] = [];
+  if (!it.label.trim()) out.push("Label this item (e.g. Lounge slider)");
   for (const [n, t] of [...RES_CHECKS, RES_FINAL]) {
-    const x = d.answers[`q${n}`];
+    const x = it.answers[`q${n}`];
     if (!x || !x.a) out.push(`${n}. ${t}: answer Yes or No`);
     else if (x.a === "No" && !x.reason.trim()) out.push(`${n}. ${t}: give a reason for "No"`);
   }
-  if (!d.answers[`q${RES_REMEDIAL[0]}`]?.a) out.push(`${RES_REMEDIAL[0]}. ${RES_REMEDIAL[1]}: answer Yes or No`);
-  if (d.photoFileIds.length === 0) out.push("15. Final completion photo: add at least one");
-  else if (d.photoFileIds.some((id) => !d.photoMeta?.[id]?.label.trim())) out.push("15. Final completion photo: every photo must be labelled");
-  if (!d.teamLeaderName.trim()) out.push("17. Team leader: choose who is signing off");
-  if (!d.confirmed) out.push("17. Confirm the installation meets Aliframe QA standards");
+  if (!it.answers[`q${RES_REMEDIAL[0]}`]?.a) out.push(`${RES_REMEDIAL[0]}. ${RES_REMEDIAL[1]}: answer Yes or No`);
+  if (it.photoFileIds.length === 0) out.push("15. Final completion photo: add at least one");
+  else if (it.photoFileIds.some((id) => !it.photoMeta?.[id]?.label.trim())) out.push("15. Final completion photo: every photo must be labelled");
+  if (!it.teamLeaderName.trim()) out.push("17. Team leader: choose who is signing off");
+  if (!it.confirmed) out.push("17. Confirm the installation meets Aliframe QA standards");
   return out;
+}
+
+/** Every item's problems, prefixed with the item. */
+export function residentialProblems(d: ResidentialData): string[] {
+  return d.items.flatMap((it, i) => resItemProblems(it).map((p) => `${it.label.trim() || `Item ${i + 1}`}: ${p}`));
+}
+
+export function resItemStatus(it: ResItem): { label: "Not started" | "In progress" | "Complete"; pct: number } {
+  const total = RES_CHECKS.length + 2 + 1 + 1 + 1 + 1; // yes/no checks + final + remedial + label + photo + leader + confirm
+  let done = 0;
+  for (const [n] of [...RES_CHECKS, RES_FINAL, RES_REMEDIAL]) if (it.answers[`q${n}`]?.a) done++;
+  if (it.label.trim()) done++;
+  if (it.photoFileIds.length) done++;
+  if (it.teamLeaderName.trim()) done++;
+  if (it.confirmed) done++;
+  return { label: done === 0 ? "Not started" : resItemProblems(it).length === 0 ? "Complete" : "In progress", pct: Math.round((done / total) * 100) };
 }
 
 // ---------- Commercial ----------

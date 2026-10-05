@@ -11,8 +11,8 @@ import { isInstallerProfile } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getDownloadUrl } from "@/lib/storage";
 import {
-  COM_SECTIONS, RES_CHECKS, RES_FINAL, RES_REMEDIAL, checkKey, emptyCommercial, emptyResidential, emptyQa, itemProblems, residentialProblems,
-  type CommercialData, type ComItem, type ResidentialData, type Result, type Stamped, type YesNo,
+  COM_SECTIONS, RES_CHECKS, RES_FINAL, RES_REMEDIAL, checkKey, emptyCommercial, emptyResidential, emptyResItem, emptyQa, itemProblems, residentialProblems,
+  type CommercialData, type ComItem, type ResidentialData, type ResItem, type Result, type Stamped, type YesNo,
 } from "@/lib/qaSheets";
 
 export interface SheetState {
@@ -73,17 +73,23 @@ async function validPhotoIds(jobNumber: string, ids: unknown): Promise<string[]>
 }
 
 async function cleanResidential(jobNumber: string, raw: Record<string, unknown>): Promise<ResidentialData> {
-  const out = emptyResidential(isoOrEmpty(raw.date) || today());
-  const rawAns = (raw.answers && typeof raw.answers === "object" ? raw.answers : {}) as Record<string, { a?: string; reason?: string }>;
-  for (const key of [...RES_CHECKS.map(([n]) => `q${n}`), `q${RES_FINAL[0]}`, `q${RES_REMEDIAL[0]}`]) {
-    const x = rawAns[key];
-    out.answers[key] = { a: x?.a === "Yes" || x?.a === "No" ? x.a : "", reason: clip(x?.reason, 500) } as YesNo;
+  const out: ResidentialData = { date: isoOrEmpty(raw.date) || today(), items: [] };
+  const rawItems = (Array.isArray(raw.items) ? raw.items : []).slice(0, 60) as Record<string, unknown>[];
+  for (const ri of rawItems) {
+    const it: ResItem = { ...emptyResItem(), id: clip(ri.id, 20) || Math.random().toString(36).slice(2, 10), label: clip(ri.label, 120) };
+    const rawAns = (ri.answers && typeof ri.answers === "object" ? ri.answers : {}) as Record<string, { a?: string; reason?: string }>;
+    for (const key of [...RES_CHECKS.map(([n]) => `q${n}`), `q${RES_FINAL[0]}`, `q${RES_REMEDIAL[0]}`]) {
+      const x = rawAns[key];
+      it.answers[key] = { a: x?.a === "Yes" || x?.a === "No" ? x.a : "", reason: clip(x?.reason, 500) } as YesNo;
+    }
+    it.photoFileIds = await validPhotoIds(jobNumber, ri.photoFileIds);
+    it.photoMeta = cleanMeta(ri.photoMeta, it.photoFileIds);
+    it.teamLeaderId = clip(ri.teamLeaderId, 40);
+    it.teamLeaderName = clip(ri.teamLeaderName, 120);
+    it.confirmed = ri.confirmed === true;
+    out.items.push(it);
   }
-  out.photoFileIds = await validPhotoIds(jobNumber, raw.photoFileIds);
-  out.photoMeta = cleanMeta(raw.photoMeta, out.photoFileIds);
-  out.teamLeaderId = clip(raw.teamLeaderId, 40);
-  out.teamLeaderName = clip(raw.teamLeaderName, 120);
-  out.confirmed = raw.confirmed === true;
+  if (out.items.length === 0) out.items.push(emptyResItem());
   return out;
 }
 
