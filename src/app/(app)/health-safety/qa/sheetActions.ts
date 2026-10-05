@@ -11,7 +11,7 @@ import { isInstallerProfile } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
 import { getDownloadUrl } from "@/lib/storage";
 import {
-  COM_SECTIONS, RES_CHECKS, RES_FINAL, RES_REMEDIAL, checkKey, emptyCommercial, emptyResidential, emptyResItem, emptyQa, itemProblems, residentialProblems,
+  COM_SECTIONS, RES_CHECKS, RES_FINAL, RES_REMEDIAL, checkKey, emptyComItem, emptyCommercial, emptyResidential, emptyResItem, emptyQa, itemProblems, residentialProblems,
   type CommercialData, type ComItem, type ResidentialData, type ResItem, type Result, type Stamped, type YesNo,
 } from "@/lib/qaSheets";
 
@@ -37,7 +37,16 @@ export async function createQaSheet(formData: FormData) {
   const job = jobNumber ? await prisma.job.findUnique({ where: { number: jobNumber }, select: { number: true } }) : null;
   if (!job) redirect("/health-safety/qa?error=job");
 
+  // "How many items?" (and optional names/window codes) builds the sheet with that many items from the start.
+  const count = Math.min(60, Math.max(1, Math.floor(Number(formData.get("itemCount")) || 1)));
+  const labels = String(formData.get("itemLabels") ?? "").split(/\r?\n/).map((l) => l.trim().slice(0, 120)).filter(Boolean).slice(0, 60);
+  const total = Math.max(count, labels.length);
   const data = kind === "COMMERCIAL" ? emptyCommercial(today()) : emptyResidential(today());
+  data.items = Array.from({ length: total }, (_, i) => {
+    const label = labels[i] ?? "";
+    if (kind === "COMMERCIAL") return { ...emptyComItem(), n: String(i + 1), code: label };
+    return { ...emptyResItem(), label };
+  }) as never;
   const sheet = await prisma.qaCheckSheet.create({ data: { kind, jobNumber, data: data as never, createdById: user.id } });
   await logAudit({ userId: user.id, action: "qa_sheet_created", entityType: "QaCheckSheet", entityId: sheet.id, metadata: { kind, jobNumber } });
   redirect(`/health-safety/qa/sheet/${sheet.id}`);

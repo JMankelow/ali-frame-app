@@ -112,6 +112,49 @@ export function SheetEditor(p: Props) {
   );
 }
 
+// ---------- item tabs ----------
+
+interface Tab {
+  id: string;
+  title: string;
+  state: "Complete" | "In progress" | "Not started";
+  fails?: number;
+}
+/** Item 1 | Item 2 | Item 3 … across the top of the sheet — click one to work on it. */
+function ItemTabs({ tabs, cur, onSelect, onAdd, locked }: { tabs: Tab[]; cur: string; onSelect: (id: string) => void; onAdd: () => void; locked: boolean }) {
+  const dot = { Complete: "#1f8a4c", "In progress": "#f59e0b", "Not started": "#9ca3af" } as const;
+  return (
+    <div className="card" style={{ position: "sticky", top: 92, zIndex: 4, padding: 8, boxShadow: "0 2px 10px rgba(0,0,0,.08)" }}>
+      <div style={{ display: "flex", gap: 6, overflowX: "auto", paddingBottom: 2 }} role="tablist" aria-label="Items">
+        {tabs.map((t, n) => {
+          const on = t.id === cur;
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={on}
+              onClick={() => onSelect(t.id)}
+              title={t.title}
+              style={{
+                flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 700, whiteSpace: "nowrap",
+                border: `1.5px solid ${on ? "#0057b8" : "var(--line)"}`, background: on ? "#0057b8" : "#fff", color: on ? "#fff" : "inherit",
+              }}
+            >
+              <span style={{ width: 9, height: 9, borderRadius: "50%", background: dot[t.state], border: on ? "1.5px solid #fff" : "none" }} />
+              {t.title || `Item ${n + 1}`}
+              {!!t.fails && <span style={{ background: "#c62828", color: "#fff", borderRadius: 999, padding: "0 6px", fontSize: 11 }}>{t.fails}</span>}
+            </button>
+          );
+        })}
+        {!locked && (
+          <button type="button" onClick={onAdd} className="btn light" style={{ flex: "0 0 auto" }}>+ Item</button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ---------- photos ----------
 
 function PhotoPicker({ sheetId, jobNumber, ids, urls, meta, onMeta, onAdd, onRemove, disabled, label }: {
@@ -216,27 +259,18 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 12 }}>
-        <div className="label">Items — one full check sheet per window/door/opening</div>
-        <div className="hint" style={{ margin: "2px 0 8px" }}>Label the item, fill everything out, then add the next item.</div>
-        {d.items.map((x, n) => {
-          const st = resItemStatus(x);
-          return (
-            <button key={x.id} type="button" onClick={() => setCur(x.id)} className="btn light" style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 6, ...(x.id === it.id ? { outline: "2px solid #0057b8" } : {}) }}>
-              <b>{x.label.trim() ? `Item ${n + 1}: ${x.label}` : `Item ${n + 1} (not labelled yet)`}</b> —{" "}
-              <span className={`status ${st.label === "Complete" ? "green" : st.label === "In progress" ? "orange" : "grey"}`}>{st.label === "In progress" ? `${st.pct}%` : st.label}</span>
-            </button>
-          );
-        })}
-        {!locked && (
-          <div className="actions">
-            <button type="button" className="btn light" onClick={() => { const n = emptyResItem(); setD({ ...d, items: [...d.items, n] }); setCur(n.id); }}>+ Add new item</button>
-            {d.items.length > 1 && resItemStatus(it).label === "Not started" && (
-              <button type="button" className="btn light" onClick={() => { const rest = d.items.filter((x) => x.id !== it.id); setD({ ...d, items: rest }); setCur(rest[0].id); }}>Remove this item</button>
-            )}
-          </div>
-        )}
-      </div>
+      <ItemTabs
+        tabs={d.items.map((x, n) => ({ id: x.id, title: x.label.trim() ? `${n + 1} · ${x.label}` : `Item ${n + 1}`, state: resItemStatus(x).label }))}
+        cur={it.id}
+        onSelect={setCur}
+        onAdd={() => { const n = emptyResItem(); setD({ ...d, items: [...d.items, n] }); setCur(n.id); }}
+        locked={locked}
+      />
+      {!locked && d.items.length > 1 && resItemStatus(it).label === "Not started" && (
+        <div style={{ marginTop: 6 }}>
+          <button type="button" className="btn light" onClick={() => { const rest = d.items.filter((x) => x.id !== it.id); setD({ ...d, items: rest }); setCur(rest[0].id); }}>Remove this empty item</button>
+        </div>
+      )}
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="label">Item {idx + 1} label *</div>
@@ -317,35 +351,18 @@ function Commercial({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Commer
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: 12 }}>
-        <div className="label">Job items — every window/door gets its own full QA</div>
-        <div style={{ marginTop: 8 }}>
-          {d.items.map((x, n) => {
-            const st = itemStatus(x);
-            return (
-              <button
-                key={x.id}
-                type="button"
-                onClick={() => setCur(x.id)}
-                className="btn light"
-                style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 6, ...(x.id === it.id ? { outline: "2px solid #0057b8" } : {}) }}
-              >
-                <b>{itemName(x, n)}</b>{x.loc ? ` · ${x.loc}` : ""} —{" "}
-                <span className={`status ${st.label === "Complete" ? "green" : st.label === "In progress" ? "orange" : "grey"}`}>{st.label === "In progress" ? `${st.pct}%` : st.label}</span>
-                {st.fails > 0 && <span className="status red" style={{ marginLeft: 6 }}>{st.fails} fail{st.fails === 1 ? "" : "s"}</span>}
-              </button>
-            );
-          })}
+      <ItemTabs
+        tabs={d.items.map((x, n) => ({ id: x.id, title: x.n.trim() || x.code.trim() ? `${x.n.trim() || n + 1}${x.code.trim() ? ` · ${x.code}` : ""}` : `Item ${n + 1}`, state: itemStatus(x).label, fails: itemStatus(x).fails }))}
+        cur={it.id}
+        onSelect={setCur}
+        onAdd={() => { const n = emptyComItem(); setD({ ...d, items: [...d.items, n] }); setCur(n.id); }}
+        locked={locked}
+      />
+      {!locked && d.items.length > 1 && itemStatus(it).label === "Not started" && (
+        <div style={{ marginTop: 6 }}>
+          <button type="button" className="btn light" onClick={() => { const rest = d.items.filter((x) => x.id !== it.id); setD({ ...d, items: rest }); setCur(rest[0].id); }}>Remove this empty item</button>
         </div>
-        {!locked && (
-          <div className="actions">
-            <button type="button" className="btn light" onClick={() => { const n = emptyComItem(); setD({ ...d, items: [...d.items, n] }); setCur(n.id); }}>+ New item</button>
-            {d.items.length > 1 && itemStatus(it).label === "Not started" && (
-              <button type="button" className="btn light" onClick={() => { const rest = d.items.filter((x) => x.id !== it.id); setD({ ...d, items: rest }); setCur(rest[0].id); }}>Remove this item</button>
-            )}
-          </div>
-        )}
-      </div>
+      )}
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="label">{itemName(it, idx)}</div>

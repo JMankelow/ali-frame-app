@@ -20,8 +20,18 @@ export function NewQaReportForm({ jobs }: { jobs: JobPickerOption[] }) {
             <label>Select job</label>
             <JobPicker jobs={jobs} value={jobNumber} onChange={setJobNumber} />
           </div>
+          <div>
+            <label>How many items (windows/doors) on this job?</label>
+            <input name="itemCount" type="number" min={1} max={60} defaultValue={1} />
+            <div className="hint">The check sheet is built with that many items — you can add more later.</div>
+          </div>
           <div className="full">
-            <label>Report title (optional)</label>
+            <label>Item names / window codes (optional — one per line, in order)</label>
+            <textarea name="itemLabels" rows={3} placeholder={"2A.200.W10\n2A.200.W11\nLounge slider"} />
+            <div className="hint">If you give names or codes, the items are named from them (the number above is ignored if there are more lines).</div>
+          </div>
+          <div className="full">
+            <label>Photo report title (optional — photo report only)</label>
             <input name="title" placeholder="Installation QA Report" />
           </div>
         </div>

@@ -33,18 +33,37 @@ function ArchiveButton({ job, showArchived }: { job: JobRow; showArchived: boole
   );
 }
 
-export function JobsView({ jobs, showArchived, canManage = true }: { jobs: JobRow[]; showArchived: boolean; canManage?: boolean }) {
+export function JobsView({ jobs: allJobs, showArchived, canManage = true }: { jobs: JobRow[]; showArchived: boolean; canManage?: boolean }) {
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [q, setQ] = useState("");
+  // Search across number, title, client, address, supplier, type and status — every word typed has to match somewhere.
+  const words = q.toLowerCase().split(/s+/).filter(Boolean);
+  const jobs = words.length
+    ? allJobs.filter((j) => {
+        const hay = [j.number, j.title, j.clientName, j.address, j.supplier, j.status, j.type === "COMMERCIAL" ? "commercial" : "residential"].join(" ").toLowerCase();
+        return words.every((w) => hay.includes(w));
+      })
+    : allJobs;
 
   return (
     <div className="card" style={{ padding: viewMode === "card" ? 16 : undefined }}>
-      <div className="actions" style={{ marginBottom: 14 }}>
+      <div className="actions" style={{ marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
         <button className={`btn ${viewMode === "card" ? "primary" : "light"}`} onClick={() => setViewMode("card")}>
           Card View
         </button>
         <button className={`btn ${viewMode === "table" ? "primary" : "light"}`} onClick={() => setViewMode("table")}>
           Table View
         </button>
+        <input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search jobs — number, client, address, supplier, status…"
+          aria-label="Search jobs"
+          style={{ flex: "1 1 280px", minWidth: 220 }}
+        />
+        {q && <button type="button" className="btn light" onClick={() => setQ("")}>Clear</button>}
+        <span className="hint">{jobs.length === allJobs.length ? `${allJobs.length} jobs` : `${jobs.length} of ${allJobs.length} jobs`}</span>
       </div>
 
       {viewMode === "table" ? (
@@ -81,7 +100,7 @@ export function JobsView({ jobs, showArchived, canManage = true }: { jobs: JobRo
             {jobs.length === 0 && (
               <tr>
                 <td colSpan={7} className="hint">
-                  No jobs yet — add the first one below.
+                  {q ? "No jobs match your search." : "No jobs yet — add the first one below."}
                 </td>
               </tr>
             )}
@@ -111,7 +130,7 @@ export function JobsView({ jobs, showArchived, canManage = true }: { jobs: JobRo
               )}
             </div>
           ))}
-          {jobs.length === 0 && <div className="hint">No jobs yet — add the first one below.</div>}
+          {jobs.length === 0 && <div className="hint">{q ? "No jobs match your search." : "No jobs yet — add the first one below."}</div>}
         </div>
       )}
     </div>
