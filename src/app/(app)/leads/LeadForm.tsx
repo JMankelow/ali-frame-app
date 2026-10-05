@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { JOB_LEAD_SOURCES } from "@/lib/jobStatus";
 import { createLead, type LeadFormState } from "./actions";
 
 const initialState: LeadFormState = {};
@@ -22,7 +23,12 @@ export function LeadForm({ staff }: { staff: { id: string; name: string }[] }) {
         </div>
         <div>
           <label htmlFor="source">Source</label>
-          <input id="source" name="source" placeholder="Website, Referral, Sales email…" />
+          <select id="source" name="source" defaultValue="">
+            <option value="">— Select source —</option>
+            {JOB_LEAD_SOURCES.map((s) => (
+              <option key={s}>{s}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label htmlFor="assignedToId">Assign To</label>
