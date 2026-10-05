@@ -102,7 +102,14 @@ export async function createQuickEstimate(_prevState: QuickEstimateState, formDa
   });
 
   const storageKey = buildGenericStorageKey("estimates", `estimate-${estimateNumber}.pdf`);
-  await putObjectBuffer(storageKey, pdfBuffer, "application/pdf");
+  try {
+    await putObjectBuffer(storageKey, pdfBuffer, "application/pdf");
+  } catch (e) {
+    // Don't leave a half-finished estimate behind (a retry would otherwise create a duplicate).
+    console.error("[estimates] could not store the PDF", e);
+    await prisma.estimate.delete({ where: { id: estimate.id } }).catch(() => undefined);
+    return { error: "The estimate PDF couldn't be saved — file storage isn't connected on the server yet. Nothing was created; please let an administrator know." };
+  }
   await prisma.estimate.update({ where: { id: estimate.id }, data: { pdfStorageKey: storageKey } });
 
   await logAudit({ userId: user.id, action: "estimate_pdf_created", entityType: "Estimate", entityId: estimate.id });

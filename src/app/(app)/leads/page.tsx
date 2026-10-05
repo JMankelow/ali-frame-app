@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { markLeadConverted, reassignLead } from "./actions";
 import { LeadForm } from "./LeadForm";
+import { LeadImport } from "./LeadImport";
 
 const STATUS_COLOR: Record<string, string> = {
   New: "blue",
@@ -83,6 +84,8 @@ export default async function LeadsPage() {
           </tbody>
         </table>
       </div>
+
+      <LeadImport staff={staff} />
 
       <LeadForm staff={staff} />
     </div>
