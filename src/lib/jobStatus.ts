@@ -110,4 +110,8 @@ export const JOB_LEAD_SOURCES = [
   "Social Media",
   "Web Search - Google Ads",
   "Returning Customer",
+  "Rylock Lead",
+  "Vision Lead",
+  "NZ Windows Lead",
+  "Counties Lead",
 ];

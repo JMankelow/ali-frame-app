@@ -72,8 +72,8 @@ export default async function DashboardPage() {
     prisma.job.groupBy({ by: ["status"], where: { archived: false }, _count: true, orderBy: { _count: { status: "desc" } } }),
     prisma.lead.count({ where: { createdAt: { gte: startOfWeek } } }),
     prisma.lead.count({ where: { status: "New" } }),
-    prisma.quote.findMany({ where: { dateSent: { gte: startOfWeek } }, select: { total: true } }),
-    prisma.quote.findMany({ where: { dateSent: { gte: sixMonthsAgo } }, select: { dateSent: true, total: true } }),
+    prisma.quote.findMany({ where: { dateSent: { gte: startOfWeek } }, select: { total: true, dateSent: true, jobReference: true, customerName: true } }),
+    prisma.quote.findMany({ where: { dateSent: { gte: sixMonthsAgo } }, select: { dateSent: true, total: true, jobReference: true, customerName: true } }),
     prisma.quote.findMany({ where: { status: "Sent" }, select: { total: true, quoteDate: true, dateSent: true } }),
     prisma.quote.findMany({ where: { status: "Sent", expiryDate: { gte: now, lte: in7 } }, select: { quoteNumber: true, customerName: true, expiryDate: true }, take: 6 }),
     prisma.remedialItem.count({ where: { status: "Open" } }),
@@ -138,6 +138,20 @@ export default async function DashboardPage() {
     b.v += q.total ?? 0;
   }
 
+  // Quote totals in the register include GST, and a job can have several revisions. For sales figures count each job once
+  // (its latest quote) and show the value excluding GST, to match the KPI report.
+  const latestPerJob = <T extends { dateSent: Date | null; jobReference: string | null; customerName: string }>(rows: T[]) => {
+    const byJob = new Map<string, T>();
+    for (const q of rows) {
+      const key = q.jobReference?.match(/JOB-(\d+)/i)?.[1] ?? `c:${q.customerName}`;
+      const cur = byJob.get(key);
+      if (!cur || (q.dateSent?.getTime() ?? 0) > (cur.dateSent?.getTime() ?? 0)) byJob.set(key, q);
+    }
+    return [...byJob.values()];
+  };
+  const exGst = (rows: { total: number | null }[]) => rows.reduce((s, r) => s + (r.total ?? 0), 0) / 1.15;
+  const quotesWeekJobs = latestPerJob(quotesWeek);
+
   const sum = (rows: { total: number | null }[]) => rows.reduce((s, r) => s + (r.total ?? 0), 0);
   const acceptedMonth = acceptedCosting.filter((c) => c.dateAccepted && c.dateAccepted >= startOfMonth);
   const salesMonth = acceptedMonth.reduce((s, c) => s + (c.quotedTotal ?? 0), 0);
@@ -147,8 +161,8 @@ export default async function DashboardPage() {
   const monthLabel = (k: string) => new Date(`${k}-01T12:00:00`).toLocaleDateString("en-NZ", { month: "short", year: "2-digit" });
   const salesByMonth = months.map((k) => ({ k, v: acceptedCosting.filter((c) => c.dateAccepted && monthKey(c.dateAccepted) === k).reduce((s, c) => s + (c.quotedTotal ?? 0), 0) }));
   const quotesByMonth = months.map((k) => {
-    const rows = quotesSixMonths.filter((q) => q.dateSent && monthKey(q.dateSent) === k);
-    return { k, n: rows.length, v: sum(rows) };
+    const rows = latestPerJob(quotesSixMonths.filter((q) => q.dateSent && monthKey(q.dateSent) === k));
+    return { k, n: rows.length, v: exGst(rows) };
   });
 
   const attention: { text: string; href: string; tone?: "red" }[] = [
@@ -178,7 +192,7 @@ export default async function DashboardPage() {
       <div className="cards">
         <Kpi label="Active Jobs" value={activeJobs} hint={`${unassignedJobs} unassigned`} href="/jobs" />
         <Kpi label="Jobs Completed — This Month" value={completedInMonth.size} hint={`${completedWeekNumbers.length} this week`} href="/jobs" />
-        <Kpi label="Quotes Sent — This Week" value={quotesWeek.length} hint={isSuper ? `${money(sum(quotesWeek))} quoted` : undefined} href="/quotes" />
+        <Kpi label="Quotes Sent — This Week" value={quotesWeekJobs.length} hint={isSuper ? `${money(exGst(quotesWeekJobs))} quoted excl. GST` : undefined} href="/quotes" />
         <Kpi label="New Leads — This Week" value={newLeadsWeek} hint={`${openLeads} still new`} href="/leads" />
         <Kpi label="Remedial Recorded — This Month" value={remedialMonth} hint={`${remedialOpen} open · ${remedialCosting._count} on tracked jobs`} href="/remedial" tone={remedialOpen > 0 ? "red" : undefined} />
         <Kpi label="Hours Logged — This Week" value={(hoursWeek._sum.totalHours ?? 0).toFixed(0)} hint={`${pendingTimesheets} awaiting approval`} href="/timesheets" />
@@ -221,6 +235,7 @@ export default async function DashboardPage() {
         )}
         <div className="card">
           <div className="label">Quotes sent by month</div>
+          <div className="hint">One quote per job (latest revision), excl. GST</div>
           <Bars rows={quotesByMonth.map((m) => ({ label: monthLabel(m.k), value: m.n, text: isSuper ? `${m.n} · ${money(m.v)}` : String(m.n) }))} />
         </div>
         <div className="card">

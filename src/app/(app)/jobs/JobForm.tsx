@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { createJob, type JobFormState } from "./actions";
-import { JOB_STATUS_OPTIONS } from "@/lib/jobStatus";
+import { JOB_STATUS_OPTIONS, JOB_LEAD_SOURCES } from "@/lib/jobStatus";
 
 const initialState: JobFormState = {};
 
@@ -49,6 +49,15 @@ export function JobForm({ nextNumber, suppliers }: { nextNumber: string; supplie
               <option key={name} value={name}>
                 {name}
               </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="leadSource">Lead / How Did They Hear About Us?</label>
+          <select id="leadSource" name="leadSource" defaultValue="">
+            <option value="">— Select lead —</option>
+            {JOB_LEAD_SOURCES.map((l) => (
+              <option key={l}>{l}</option>
             ))}
           </select>
         </div>
