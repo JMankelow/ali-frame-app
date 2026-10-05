@@ -191,6 +191,7 @@ export const NAV_TREE: NavGroup[] = [
       { label: "Branding Guidelines", href: "/marketing/branding" },
       { label: "Logo", href: "/marketing/logo" },
       { label: "Social Media", href: "/marketing/social-media" },
+      { label: "Job Posts", href: "/marketing/job-posts" },
       { label: "Lead Sources", href: "/marketing/lead-sources" },
       { label: "Pending Content", href: "/marketing/pending-content" },
     ],
