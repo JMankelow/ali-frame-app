@@ -2,10 +2,11 @@
 
 import { useActionState } from "react";
 import { createJob, type JobFormState } from "./actions";
+import { JOB_STATUS_OPTIONS } from "@/lib/jobStatus";
 
 const initialState: JobFormState = {};
 
-export function JobForm() {
+export function JobForm({ nextNumber, suppliers }: { nextNumber: string; suppliers: string[] }) {
   const [state, formAction, pending] = useActionState(createJob, initialState);
 
   return (
@@ -14,7 +15,8 @@ export function JobForm() {
       <form action={formAction} className="form" style={{ marginTop: 10 }}>
         <div>
           <label htmlFor="number">Job Number</label>
-          <input id="number" name="number" placeholder="JOB-12345" required />
+          <input id="number" name="number" defaultValue={nextNumber} required />
+          <div className="hint">Filled in with the next free number — change it only if you need to.</div>
         </div>
         <div>
           <label htmlFor="title">Title</label>
@@ -33,11 +35,22 @@ export function JobForm() {
         </div>
         <div>
           <label htmlFor="status">Status</label>
-          <input id="status" name="status" defaultValue="New" />
+          <select id="status" name="status" defaultValue="New">
+            {JOB_STATUS_OPTIONS.map((st) => (
+              <option key={st}>{st}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label htmlFor="supplier">Supplier</label>
-          <input id="supplier" name="supplier" />
+          <select id="supplier" name="supplier" defaultValue="">
+            <option value="">— Select supplier —</option>
+            {suppliers.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
         </div>
         {state.error && <div className="authError">{state.error}</div>}
         <div className="full actions">

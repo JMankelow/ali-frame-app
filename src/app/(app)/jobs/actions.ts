@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
-import { sendPlainNotificationEmail } from "@/lib/email";
+import { getObjectBuffer } from "@/lib/storage";
+import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
 export interface JobFormState {
   error?: string;
@@ -312,13 +313,25 @@ export async function sendTemplatedEmail(_prevState: SendTemplateState, formData
   const job = await prisma.job.findUnique({ where: { number: jobNumber } });
   if (!job) return { error: `Job ${jobNumber} not found.` };
 
+  // Optional attachments: only files that belong to this job, 15MB in total.
+  const attachmentIds = formData.getAll("attachmentIds").map((v) => String(v)).filter(Boolean);
+  const attachments: { filename: string; content: Buffer }[] = [];
+  if (attachmentIds.length > 0) {
+    const files = await prisma.fileAsset.findMany({ where: { id: { in: attachmentIds }, jobNumber } });
+    if (files.length !== attachmentIds.length) return { error: "One of the selected files isn't on this job." };
+    if (files.reduce((sum, f) => sum + f.sizeBytes, 0) > 15 * 1024 * 1024) return { error: "Attachments are over 15MB in total — send fewer or smaller files." };
+    for (const f of files) attachments.push({ filename: f.fileName, content: await getObjectBuffer(f.storageKey) });
+  }
+
   try {
-    await sendPlainNotificationEmail({ to, subject, text: body });
+    const detail = await prisma.employeeDetail.findUnique({ where: { userId: user.id }, select: { jobTitle: true } });
+    const me = await prisma.user.findUnique({ where: { id: user.id }, select: { phone: true } });
+    await sendPlainNotificationEmail({ to, subject, text: body, replyTo: user.email, attachments, signer: profileSigner(user.email) ?? { name: user.name, title: detail?.jobTitle, phone: me?.phone } });
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Could not send the email." };
   }
 
-  await logAudit({ userId: user.id, action: "templated_email_sent", entityType: "Job", entityId: jobNumber, metadata: { to, subject } });
+  await logAudit({ userId: user.id, action: "templated_email_sent", entityType: "Job", entityId: jobNumber, metadata: { to, subject, attachments: attachments.map((a) => a.filename) } });
   revalidatePath(`/jobs/${jobNumber}`);
   return { success: true };
 }

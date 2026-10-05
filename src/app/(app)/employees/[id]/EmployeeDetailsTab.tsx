@@ -34,6 +34,7 @@ export function EmployeeDetailsTab({
   isSuperUser,
   vehicle,
   canEdit,
+  showPay,
   detail,
 }: {
   userId: string;
@@ -44,6 +45,7 @@ export function EmployeeDetailsTab({
   isSuperUser: boolean;
   vehicle: string | null;
   canEdit: boolean;
+  showPay: boolean;
   detail: EmployeeDetailData | null;
 }) {
   const [editing, setEditing] = useState(false);
@@ -171,8 +173,9 @@ export function EmployeeDetailsTab({
               <div><label>Start date</label><div>{detail.startDate ? new Date(detail.startDate).toLocaleDateString("en-NZ") : "—"}</div></div>
               <div><label>Hours per week</label><div>{detail.hoursPerWeek ?? "—"}</div></div>
               <div className="full"><label>Home address</label><div>{detail.address || "—"}</div></div>
+              {showPay && (
               <div className="full">
-                <label>Pay (super users only)</label>
+                <label>Pay (confidential)</label>
                 <div>
                   {detail.isManagement
                     ? "Not held here — management pay is kept out of the employment details."
@@ -181,6 +184,7 @@ export function EmployeeDetailsTab({
                       : "—"}
                 </div>
               </div>
+              )}
             </>
           )}
           {canEdit && (

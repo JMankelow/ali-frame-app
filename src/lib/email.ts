@@ -3,6 +3,73 @@ import { Resend } from "resend";
 
 let resendClient: Resend | null = null;
 
+export interface Signer {
+  name: string;
+  title?: string | null;
+  phone?: string | null;
+  /** "Ph" for a desk phone, "Mobile" for a mobile. */
+  phoneLabel?: string;
+}
+
+// Signature details exactly as they appear in each person's current Outlook signature.
+const SIGNER_PROFILES: Record<string, Signer> = {
+  "jo@aliframe.co.nz": { name: "Joanne Mankelow", title: "Change & Innovation Director", phone: "021 658 448" },
+  "tanya@aliframe.co.nz": { name: "Tanya Cleghorn", title: "Operations", phone: "027 231 8160" },
+  "dwayne@aliframe.co.nz": { name: "Dwayne Bond", title: "Sales Manager", phone: "021 369 008", phoneLabel: "Mobile" },
+};
+export function profileSigner(email: string): Signer | null {
+  return SIGNER_PROFILES[email.trim().toLowerCase()] ?? null;
+}
+
+const SIG_LINKS = {
+  facebook: "https://www.facebook.com/aliframes/",
+  instagram: "https://www.instagram.com/aliframewindowsdoors/",
+  google: "https://www.google.com/search?q=ali+frame",
+};
+
+function escapeHtml(t: string): string {
+  return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/**
+ * Plain text -> simple HTML followed by the Ali-Frame signature, laid out like the Outlook one:
+ * name / title / phone / address / "Follow us on [icons] or write a [G] review" / banner.
+ * If the text ends with a sign-off naming the sender, that name line is dropped so it isn't repeated.
+ * The plain-text version is always sent as well.
+ */
+function brandedHtml(text: string, signer?: Signer): string {
+  const origin = (process.env.APP_URL || "https://ali-frame-app.onrender.com").replace(/\/$/, "");
+  let message = text.trimEnd();
+  if (signer) {
+    const first = signer.name.split(/\s+/)[0].toLowerCase();
+    const m = message.match(/^([\s\S]*?(?:kind regards|regards|thanks|cheers),?)\s*\n\s*([^\n]+)\s*$/i);
+    if (m && m[2].toLowerCase().includes(first)) message = m[1];
+  }
+  const body = escapeHtml(message)
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#0057b8">$1</a>')
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+  const grey = "color:#6b7280";
+  const icon = (file: string, href: string, alt: string, w: number, h: number) =>
+    `<a href="${href}"><img src="${origin}/email/${file}" alt="${alt}" width="${w}" height="${h}" style="border:0;vertical-align:middle;margin:0 3px"></a>`;
+  const person = signer
+    ? `<strong>${escapeHtml(signer.name)}</strong><br>${signer.title ? `${escapeHtml(signer.title)}<br>` : ""}${signer.phone ? `${signer.phoneLabel ?? "Ph"}: ${escapeHtml(signer.phone)}<br>` : ""}`
+    : "";
+  return (
+    `<div style="font-family:Calibri,Arial,Helvetica,sans-serif;font-size:14px;color:#111827;line-height:1.5">${body}` +
+    `<div style="${grey};font-size:13px;margin-top:18px">${person}34A Allens Road, East Tamaki<br>PO Box 259092, Botany, Auckland 2163<br>` +
+    `Follow us on ${icon("facebook.png", SIG_LINKS.facebook, "Facebook", 19, 20)}${icon("instagram.png", SIG_LINKS.instagram, "Instagram", 20, 18)} or write a ${icon("google.png", SIG_LINKS.google, "Google", 20, 18)} review</div>` +
+    `<a href="https://www.aliframe.co.nz"><img src="${origin}/email/aliframe-banner.png" alt="Ali-Frame Windows &amp; Doors — 0800 254 372 | www.aliframe.co.nz" width="622" style="display:block;border:0;max-width:100%;height:auto;margin-top:16px"></a></div>`
+  );
+}
+
+/** Every outgoing email goes through here so it always carries the branded HTML version. */
+function sendMail(payload: Record<string, unknown>, signer?: Signer) {
+  if (typeof payload.text === "string" && !payload.html) payload.html = brandedHtml(payload.text, signer);
+  return getResend().emails.send(payload as never);
+}
+
 function getResend(): Resend {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) throw new Error("RESEND_API_KEY is not set");
@@ -27,7 +94,7 @@ export async function sendTwoFactorCodeEmail(to: string, code: string) {
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to,
     subject: `Your Ali-Frame login code: ${code}`,
@@ -74,7 +141,7 @@ export async function sendSiteMeasureEmail(params: {
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to: params.to,
     subject: params.subject || `Site Measure Sheet — ${params.jobNumber} ${params.jobTitle}`,
@@ -118,7 +185,7 @@ export async function sendCheckMeasureBookingEmail(params: {
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to: params.to,
     subject: `Book Your Final Check Measure — ${params.jobNumber}`,
@@ -146,7 +213,7 @@ export async function sendRepricingEmail(params: {
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to: params.to,
     subject: params.subject,
@@ -159,7 +226,16 @@ export async function sendRepricingEmail(params: {
   }
 }
 
-export async function sendPlainNotificationEmail(params: { to: string | string[]; subject: string; text: string }) {
+export async function sendPlainNotificationEmail(params: {
+  to: string | string[];
+  subject: string;
+  text: string;
+  /** Replies go to this address (the staff member who sent it) instead of the no-reply sender. */
+  replyTo?: string;
+  attachments?: EmailAttachment[];
+  /** Sender details for the signature block. */
+  signer?: Signer;
+}) {
   const from = process.env.EMAIL_FROM;
   if (!process.env.RESEND_API_KEY || !from) {
     if (process.env.NODE_ENV === "production") {
@@ -169,7 +245,14 @@ export async function sendPlainNotificationEmail(params: { to: string | string[]
     return;
   }
 
-  const result = await getResend().emails.send({ from, to: params.to, subject: params.subject, text: params.text });
+  const result = await sendMail({
+    from,
+    to: params.to,
+    subject: params.subject,
+    text: params.text,
+    ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+    ...(params.attachments?.length ? { attachments: params.attachments } : {}),
+  }, params.signer);
   if (result.error) {
     throw new Error(`Failed to send notification email: ${result.error.message}`);
   }
@@ -185,7 +268,7 @@ export async function sendVehicleMechanicEmail(params: { to: string; vehicleName
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to: params.to,
     subject: `Service Booking Request — ${params.vehicleName}`,
@@ -214,7 +297,7 @@ export async function sendVehicleChecklistEmail(params: {
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to: params.to,
     subject: `Vehicle Checklist Due — ${params.vehicleName} (by ${dueDateStr})`,
@@ -245,7 +328,7 @@ export async function sendVehicleChecklistOverdueAlert(params: {
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to: params.to,
     subject: `Overdue: Vehicle Checklist — ${params.vehicleName}`,
@@ -269,7 +352,7 @@ export async function sendInviteEmail(params: { to: string; name: string; link: 
     return;
   }
 
-  const result = await getResend().emails.send({
+  const result = await sendMail({
     from,
     to: params.to,
     subject: "Your Ali-Frame Job Management login",

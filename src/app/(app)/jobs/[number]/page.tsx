@@ -81,6 +81,15 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
   ]);
   const hoursLogged = hoursAgg._sum.totalHours ?? 0;
 
+  // Supplier contacts for this job's supplier — lets the email "To" fill itself in for supplier templates.
+  const supplierContactRows = job.supplier
+    ? await prisma.supplier.findMany({
+        where: { companyName: { contains: job.supplier.trim(), mode: "insensitive" }, email: { not: null } },
+        select: { contactName: true, email: true },
+      })
+    : [];
+  const supplierContacts = supplierContactRows.filter((c) => c.email).map((c) => ({ name: c.contactName ?? c.email!, email: c.email! }));
+
   const siteMeasureFiles = files.filter((f) => f.fileType === "Site Measure");
   const photoFiles = files.filter((f) => f.fileType === "Photos");
   const otherFiles = files.filter((f) => f.fileType !== "Site Measure" && f.fileType !== "Photos");
@@ -471,6 +480,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
                   clientEmail={job.client?.email ?? job.email ?? ""}
                   senderName={currentUser.name}
                   templates={emailTemplates}
+                  supplierName={job.supplier ?? ""}
+                  supplierContacts={supplierContacts}
+                  jobFiles={files.map((f) => ({ id: f.id, fileName: f.fileName, fileType: f.fileType }))}
                 />
                 <div style={{ marginTop: 16 }}>
                   <BookCheckMeasureForm fixedJobNumber={job.number} fixedClientName={job.client?.name ?? job.title} />

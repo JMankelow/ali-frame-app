@@ -75,6 +75,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                 isSuperUser={employee.isSuperUser}
                 vehicle={employee.vehiclesDriven.map((v) => v.name).join(", ") || null}
                 canEdit={currentUser.isSuperUser}
+                showPay={currentUser.canViewPay}
                 detail={
                   currentUser.isSuperUser && employee.employeeDetail
                     ? {
@@ -87,9 +88,10 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                         inviteTo: employee.employeeDetail.inviteTo,
                         isManagement: employee.employeeDetail.isManagement,
                         hoursPerWeek: employee.employeeDetail.hoursPerWeek,
-                        payRate: employee.employeeDetail.payRate,
-                        payType: employee.employeeDetail.payType ?? "",
-                        annualSalary: employee.employeeDetail.annualSalary,
+                        // Pay is confidential: these values are only put into the page for someone granted canViewPay.
+                        payRate: currentUser.canViewPay ? employee.employeeDetail.payRate : null,
+                        payType: currentUser.canViewPay ? (employee.employeeDetail.payType ?? "") : "",
+                        annualSalary: currentUser.canViewPay ? employee.employeeDetail.annualSalary : null,
                       }
                     : null
                 }

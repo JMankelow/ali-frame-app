@@ -24,6 +24,15 @@ export default async function JobsPage({
     orderBy: { createdAt: "desc" },
   });
 
+  // Next free job number = highest plain-number job + 1; supplier drop-down from the real supplier list.
+  const [numbers, supplierRows] = await Promise.all([
+    prisma.job.findMany({ select: { number: true } }),
+    prisma.supplier.findMany({ select: { companyName: true }, where: { NOT: { companyName: { startsWith: "Ali-Frame (internal" } } } }),
+  ]);
+  const highest = numbers.reduce((max, j) => (/^\d+$/.test(j.number) ? Math.max(max, Number(j.number)) : max), 0);
+  const nextNumber = highest ? String(highest + 1) : "";
+  const supplierNames = [...new Set(supplierRows.map((r) => r.companyName.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
   const jobs = jobsRaw.map((j) => ({ ...j, clientName: j.client?.name ?? null }));
 
   const heading = showArchived ? "Inactive Jobs" : type ? `${type} Jobs` : "Jobs";
@@ -46,7 +55,7 @@ export default async function JobsPage({
 
       <JobsView jobs={jobs} showArchived={showArchived} canManage={!readOnly} />
 
-      {!readOnly && <JobForm />}
+      {!readOnly && <JobForm nextNumber={nextNumber} suppliers={supplierNames} />}
     </div>
   );
 }

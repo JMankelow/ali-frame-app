@@ -32,6 +32,8 @@ model User {
   passwordHash      String
   role              Role     @default(READ_ONLY)
   isSuperUser       Boolean  @default(false)
+  // Who may see employee pay. Deliberately NOT implied by super user — granted per person, directly in the database.
+  canViewPay        Boolean  @default(false)
   isActive          Boolean  @default(true)
   // Which top-level nav sections this user can see/use. Empty means
   // unrestricted (full access) — the safe default so existing accounts keep
@@ -253,17 +255,20 @@ model Job {
 // touch our database or our server (client uploads/downloads via short-lived
 // presigned URLs generated in src/lib/storage.ts), only this record does.
 model FileAsset {
-  id           String   @id @default(cuid())
+  id           String            @id @default(cuid())
   jobNumber    String
-  job          Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  job          Job               @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
   fileName     String
   fileType     String
-  storageKey   String   @unique
+  storageKey   String            @unique
   mimeType     String
   sizeBytes    Int
   uploadedById String?
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
+  uploadedBy   User?             @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime          @default(now())
+  // Set when the file is attached to a specific booking (plans, instructions, etc.).
+  bookingId    String?
+  booking      JobScheduledTask? @relation("BookingFiles", fields: [bookingId], references: [id], onDelete: SetNull)
 
   @@index([jobNumber, createdAt])
 }
@@ -345,14 +350,18 @@ model RemedialItem {
 }
 
 model Acceptance {
-  id          String   @id @default(cuid())
-  jobNumber   String
-  job         Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
-  acceptedBy  String
-  signedAt    DateTime @default(now())
-  notes       String?
-  createdById String?
-  createdBy   User?    @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  id              String    @id @default(cuid())
+  jobNumber       String
+  job             Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  acceptedBy      String
+  signedAt        DateTime  @default(now())
+  notes           String?
+  // Deposit / payment: once the quote is accepted AND this is paid, Tanya is told to book the check measure.
+  depositPaidAt   DateTime?
+  depositAmount   Float?
+  tanyaNotifiedAt DateTime?
+  createdById     String?
+  createdBy       User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([jobNumber, signedAt])
 }
@@ -765,22 +774,26 @@ model CommunicationGroup {
 // Measure. Distinct from Calendar's due-date view: this is the actual
 // per-job booking record with a specific date/time and assignee.
 model JobScheduledTask {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   jobNumber     String
-  job           Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  job           Job         @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
   type          String // Check Measure / Installation / Remedial / Sales Measure
   scheduledDate DateTime
   // Multi-day bookings (e.g. a install running Mon-Fri) — null means a
   // single-day booking, same as scheduledDate.
   endDate       DateTime?
+  // Time of day (24h "HH:MM"), optional — e.g. a check measure at 09:30.
+  startTime     String?
+  endTime       String?
+  attachments   FileAsset[] @relation("BookingFiles")
   // A booking can be worked by more than one person (e.g. a 2-installer
   // team) — many-to-many, not a single assignee.
-  assignees     User[]    @relation("JobScheduledTaskAssignees")
+  assignees     User[]      @relation("JobScheduledTaskAssignees")
   notes         String?
-  status        String    @default("Scheduled")
+  status        String      @default("Scheduled")
   createdById   String
-  createdBy     User      @relation("JobScheduledTaskCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
-  createdAt     DateTime  @default(now())
+  createdBy     User        @relation("JobScheduledTaskCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
   completedAt   DateTime?
 
   @@index([jobNumber, scheduledDate])

@@ -28,5 +28,5 @@ export function proxy(req: NextRequest) {
 
 export const config = {
   // Every app route except the public/auth pages and static assets.
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.svg|login|setup|reset-password|accept-invite).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|icon.svg|login|setup|reset-password|accept-invite|.*\\.(?:png|jpg|jpeg|gif|svg|webp)$).*)"],
 };

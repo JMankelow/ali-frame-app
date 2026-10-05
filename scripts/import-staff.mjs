@@ -27,6 +27,8 @@ const ALIASES = {
 const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z ]/g, "").split(/\s+/).filter(Boolean);
 const text = (v) => (v == null || String(v).trim() === "" ? null : String(v).trim());
 const MGMT_TITLE = /manager|director|owner|supervisor/i;
+// Management by role even where the payroll job title is different (e.g. Dwayne is the Sales Manager).
+const MGMT_EMAILS = ["dwayne@aliframe.co.nz"];
 
 const { rows } = readSheet(file, { sheet: 1 });
 const p = new PrismaClient();
@@ -54,7 +56,7 @@ try {
     }
 
     const title = text(r["Job Title"]);
-    const isManagement = user.role === "ADMIN_MANAGEMENT" || user.isSuperUser || (title ? MGMT_TITLE.test(title) : false) || String(r["Proprietor"] ?? "").toLowerCase().startsWith("yes");
+    const isManagement = MGMT_EMAILS.includes(user.email) || user.role === "ADMIN_MANAGEMENT" || user.isSuperUser || (title ? MGMT_TITLE.test(title) : false) || String(r["Proprietor"] ?? "").toLowerCase().startsWith("yes");
     const data = {
       preferredName: text(r["Preferred Name"]),
       personalEmail: text(r["Email"])?.toLowerCase() ?? null,
