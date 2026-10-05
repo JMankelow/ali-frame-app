@@ -35,7 +35,13 @@ export async function requestUpload(
   if (!job) return { error: `Job ${jobNumber} not found.` };
 
   const storageKey = buildStorageKey(jobNumber, fileName);
-  const uploadUrl = await getUploadUrl(storageKey, mimeType || "application/octet-stream");
+  let uploadUrl: string;
+  try {
+    uploadUrl = await getUploadUrl(storageKey, mimeType || "application/octet-stream");
+  } catch (e) {
+    console.error("[files] file storage unavailable", e);
+    return { error: "File storage isn't connected on the server yet (Render settings missing) — nothing was sent or saved. Please let an administrator know." };
+  }
   return { storageKey, uploadUrl };
 }
 

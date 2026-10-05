@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
-import { generateEstimatePdf } from "@/lib/estimatePdf";
+import { generateEstimatePdf, splitEstimateTotal } from "@/lib/estimatePdf";
 import { buildGenericStorageKey, putObjectBuffer, getDownloadUrl } from "@/lib/storage";
 
 export interface QuickEstimateState {
@@ -87,6 +87,7 @@ export async function createQuickEstimate(_prevState: QuickEstimateState, formDa
   });
 
   const estimateNumber = estimate.id.slice(-6).toUpperCase();
+  const { total: shownTotal, gstBasis } = splitEstimateTotal(totalText);
   const pdfBuffer = await generateEstimatePdf({
     estimateNumber,
     clientName,
@@ -96,8 +97,9 @@ export async function createQuickEstimate(_prevState: QuickEstimateState, formDa
     estimateDate: now.toLocaleDateString("en-NZ"),
     validUntil: validUntil.toLocaleDateString("en-NZ"),
     scope: scopeText.split("\n").map((s) => s.trim()).filter(Boolean),
-    total: totalText,
-    gstBasis: "plus GST",
+    total: shownTotal,
+    gstBasis,
+    preparedBy: user.name,
     assumptions: comparableNote ? [comparableNote] : undefined,
   });
 

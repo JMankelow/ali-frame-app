@@ -45,9 +45,13 @@ export async function sendSiteMeasureSheetEmail(params: {
   });
   if (files.length !== storageKeys.length) return { error: "One or more sketches could not be found." };
 
-  const attachments = await Promise.all(
-    files.map(async (f) => ({ filename: f.fileName, content: await getObjectBuffer(f.storageKey) }))
-  );
+  let attachments: { filename: string; content: Buffer }[];
+  try {
+    attachments = await Promise.all(files.map(async (f) => ({ filename: f.fileName, content: await getObjectBuffer(f.storageKey) })));
+  } catch (e) {
+    console.error("[site-measure] could not read the sketches from storage", e);
+    return { error: "File storage isn't connected on the server yet (Render settings missing) — nothing was sent or saved. Please let an administrator know." };
+  }
 
   await sendSiteMeasureEmail({
     to: supplierEmail,

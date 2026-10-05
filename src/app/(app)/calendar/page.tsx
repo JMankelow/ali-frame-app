@@ -143,8 +143,8 @@ export default async function CalendarPage({
   }
 
   for (const t of scheduledTasks) {
-    const who = t.assignees.map((a) => a.name).join(", ") || "Unallocated";
-    const label = `${t.jobNumber} — ${t.job.client?.name ?? t.job.title} — ${who}`;
+    const who = t.assignees.map((a) => a.name).join(", ");
+    const label = [t.jobNumber, t.job.client?.name ?? t.job.title, who].filter(Boolean).join(" — ");
     const href = `/jobs/${t.jobNumber}`;
     const to = t.endDate ?? t.scheduledDate;
 
@@ -160,9 +160,9 @@ export default async function CalendarPage({
   }
 
   for (const l of leave) {
-    const who = l.staff.map((s) => s.name).join(", ") || "Unallocated";
+    const who = l.staff.map((s) => s.name).join(", ");
     spanEachDay(l.fromDate, l.toDate ?? l.fromDate, (idx) =>
-      allDayByDay[idx].push({ label: `${who} — ${l.type}`, href: "/calendar", color: "#f472b6" })
+      allDayByDay[idx].push({ label: who ? `${who} — ${l.type}` : l.type, href: "/calendar", color: "#f472b6" })
     );
   }
 
