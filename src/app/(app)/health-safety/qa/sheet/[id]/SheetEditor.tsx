@@ -9,7 +9,7 @@ import { SignaturePad } from "@/components/SignaturePad";
 import { registerQaSheetPhotos, saveQaSheet, type SheetState } from "../../sheetActions";
 import {
   COM_SECTIONS, RES_CHECKS, RES_CONFIRM, RES_FINAL, RES_REMEDIAL, checkKey, emptyComItem, itemName, itemProblems, itemStatus,
-  residentialProblems, type CommercialData, type ComItem, type ResidentialData, type Result,
+  residentialProblems, type PhotoMeta, type CommercialData, type ComItem, type ResidentialData, type Result,
 } from "@/lib/qaSheets";
 
 const initialState: SheetState = {};
@@ -70,8 +70,9 @@ export function SheetEditor(p: Props) {
 
 // ---------- photos ----------
 
-function PhotoPicker({ sheetId, jobNumber, ids, urls, onAdd, onRemove, disabled, label }: {
-  sheetId: string; jobNumber: string; ids: string[]; urls: Record<string, string>; onAdd: (added: { id: string; url: string }[]) => void; onRemove: (id: string) => void; disabled: boolean; label: string;
+function PhotoPicker({ sheetId, jobNumber, ids, urls, meta, onMeta, onAdd, onRemove, disabled, label }: {
+  sheetId: string; jobNumber: string; ids: string[]; urls: Record<string, string>; meta: PhotoMeta; onMeta: (id: string, patch: { label?: string; description?: string }) => void;
+  onAdd: (added: { id: string; url: string }[]) => void; onRemove: (id: string) => void; disabled: boolean; label: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -106,20 +107,29 @@ function PhotoPicker({ sheetId, jobNumber, ids, urls, onAdd, onRemove, disabled,
       {!disabled && <input ref={ref} type="file" accept="image/jpeg,image/png" multiple capture="environment" disabled={busy} onChange={(e) => handle(e.target.files)} style={{ marginTop: 4 }} />}
       {busy && <div className="hint">Uploading…</div>}
       {error && <div className="authError">{error}</div>}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-        {ids.map((id) => (
-          <div key={id} style={{ position: "relative" }}>
-            {urls[id] ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={urls[id]} alt="QA photo" style={{ width: 110, height: 110, objectFit: "cover", borderRadius: 6, border: "1px solid var(--line)" }} />
-            ) : (
-              <div className="hint" style={{ width: 110 }}>photo</div>
-            )}
-            {!disabled && (
-              <button type="button" className="btn light" style={{ position: "absolute", top: 2, right: 2, padding: "0 6px" }} onClick={() => onRemove(id)} aria-label="Remove photo">×</button>
-            )}
-          </div>
-        ))}
+      <div style={{ marginTop: 8 }}>
+        {ids.map((id, n) => {
+          const m = meta[id] ?? { label: "", description: "" };
+          return (
+            <div key={id} style={{ display: "flex", gap: 12, flexWrap: "wrap", border: "1px solid var(--line)", borderRadius: 8, padding: 8, marginBottom: 8 }}>
+              <div style={{ flex: "0 0 150px" }}>
+                {urls[id] ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={urls[id]} alt={m.label || "QA photo"} style={{ width: 150, height: 112, objectFit: "cover", borderRadius: 6, border: "1px solid var(--line)" }} />
+                ) : (
+                  <div className="hint" style={{ width: 150 }}>photo</div>
+                )}
+              </div>
+              <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+                <label style={{ fontWeight: 700 }}>Photo {n + 1} label <span style={{ color: "#dc2626" }}>*</span></label>
+                <input disabled={disabled} value={m.label} onChange={(e) => onMeta(id, { label: e.target.value })} placeholder="e.g. Lounge slider — head flashing" style={!m.label.trim() && !disabled ? { borderColor: "#dc2626" } : undefined} />
+                <label style={{ fontWeight: 700, display: "block", marginTop: 6 }}>Description</label>
+                <textarea rows={2} disabled={disabled} value={m.description} onChange={(e) => onMeta(id, { description: e.target.value })} placeholder="What the photo shows…" />
+                {!disabled && <button type="button" className="btn light" style={{ marginTop: 6 }} onClick={() => onRemove(id)}>Remove photo</button>}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -166,6 +176,7 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
       <div className="card" style={{ marginTop: 10 }}>
         <PhotoPicker
           sheetId={p.sheetId} jobNumber={p.jobNumber} ids={d.photoFileIds} urls={urls} disabled={locked}
+          meta={d.photoMeta ?? {}} onMeta={(id, patch) => setD({ ...d, photoMeta: { ...(d.photoMeta ?? {}), [id]: { ...(d.photoMeta?.[id] ?? { label: "", description: "" }), ...patch } } })}
           label="15  Final Completion Photo Uploaded *"
           onAdd={(a) => { addUrls(Object.fromEntries(a.map((x) => [x.id, x.url]))); setD({ ...d, photoFileIds: [...d.photoFileIds, ...a.map((x) => x.id)] }); }}
           onRemove={(id) => setD({ ...d, photoFileIds: d.photoFileIds.filter((x) => x !== id) })}
@@ -282,6 +293,7 @@ function Commercial({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Commer
           })}
           <PhotoPicker
             sheetId={p.sheetId} jobNumber={p.jobNumber} ids={it.qa.photos[s.id] ?? []} urls={urls} disabled={locked} label={`${s.photo} *`}
+            meta={it.qa.photoMeta ?? {}} onMeta={(id, patch) => upd((q) => ({ ...q, qa: { ...q.qa, photoMeta: { ...(q.qa.photoMeta ?? {}), [id]: { ...(q.qa.photoMeta?.[id] ?? { label: "", description: "" }), ...patch } } } }))}
             onAdd={(a) => { addUrls(Object.fromEntries(a.map((y) => [y.id, y.url]))); upd((q) => ({ ...q, qa: { ...q.qa, photos: { ...q.qa.photos, [s.id]: [...(q.qa.photos[s.id] ?? []), ...a.map((y) => y.id)] } } })); }}
             onRemove={(id) => upd((q) => ({ ...q, qa: { ...q.qa, photos: { ...q.qa.photos, [s.id]: (q.qa.photos[s.id] ?? []).filter((y) => y !== id) } } }))}
           />

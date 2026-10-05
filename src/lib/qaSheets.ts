@@ -22,17 +22,21 @@ export const RES_FINAL: [number, string] = [14, "Installation Complete"];
 export const RES_REMEDIAL: [number, string] = [16, "Remedial has been reported and photos taken"];
 export const RES_CONFIRM = "I confirm this installation has been checked and meets Aliframe QA standards";
 
+/** Every photo must be labelled, with a description written underneath. */
+export type PhotoMeta = Record<string, { label: string; description: string }>;
+
 export type YesNo = { a: "Yes" | "No" | ""; reason: string };
 export interface ResidentialData {
   date: string;
   answers: Record<string, YesNo>; // keys q3..q12, q14, q16
   photoFileIds: string[]; // final completion photo(s)
+  photoMeta: PhotoMeta;
   teamLeaderId: string;
   teamLeaderName: string;
   confirmed: boolean;
 }
 
-export const emptyResidential = (date: string): ResidentialData => ({ date, answers: {}, photoFileIds: [], teamLeaderId: "", teamLeaderName: "", confirmed: false });
+export const emptyResidential = (date: string): ResidentialData => ({ date, answers: {}, photoFileIds: [], photoMeta: {}, teamLeaderId: "", teamLeaderName: "", confirmed: false });
 
 /** What's still missing before a residential sheet can be completed. */
 export function residentialProblems(d: ResidentialData): string[] {
@@ -44,6 +48,7 @@ export function residentialProblems(d: ResidentialData): string[] {
   }
   if (!d.answers[`q${RES_REMEDIAL[0]}`]?.a) out.push(`${RES_REMEDIAL[0]}. ${RES_REMEDIAL[1]}: answer Yes or No`);
   if (d.photoFileIds.length === 0) out.push("15. Final completion photo: add at least one");
+  else if (d.photoFileIds.some((id) => !d.photoMeta?.[id]?.label.trim())) out.push("15. Final completion photo: every photo must be labelled");
   if (!d.teamLeaderName.trim()) out.push("17. Team leader: choose who is signing off");
   if (!d.confirmed) out.push("17. Confirm the installation meets Aliframe QA standards");
   return out;
@@ -111,6 +116,7 @@ export interface Stamped {
 export interface ComItemQa {
   checks: Record<string, Stamped>; // "prep.0" … "final.1"
   photos: Record<string, string[]>; // section id -> FileAsset ids
+  photoMeta: PhotoMeta;
   notes: Record<string, string>; // section id -> text ("Nil" if none)
   tl: { name: string; date: string; comments: string; sig: string; by: string; at: string };
 }
@@ -128,7 +134,7 @@ export interface CommercialData {
 }
 
 export const newComId = () => Math.random().toString(36).slice(2, 10);
-export const emptyQa = (): ComItemQa => ({ checks: {}, photos: {}, notes: {}, tl: { name: "", date: "", comments: "", sig: "", by: "", at: "" } });
+export const emptyQa = (): ComItemQa => ({ checks: {}, photos: {}, photoMeta: {}, notes: {}, tl: { name: "", date: "", comments: "", sig: "", by: "", at: "" } });
 export const emptyComItem = (): ComItem => ({ id: newComId(), n: "", code: "", loc: "", qa: emptyQa() });
 export const emptyCommercial = (date: string): CommercialData => ({ date, installers: "", items: [emptyComItem()] });
 
@@ -146,6 +152,7 @@ export function itemProblems(it: ComItem): string[] {
       else if (x.r === "Fail" && !x.note.trim()) out.push(`${s.title}: ${c} — describe the issue and corrective action`);
     });
     if ((q.photos[s.id] ?? []).length === 0) out.push(`${s.title}: ${s.photo} (add at least one photo)`);
+    else if ((q.photos[s.id] ?? []).some((id) => !q.photoMeta?.[id]?.label.trim())) out.push(`${s.title}: every photo must be labelled`);
     if (!(q.notes[s.id] ?? "").trim()) out.push(`${s.title}: ${s.notes} (enter "Nil" if none)`);
   }
   if (!q.tl.name.trim()) out.push("Team Leader sign-off: name");

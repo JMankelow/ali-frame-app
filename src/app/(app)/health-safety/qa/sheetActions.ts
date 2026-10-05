@@ -57,6 +57,11 @@ export async function registerQaSheetPhotos(sheetId: string, storageKeys: string
 // ---------- sanitising ----------
 
 const clip = (v: unknown, n: number) => (typeof v === "string" ? v.slice(0, n) : "");
+/** Keeps a label + description only for photos that are really on the sheet. */
+function cleanMeta(raw: unknown, ids: string[]) {
+  const src = (raw && typeof raw === "object" ? raw : {}) as Record<string, { label?: unknown; description?: unknown }>;
+  return Object.fromEntries(ids.map((id) => [id, { label: clip(src[id]?.label, 120), description: clip(src[id]?.description, 1500) }]));
+}
 const isoOrEmpty = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : "");
 
 async function validPhotoIds(jobNumber: string, ids: unknown): Promise<string[]> {
@@ -75,6 +80,7 @@ async function cleanResidential(jobNumber: string, raw: Record<string, unknown>)
     out.answers[key] = { a: x?.a === "Yes" || x?.a === "No" ? x.a : "", reason: clip(x?.reason, 500) } as YesNo;
   }
   out.photoFileIds = await validPhotoIds(jobNumber, raw.photoFileIds);
+  out.photoMeta = cleanMeta(raw.photoMeta, out.photoFileIds);
   out.teamLeaderId = clip(raw.teamLeaderId, 40);
   out.teamLeaderName = clip(raw.teamLeaderName, 120);
   out.confirmed = raw.confirmed === true;
@@ -95,9 +101,11 @@ async function cleanCommercial(jobNumber: string, raw: Record<string, unknown>, 
     const rPhotos = (rq.photos && typeof rq.photos === "object" ? rq.photos : {}) as Record<string, unknown>;
     const rNotes = (rq.notes && typeof rq.notes === "object" ? rq.notes : {}) as Record<string, unknown>;
 
+    const rMeta = rq.photoMeta;
     for (const s of COM_SECTIONS) {
       // photos + notes can be added by anyone on the job
       item.qa.photos[s.id] = await validPhotoIds(jobNumber, rPhotos[s.id]);
+      Object.assign(item.qa.photoMeta, cleanMeta(rMeta, item.qa.photos[s.id]));
       item.qa.notes[s.id] = clip(rNotes[s.id], 2000);
       // checks: only a senior leader can change them, and the server stamps who/when
       s.checks.forEach((_, i) => {

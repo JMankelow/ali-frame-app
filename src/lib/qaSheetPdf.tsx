@@ -6,7 +6,7 @@ import { Image } from "@react-pdf/renderer";
 import { Doc, Footer, Header, KV, Page, PTable, SignLine, Text, View, pdf, renderToBuffer, type PCell } from "@/lib/pdfKit";
 import {
   COM_SECTIONS, RES_CHECKS, RES_CONFIRM, RES_FINAL, RES_REMEDIAL, checkKey, itemName, itemStatus,
-  type CommercialData, type ResidentialData,
+  type CommercialData, type PhotoMeta, type ResidentialData,
 } from "@/lib/qaSheets";
 
 export type PhotoMap = Record<string, { data: Buffer; format: "jpg" | "png" }>;
@@ -26,14 +26,18 @@ const GREEN = "#DCFCE7";
 const RED = "#FEE2E2";
 const GREY = "#E5E7EB";
 
-function PhotoGrid({ ids, photos }: { ids: string[]; photos: PhotoMap }) {
+function PhotoGrid({ ids, photos, meta }: { ids: string[]; photos: PhotoMap; meta: PhotoMeta }) {
   const shown = ids.filter((id) => photos[id]);
   if (!shown.length) return <Text style={pdf.small}>(no photos)</Text>;
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-      {shown.map((id) => (
-        <View key={id} wrap={false} style={{ width: 160, height: 120, marginRight: 8, marginBottom: 8, borderWidth: 0.5, borderColor: "#D8E0E3", backgroundColor: "#FAFBFB" }}>
-          <Image src={{ data: photos[id].data, format: photos[id].format }} style={{ width: 160, height: 120, objectFit: "contain" }} />
+    <View>
+      {shown.map((id, n) => (
+        <View key={id} wrap={false} style={{ marginBottom: 10 }}>
+          <Text style={{ fontFamily: "Helvetica-Bold", fontSize: 9.5, marginBottom: 3 }}>Photo {n + 1} — {meta?.[id]?.label || "(no label)"}</Text>
+          <View style={{ width: 240, height: 180, borderWidth: 0.5, borderColor: "#D8E0E3", backgroundColor: "#FAFBFB" }}>
+            <Image src={{ data: photos[id].data, format: photos[id].format }} style={{ width: 240, height: 180, objectFit: "contain" }} />
+          </View>
+          {meta?.[id]?.description ? <Text style={[pdf.p, { marginTop: 3 }]}>{meta[id].description}</Text> : null}
         </View>
       ))}
     </View>
@@ -81,12 +85,12 @@ export async function generateResidentialQaPdf(d: ResidentialData, c: Common): P
 
         <View wrap={false}>
           <Text style={pdf.h2}>15. Final completion photo</Text>
-          <PhotoGrid ids={d.photoFileIds} photos={c.photos} />
+          <PhotoGrid ids={d.photoFileIds} photos={c.photos} meta={d.photoMeta ?? {}} />
         </View>
 
         <View wrap={false}>
           <Text style={pdf.h2}>17. Team leader sign off</Text>
-          <KV rows={[["Team leader", d.teamLeaderName], ["Confirmation", d.confirmed ? `✓ ${RES_CONFIRM}` : "Not confirmed"]]} />
+          <KV rows={[["Team leader", d.teamLeaderName], ["Confirmation", d.confirmed ? `Confirmed: ${RES_CONFIRM}` : "Not confirmed"]]} />
           <View style={{ flexDirection: "row", marginTop: 12 }}>
             <SignLine caption="Team leader" value={d.teamLeaderName} />
             <SignLine caption="Date" value={nz(d.date)} />
@@ -142,7 +146,7 @@ export async function generateCommercialQaPdf(d: CommercialData, c: Common): Pro
                 })}
               />
               <Text style={pdf.label}>{s.photo}</Text>
-              <PhotoGrid ids={it.qa.photos[s.id] ?? []} photos={c.photos} />
+              <PhotoGrid ids={it.qa.photos[s.id] ?? []} photos={c.photos} meta={it.qa.photoMeta ?? {}} />
               <Text style={pdf.label}>{s.notes}</Text>
               <Text style={pdf.p}>{it.qa.notes[s.id] || "—"}</Text>
             </View>
