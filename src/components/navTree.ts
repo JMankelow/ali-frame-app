@@ -53,15 +53,13 @@ export function firstHref(group: NavGroup): string | null {
 }
 
 function salesSection(): NavGroup {
-  const quotesGroup = (): NavGroup => ({
-    label: "Quotes",
-    items: [
-      { label: "Quote Register", href: "/quotes" },
-      { label: "Send Quote", href: "/send-quote" },
-      { label: "Prepare Price", href: "/prepare-price" },
-      { label: "Quote Comparison", href: "/quote-comparison" },
-    ],
-  });
+  // Quote tools sit in the list like every other Sales item (no sub-heading).
+  const quoteItems = () => [
+    { label: "Quotes", href: "/quotes" },
+    { label: "Prepare Price", href: "/prepare-price" },
+    { label: "Send Quote", href: "/send-quote" },
+    { label: "Quote Comparison", href: "/quote-comparison" },
+  ];
 
   return {
     label: "Sales",
@@ -70,10 +68,9 @@ function salesSection(): NavGroup {
         label: "Commercial",
         items: [
           { label: "Leads", href: "/leads" },
-          { label: "Estimates", href: "/estimates" },
           { label: "Site Measures", href: "/site-measure" },
           { label: "Book Measure", href: "/book-appointment" },
-          quotesGroup(),
+          ...quoteItems(),
         ],
       },
       {
@@ -83,7 +80,7 @@ function salesSection(): NavGroup {
           { label: "Estimates", href: "/estimates" },
           { label: "Site Measures", href: "/site-measure" },
           { label: "Book Measure", href: "/book-appointment" },
-          quotesGroup(),
+          ...quoteItems(),
         ],
       },
     ],

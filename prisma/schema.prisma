@@ -1083,3 +1083,27 @@ model ReviewResponse {
 
   @@unique([reviewId, role])
 }
+
+// Daily cashflow forecast (BLB Daily Cashflow Forecast workbook, edited every day): one row per dated payment/receipt.
+// The running balance, daily summary, key dates and monthly totals are all calculated from these rows.
+model CashflowEntry {
+  id        String   @id @default(cuid())
+  date      DateTime
+  details   String
+  debit     Float    @default(0) // money out, incl GST
+  credit    Float    @default(0) // money in, incl GST
+  category  String?
+  notes     String?
+  done      Boolean  @default(false) // has actually happened (seen on the bank)
+  source    String   @default("manual") // "workbook-v6" for the imported forecast, "manual" for lines added in the app
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
+// Key/value store for the cashflow inputs (opening balance, limits) and the reference tables imported from the workbook.
+model CashflowSetting {
+  key   String @id
+  value String
+}
