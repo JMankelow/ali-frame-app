@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { getXeroConnectionStatus } from "@/lib/xero";
 import { isInstallerProfile } from "@/lib/permissions";
 import { InstallerDashboard } from "./InstallerDashboard";
+import { ReviewAlerts } from "./ReviewAlerts";
 
 const money = (v: number) => v.toLocaleString("en-NZ", { style: "currency", currency: "NZD", maximumFractionDigits: 0 });
 const day = (d: Date | null | undefined) => (d ? d.toLocaleDateString("en-NZ", { day: "numeric", month: "short" }) : "—");
@@ -161,6 +162,8 @@ export default async function DashboardPage() {
         </div>
         <Link href="/policies" className="btn light">Company Policies</Link>
       </div>
+
+      <ReviewAlerts userId={user.id} />
 
       <div className="cards">
         <Kpi label="Active Jobs" value={activeJobs} hint={`${unassignedJobs} unassigned`} href="/jobs" />

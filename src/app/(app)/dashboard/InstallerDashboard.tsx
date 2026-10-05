@@ -3,6 +3,7 @@
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { ReviewAlerts } from "./ReviewAlerts";
 
 /** The home page for field staff: their own work only — no finance, leads or company-wide numbers. */
 export async function InstallerDashboard({ userId, name }: { userId: string; name: string }) {
@@ -32,6 +33,8 @@ export async function InstallerDashboard({ userId, name }: { userId: string; nam
         </div>
         <Link href="/policies" className="btn light">Company Policies</Link>
       </div>
+
+      <ReviewAlerts userId={userId} />
 
       <div className="cards">
         <Link href="/health-safety/prestart" className="card" style={card}>

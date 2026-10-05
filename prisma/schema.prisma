@@ -85,6 +85,8 @@ model User {
   invites                   InviteToken[]         @relation("UserInvites")
   hsCompetencies            HsCompetency[]        @relation("UserCompetency")
   employeeDetail            EmployeeDetail?       @relation("EmployeeDetail")
+  reviewsAsEmployee         Review360[]           @relation("ReviewEmployee")
+  reviewsAsAssessor         Review360[]           @relation("ReviewAssessor")
   preStartsCompleted        HsPreStart[]          @relation("PreStartsCompleted")
   jsasPrepared              HsJsa[]               @relation("JsasPrepared")
   inductions                HsInduction[]         @relation("Inductions")
@@ -1029,4 +1031,55 @@ model EmployeeDetail {
   inviteTo      String    @default("work") // which address invites/alerts go to: "work" | "personal"
   source        String?
   updatedAt     DateTime  @updatedAt
+}
+
+// 360 competency review. "Create new assessment" makes one of these plus a self and a manager ReviewResponse.
+// Ratings are 1-5 (or null = not observed); templateKey points at a definition in src/lib/reviewTemplates.ts.
+model Review360 {
+  id               String           @id @default(cuid())
+  employeeId       String
+  employee         User             @relation("ReviewEmployee", fields: [employeeId], references: [id], onDelete: Cascade)
+  assessorId       String?
+  assessor         User?            @relation("ReviewAssessor", fields: [assessorId], references: [id], onDelete: SetNull)
+  templateKey      String
+  period           String
+  currentLevel     String?
+  levelSought      String?
+  workLocation     String?
+  hoursPattern     String?
+  assessmentDate   DateTime?
+  selfDueDate      DateTime?
+  nextReviewDate   DateTime?
+  status           String           @default("Self-assessment pending") // Self-assessment pending | Awaiting manager | Completed
+  evidence         Json? // [{ job, work, period, outcome, comments }]  (manager)
+  feedback360      Json? // { peer: {strengths, development}, directReport: {...}, client: {...} }
+  quals            Json? // { <key>: { evidence, status, action } }
+  outcome          Json? // manager outcome table, benefits and development plan
+  employeeComments String?
+  employeeAckAt    DateTime?
+  managerAckAt     DateTime?
+  completedAt      DateTime?
+  lastReminderAt   DateTime?
+  triggeredById    String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  responses        ReviewResponse[]
+
+  @@index([employeeId, createdAt])
+}
+
+model ReviewResponse {
+  id            String    @id @default(cuid())
+  reviewId      String
+  review        Review360 @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  role          String // self | manager
+  contributorId String?
+  ratings       Json      @default("{}") // { <itemKey>: { r: 1-5 | null, c: "comment" } }
+  sectionNotes  Json? // { <sectionKey>: "summary / development need" }
+  feedback      Json? // development & feedback answers (self)
+  status        String    @default("Pending") // Pending | Draft | Submitted
+  submittedAt   DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([reviewId, role])
 }

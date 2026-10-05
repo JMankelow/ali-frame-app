@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkOverdueVehicleChecklists, createMonthlyVehicleChecklists } from "@/app/(app)/vehicles/checklistActions";
 import { startDueJobs } from "@/lib/jobStart";
+import { remindPendingSelfAssessments } from "@/lib/reviewReminders";
 
 // ONE daily Render Cron Job runs everything time-based (early morning NZ time):
 //   curl -f "$APP_URL/api/cron/daily?secret=$CRON_SECRET"
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
 
   await run("jobStart", startDueJobs);
   await run("vehicleOverdue", checkOverdueVehicleChecklists);
+  await run("reviewReminders", remindPendingSelfAssessments);
 
   const nzDay = Number(new Intl.DateTimeFormat("en-NZ", { day: "numeric", timeZone: "Pacific/Auckland" }).format(new Date()));
   const force = req.nextUrl.searchParams.get("monthly") === "1";

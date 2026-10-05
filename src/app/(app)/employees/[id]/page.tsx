@@ -6,6 +6,8 @@ import { TabStrip } from "@/components/TabStrip";
 import { EmployeeDetailsTab } from "./EmployeeDetailsTab";
 import { DocumentsTab } from "./DocumentsTab";
 import { ReviewsTab } from "./ReviewsTab";
+import { Review360Panel } from "./Review360Panel";
+import { getReviewTemplate } from "@/lib/reviewTemplates";
 import { JobHistoryTab } from "./JobHistoryTab";
 import { buildEmployeeSharePointUrl } from "@/lib/sharepoint";
 
@@ -18,6 +20,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
     include: { vehiclesDriven: { select: { name: true } }, employeeDetail: true },
   });
   if (!employee) notFound();
+
+  // 360 assessments (super users only see/create them from here)
+  const [reviews360, assessorOptions] = currentUser.isSuperUser
+    ? await Promise.all([
+        prisma.review360.findMany({ where: { employeeId: id }, include: { responses: { select: { role: true, status: true } } }, orderBy: { createdAt: "desc" } }),
+        prisma.user.findMany({ where: { isActive: true, id: { not: id }, email: { not: "claude@aliframe.local" } }, orderBy: { name: "asc" }, select: { id: true, name: true, email: true } }),
+      ])
+    : [[], []];
+  const tristam = assessorOptions.find((a) => a.email === "tristam@aliframe.co.nz");
 
   const [documents, reviews, assignedJobs, scheduledTasks, jobsForPicker] = await Promise.all([
     prisma.employeeDocument.findMany({ where: { userId: id }, include: { uploadedBy: true }, orderBy: { createdAt: "desc" } }),
@@ -120,6 +131,24 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
             key: "reviews",
             label: "Employee Reviews",
             content: (
+              <>
+              <Review360Panel
+                employeeId={employee.id}
+                employeeName={employee.name}
+                defaultTemplate={employee.role === "SENIOR_INSTALLER" ? "senior-installer" : "installer"}
+                assessors={assessorOptions.map((a) => ({ id: a.id, name: a.name }))}
+                defaultAssessorId={tristam?.id ?? assessorOptions[0]?.id ?? ""}
+                canCreate={currentUser.isSuperUser}
+                reviews={reviews360.map((r) => ({
+                  id: r.id,
+                  templateName: getReviewTemplate(r.templateKey)?.name ?? r.templateKey,
+                  period: r.period,
+                  status: r.status,
+                  selfStatus: r.responses.find((x) => x.role === "self")?.status ?? "Pending",
+                  managerStatus: r.responses.find((x) => x.role === "manager")?.status ?? "Pending",
+                  createdAt: r.createdAt.toISOString(),
+                }))}
+              />
               <ReviewsTab
                 employeeId={employee.id}
                 employeeName={employee.name}
@@ -138,6 +167,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
                   createdAt: r.createdAt.toISOString(),
                 }))}
               />
+              </>
             ),
           },
           { key: "jobhistory", label: "Job History", content: <JobHistoryTab rows={jobHistoryRows} /> },
