@@ -168,14 +168,14 @@ export async function submitPreStart(_prev: PreStartState, fd: FormData): Promis
       data: {
         type: "Hazard",
         severity: "High",
-        description: `STOP WORK — pre-start critical check answered No: ${criticalFailed.join("; ")}. Site: ${siteAddress}. Recorded by ${user.name}.`,
+        description: `STOP WORK — daily toolbox critical check answered No: ${criticalFailed.join("; ")}. Site: ${siteAddress}. Recorded by ${user.name}.`,
         jobNumber,
         reportedById: user.id,
       },
     });
     await sendPlainNotificationEmail({
       to: SAFETY_NOTIFY_EMAIL,
-      subject: `STOP WORK — pre-start critical check failed${jobNumber ? ` (job ${jobNumber})` : ""}`,
+      subject: `STOP WORK — daily toolbox critical check failed${jobNumber ? ` (job ${jobNumber})` : ""}`,
       text: `${user.name} answered NO to: ${criticalFailed.join("; ")}\nSite: ${siteAddress}\n\nWork must not start until this is resolved. A hazard report has been opened in Health & Safety.`,
     }).catch(() => undefined);
   }

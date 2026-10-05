@@ -71,7 +71,7 @@ export default async function HealthSafetyPage() {
     ...expiring.map((p) => `${p.name}: ticket/licence expires ${fmt(p.expiryDate)} (${daysUntil(p.expiryDate!)} days)`),
     ...overdueRisks.map((r) => `Risk review overdue: ${r.activity} (was due ${fmt(r.reviewDate)})`),
     ...incidents.map((i) => `Open ${i.type.toLowerCase()} (${i.severity}): ${i.description.slice(0, 80)}`),
-    ...(preStartsToday === 0 ? ["No pre-start recorded yet today."] : []),
+    ...(preStartsToday === 0 ? ["No daily toolbox recorded yet today."] : []),
     ...(unapprovedDocs.length ? [`${unapprovedDocs.length} company H&S document(s) still marked pending Organisation review (Documents tab).`] : []),
   ];
   const overview = (
@@ -80,7 +80,7 @@ export default async function HealthSafetyPage() {
         <div className="card"><div className="label">Open incidents / hazards</div><div className="metric">{incidents.length}</div></div>
         <div className="card"><div className="label">Tickets expired</div><div className="metric" style={{ color: expired.length ? "#dc2626" : undefined }}>{expired.length}</div></div>
         <div className="card"><div className="label">Expiring ≤ 60 days</div><div className="metric">{expiring.length}</div></div>
-        <div className="card"><div className="label">Pre-starts today</div><div className="metric">{preStartsToday}</div></div>
+        <div className="card"><div className="label">Toolboxes today</div><div className="metric">{preStartsToday}</div></div>
         <div className="card"><div className="label">High / critical residual risks</div><div className="metric">{criticalRisks.length}</div></div>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
@@ -100,16 +100,16 @@ export default async function HealthSafetyPage() {
   const preStartTab = (
     <div>
       <div className="card">
-        <div className="label">Daily Pre-start</div>
+        <div className="label">Daily Toolbox</div>
         <div className="hint" style={{ marginTop: 4 }}>
           Site and weather, hazard check, today&apos;s hazards and controls, and crew sign-on. A &ldquo;No&rdquo; on a critical check means stop work.
         </div>
         <div className="actions" style={{ marginTop: 10 }}>
-          <Link href="/health-safety/prestart" className="btn primary">Start today&apos;s pre-start</Link>
+          <Link href="/health-safety/prestart" className="btn primary">Start today&apos;s toolbox</Link>
         </div>
       </div>
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="label">Recent Pre-starts</div>
+        <div className="label">Recent Toolboxes</div>
         <table style={{ marginTop: 8 }}>
           <thead><tr><th>Date</th><th>Site / job</th><th>Completed by</th><th>Crew</th><th>Result</th><th>Notes</th></tr></thead>
           <tbody>
@@ -425,13 +425,14 @@ export default async function HealthSafetyPage() {
       <div className="topbar">
         <div>
           <h2>Health &amp; Safety</h2>
-          <div className="subtitle">Pre-starts, task analyses, site safety plans, incidents, training, inductions, risks and company documents.</div>
+          <div className="subtitle">Daily toolboxes, task analyses, site safety plans, incidents, training, inductions, risks and company documents.</div>
         </div>
+        <Link href="/health-safety/qa" className="btn primary">QA Reporting</Link>
       </div>
       <TabStrip
         tabs={[
           { key: "overview", label: "Overview", content: overview },
-          { key: "prestarts", label: "Pre-starts", content: preStartTab },
+          { key: "prestarts", label: "Daily Toolbox", content: preStartTab },
           { key: "jsa", label: "Task Analysis (JSA)", content: jsaTab },
           { key: "sssp", label: "SSSP", content: ssspTab },
           { key: "incidents", label: `Incidents (${incidents.length})`, content: incidentsTab },

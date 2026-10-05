@@ -17,7 +17,7 @@ export default async function PreStartPage() {
     <div>
       <div className="topbar">
         <div>
-          <h2>Pre-start</h2>
+          <h2>Daily Toolbox</h2>
           <div className="subtitle">Complete before work begins on site.</div>
         </div>
         <Link href="/health-safety" className="btn light">← Health &amp; Safety</Link>

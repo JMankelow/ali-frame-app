@@ -97,7 +97,7 @@ export function PreStartForm({
           </select>
           <button type="button" style={box} onClick={useThisJob}>Use this job</button>
         </div>
-        {jobNumber && <div className="hint" style={{ marginTop: 8 }}>Pre-start for job {jobNumber}.</div>}
+        {jobNumber && <div className="hint" style={{ marginTop: 8 }}>Daily toolbox for job {jobNumber}.</div>}
       </div>
 
       <div className="card" style={{ marginTop: 16 }}>
@@ -204,7 +204,7 @@ export function PreStartForm({
 
       {state.error && <div className="authError" style={{ marginTop: 16 }}>{state.error}</div>}
       <div className="actions" style={{ marginTop: 16 }}>
-        <button type="submit" className="btn primary" disabled={pending}>{pending ? "Saving…" : criticalNo.length ? "Record STOP WORK & submit" : "Complete pre-start"}</button>
+        <button type="submit" className="btn primary" disabled={pending}>{pending ? "Saving…" : criticalNo.length ? "Record STOP WORK & submit" : "Complete daily toolbox"}</button>
       </div>
     </form>
   );

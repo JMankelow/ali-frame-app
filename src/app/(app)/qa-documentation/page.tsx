@@ -1,7 +1,6 @@
-import { requireUser } from "@/lib/session";
-import { ComingSoon } from "@/components/ComingSoon";
+import { redirect } from "next/navigation";
 
-export default async function Page() {
-  await requireUser();
-  return <ComingSoon title="QA Documentation" />;
+// QA reporting lives under Health & Safety.
+export default function Page() {
+  redirect("/health-safety/qa");
 }

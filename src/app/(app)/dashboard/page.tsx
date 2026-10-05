@@ -173,7 +173,7 @@ export default async function DashboardPage() {
     ...(pendingChecks ? [{ text: `${pendingChecks} vehicle check(s) not yet completed`, href: "/vehicles" }] : []),
     ...(unassignedJobs ? [{ text: `${unassignedJobs} active job(s) with no one assigned`, href: "/jobs" }] : []),
     ...(pendingTimesheets ? [{ text: `${pendingTimesheets} timesheet entr${pendingTimesheets === 1 ? "y" : "ies"} awaiting approval`, href: "/timesheets" }] : []),
-    ...(preStartsToday === 0 ? [{ text: "No pre-start recorded yet today", href: "/health-safety" }] : []),
+    ...(preStartsToday === 0 ? [{ text: "No daily toolbox recorded yet today", href: "/health-safety" }] : []),
     ...expiringQuotes.map((q) => ({ text: `Quote ${q.quoteNumber} (${q.customerName}) expires ${day(q.expiryDate)}`, href: "/quotes" })),
   ];
 
@@ -314,7 +314,7 @@ export default async function DashboardPage() {
         <Kpi label="My Open Tasks" value={myTasks} href="/tasks" />
         <Kpi label="Open Vehicle Issues" value={vehicleIssues} href="/vehicles" />
         <Kpi label="Open Safety Incidents" value={openIncidents} href="/health-safety" tone={openIncidents ? "red" : undefined} />
-        <Kpi label="Pre-starts Today" value={preStartsToday} href="/health-safety" />
+        <Kpi label="Toolboxes Today" value={preStartsToday} href="/health-safety" />
       </div>
 
       {isSuper && (

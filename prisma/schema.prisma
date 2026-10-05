@@ -83,6 +83,7 @@ model User {
   employeeDocumentsUploaded EmployeeDocument[]    @relation("EmployeeDocumentUploadedBy")
   jobQuoteInputsUpdated     JobQuoteInputs[]
   invites                   InviteToken[]         @relation("UserInvites")
+  qaReportsCreated          QaReport[]            @relation("QaReportCreator")
   hsCompetencies            HsCompetency[]        @relation("UserCompetency")
   employeeDetail            EmployeeDetail?       @relation("EmployeeDetail")
   reviewsAsEmployee         Review360[]           @relation("ReviewEmployee")
@@ -252,6 +253,7 @@ model Job {
   jsas                 HsJsa[]               @relation("JobJsas")
   sssp                 HsSssp?               @relation("JobSssp")
   checkMeasurePack     CheckMeasurePack?
+  qaReports            QaReport[]
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -272,6 +274,7 @@ model FileAsset {
   // Set when the file is attached to a specific booking (plans, instructions, etc.).
   bookingId    String?
   booking      JobScheduledTask? @relation("BookingFiles", fields: [bookingId], references: [id], onDelete: SetNull)
+  qaPhotos     QaReportPhoto[]
 
   @@index([jobNumber, createdAt])
 }
@@ -1117,4 +1120,35 @@ model CheckMeasurePack {
   data        Json
   updatedById String?
   updatedAt   DateTime @updatedAt
+}
+
+// Health & Safety "QA Reports": pick a job, add photos, label each photo and describe it. Output is a PDF report.
+model QaReport {
+  id          String    @id @default(cuid())
+  jobNumber   String
+  job         Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  title       String    @default("Installation QA Report")
+  reportDate  DateTime
+  description String    @default("") // overall summary / scope of what was inspected
+  status      String    @default("Draft") // Draft | Final
+  createdById String
+  createdBy   User      @relation("QaReportCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  photos      QaReportPhoto[]
+
+  @@index([jobNumber, reportDate])
+}
+
+model QaReportPhoto {
+  id          String    @id @default(cuid())
+  reportId    String
+  report      QaReport  @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  fileId      String
+  file        FileAsset @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  label       String    @default("") // every photo must be labelled
+  description String    @default("") // description written underneath the photo
+  sortOrder   Int       @default(0)
+
+  @@index([reportId, sortOrder])
 }

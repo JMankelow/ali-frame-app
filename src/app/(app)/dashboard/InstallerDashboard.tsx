@@ -38,9 +38,9 @@ export async function InstallerDashboard({ userId, name }: { userId: string; nam
 
       <div className="cards">
         <Link href="/health-safety/prestart" className="card" style={card}>
-          <div className="label">Today&apos;s pre-start</div>
+          <div className="label">Today&apos;s toolbox</div>
           <span className={`status ${preStartToday > 0 ? "green" : "orange"}`}>{preStartToday > 0 ? "Done" : "Not done yet"}</span>
-          <div className="hint" style={{ marginTop: 6 }}>Health &amp; Safety → Pre-starts</div>
+          <div className="hint" style={{ marginTop: 6 }}>Health &amp; Safety → Daily Toolbox</div>
         </Link>
         <Link href="/crew" className="card" style={card}>
           <div className="label">My jobs</div>
