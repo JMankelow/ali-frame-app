@@ -35,7 +35,8 @@ export async function bookAppointment(_prev: BookAppointmentState, formData: For
   const type = String(formData.get("type") ?? "").trim();
   const dateRaw = String(formData.get("date") ?? "").trim();
   const startTime = hhmm(formData.get("startTime"));
-  const endTime = hhmm(formData.get("endTime"));
+  // Measure appointments are one hour unless an end time is given (matches how they were booked in NextMinute).
+  const endRaw = hhmm(formData.get("endTime"));
   const notes = String(formData.get("notes") ?? "").trim();
   const assigneeIds = formData.getAll("assigneeIds").map(String).filter(Boolean);
   const emailClient = formData.get("emailClient") === "on";
@@ -44,7 +45,8 @@ export async function bookAppointment(_prev: BookAppointmentState, formData: For
   if (!(APPOINTMENT_TYPES as readonly string[]).includes(type)) return { error: "Choose Sales Measure or Check Measure." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return { error: "Pick the appointment date." };
   if (!startTime) return { error: "Pick the start time." };
-  if (endTime && endTime <= startTime) return { error: "The end time must be after the start time." };
+  if (endRaw && endRaw <= startTime) return { error: "The end time must be after the start time." };
+  const endTime = endRaw ?? `${String(Math.min(Number(startTime.slice(0, 2)) + 1, 23)).padStart(2, "0")}:${Number(startTime.slice(0, 2)) >= 23 ? "59" : startTime.slice(3)}`;
 
   const job = await prisma.job.findUnique({ where: { number: jobNumber }, include: { client: true } });
   if (!job) return { error: `Job ${jobNumber} not found.` };

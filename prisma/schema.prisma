@@ -251,6 +251,7 @@ model Job {
   preStarts            HsPreStart[]          @relation("JobPreStarts")
   jsas                 HsJsa[]               @relation("JobJsas")
   sssp                 HsSssp?               @relation("JobSssp")
+  checkMeasurePack     CheckMeasurePack?
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -1106,4 +1107,14 @@ model CashflowEntry {
 model CashflowSetting {
   key   String @id
   value String
+}
+
+// Operations "Create Check Measure" pack (approved template, Tanya 26/09/2026): the typed-in/edited content for a job,
+// from which the check-measure PDF is generated. One pack per job; see src/lib/checkMeasure.ts for the data shape.
+model CheckMeasurePack {
+  jobNumber   String   @id
+  job         Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  data        Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
 }

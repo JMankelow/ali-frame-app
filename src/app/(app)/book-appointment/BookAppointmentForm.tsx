@@ -19,7 +19,9 @@ interface JobOption {
 export function BookAppointmentForm({ jobs, staff }: { jobs: JobOption[]; staff: { id: string; name: string }[] }) {
   const [state, formAction, pending] = useActionState(bookAppointment, initial);
   const [jobNumber, setJobNumber] = useState("");
+  const [endTime, setEndTime] = useState("");
   const job = jobs.find((j) => j.number === jobNumber);
+  const plusHour = (t: string) => (t ? `${String(Math.min(Number(t.slice(0, 2)) + 1, 23)).padStart(2, "0")}:${t.slice(3, 5)}` : "");
 
   return (
     <div className="card">
@@ -52,11 +54,11 @@ export function BookAppointmentForm({ jobs, staff }: { jobs: JobOption[]; staff:
           </div>
           <div>
             <label>Start time</label>
-            <input type="time" name="startTime" required />
+            <input type="time" name="startTime" required onChange={(e) => setEndTime(plusHour(e.target.value))} />
           </div>
           <div>
-            <label>End time (optional)</label>
-            <input type="time" name="endTime" />
+            <label>End time (defaults to 1 hour)</label>
+            <input type="time" name="endTime" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
           </div>
           <div className="full">
             <label>Who is going</label>
