@@ -296,6 +296,7 @@ model Note {
   job          Job?      @relation(fields: [jobNumber], references: [number], onDelete: SetNull)
   createdAt    DateTime  @default(now())
   resolvedAt   DateTime?
+  attachments  NoteAttachment[]
 
   @@index([status, createdAt])
   @@index([jobNumber, createdAt])
@@ -1151,4 +1152,18 @@ model QaReportPhoto {
   sortOrder   Int       @default(0)
 
   @@index([reportId, sortOrder])
+}
+
+// Screenshots/images attached to a Note (so it's clear what needs changing). Bytes live in R2 under notes/.
+model NoteAttachment {
+  id         String   @id @default(cuid())
+  noteId     String
+  note       Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  storageKey String   @unique
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
+
+  @@index([noteId])
 }

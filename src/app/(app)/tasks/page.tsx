@@ -1,13 +1,14 @@
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { resolveNote } from "../notes/actions";
+import { NoteImages } from "../notes/NoteImages";
 
 export default async function TasksPage() {
   const user = await requireUser();
 
   const tasks = await prisma.note.findMany({
     where: { assignedToId: user.id, status: { not: "Done" } },
-    include: { author: true },
+    include: { author: true, attachments: true },
     orderBy: { createdAt: "asc" },
   });
 
@@ -36,7 +37,10 @@ export default async function TasksPage() {
             <tbody>
               {tasks.map((t) => (
                 <tr key={t.id}>
-                  <td style={{ whiteSpace: "pre-wrap" }}>{t.text}</td>
+                  <td style={{ whiteSpace: "pre-wrap" }}>
+                    {t.text}
+                    <NoteImages attachments={t.attachments} />
+                  </td>
                   <td>{t.author.name}</td>
                   <td>{t.createdAt.toLocaleDateString("en-NZ")}</td>
                   <td>

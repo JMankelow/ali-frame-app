@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { NoteForm } from "./NoteForm";
+import { NoteImages } from "./NoteImages";
 import { resolveNote, reopenNote, completeAndReturnToCreator } from "./actions";
 
 export default async function NotesPage() {
@@ -8,7 +9,7 @@ export default async function NotesPage() {
 
   const [notes, activeUsers, claudeUser] = await Promise.all([
     prisma.note.findMany({
-      include: { author: true, assignedTo: true },
+      include: { author: true, assignedTo: true, attachments: true },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
@@ -59,7 +60,10 @@ export default async function NotesPage() {
             <tbody>
               {open.map((n) => (
                 <tr key={n.id}>
-                  <td style={{ whiteSpace: "pre-wrap" }}>{n.text}</td>
+                  <td style={{ whiteSpace: "pre-wrap" }}>
+                    {n.text}
+                    <NoteImages attachments={n.attachments} />
+                  </td>
                   <td>{n.author.name}</td>
                   <td>{n.assignedTo?.name ?? "—"}</td>
                   <td>{n.createdAt.toLocaleDateString("en-NZ")}</td>
@@ -101,7 +105,10 @@ export default async function NotesPage() {
             <tbody>
               {done.map((n) => (
                 <tr key={n.id}>
-                  <td style={{ whiteSpace: "pre-wrap", color: "#94a3b8", textDecoration: "line-through" }}>{n.text}</td>
+                  <td style={{ whiteSpace: "pre-wrap", color: "#94a3b8" }}>
+                    <span style={{ textDecoration: "line-through" }}>{n.text}</span>
+                    <NoteImages attachments={n.attachments} />
+                  </td>
                   <td>{n.author.name}</td>
                   <td>{n.assignedTo?.name ?? "—"}</td>
                   <td>{n.resolvedAt?.toLocaleDateString("en-NZ") ?? "—"}</td>
