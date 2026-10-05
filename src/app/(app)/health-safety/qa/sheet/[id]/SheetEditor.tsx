@@ -3,7 +3,7 @@
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
 "use client";
 
-import { useActionState, useRef, useState, type CSSProperties } from "react";
+import { useActionState, useEffect, useRef, useState, type CSSProperties } from "react";
 import { requestUpload, confirmUpload } from "../../../../files/actions";
 import { SignaturePad } from "@/components/SignaturePad";
 import { registerQaSheetPhotos, saveQaSheet, type SheetState } from "../../sheetActions";
@@ -40,9 +40,38 @@ export function SheetEditor(p: Props) {
   const locked = p.complete;
   const payload = JSON.stringify(data);
 
+  // The sheet stays open until it's marked fully complete: everything typed or added is saved automatically a moment after
+  // each change, so nothing is lost if the page is closed and items/photos can be added or edited later.
+  const [autoMsg, setAutoMsg] = useState("");
+  const first = useRef(true);
+  useEffect(() => {
+    if (locked) return;
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const t = setTimeout(async () => {
+      const fd = new FormData();
+      fd.set("payload", payload);
+      try {
+        const r = await saveQaSheet(p.sheetId, {}, fd);
+        setAutoMsg(r.error ? `Couldn't auto-save: ${r.error}` : `Auto-saved ${new Date().toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit" })}`);
+      } catch {
+        setAutoMsg("Couldn't auto-save — check your connection, then press Save.");
+      }
+    }, 2500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload]);
+
   return (
     <form action={formAction}>
       <input type="hidden" name="payload" value={payload} />
+      {!locked && (
+        <div className="hint" style={{ marginBottom: 10, padding: 8, background: "#eef6ff", borderRadius: 6 }}>
+          This sheet stays open — come back any time to add items, edit them or add more photos. Changes save automatically. Only press <b>{p.kind === "COMMERCIAL" ? "Complete job QA" : "Mark fully complete"}</b> when the whole job is finished (it then locks).
+        </div>
+      )}
       {p.kind === "RESIDENTIAL" ? (
         <Residential p={p} d={data as ResidentialData} setD={(d) => setData(d)} urls={urls} addUrls={(x) => setUrls((u) => ({ ...u, ...x }))} locked={locked} />
       ) : (
@@ -59,10 +88,25 @@ export function SheetEditor(p: Props) {
         {state.saved && <div className="status green" style={{ display: "inline-block", marginBottom: 8 }}>{state.saved}</div>}
         <div className="actions">
           {!locked && <button type="submit" className="btn primary" disabled={pending}>{pending ? "Saving…" : "Save"}</button>}
-          {!locked && <button type="submit" name="intent" value="complete" className="btn light" disabled={pending}>{p.kind === "COMMERCIAL" ? "Complete job QA" : "Complete sheet"}</button>}
+          {!locked && (
+            <button
+              type="submit"
+              name="intent"
+              value="complete"
+              className="btn light"
+              disabled={pending}
+              onClick={(e) => {
+                if (!window.confirm("Mark this sheet fully complete? It will be locked and can't be edited afterwards.")) e.preventDefault();
+              }}
+            >
+              {p.kind === "COMMERCIAL" ? "Complete job QA" : "Mark fully complete"}
+            </button>
+          )}
           <a className="btn light" href={`/health-safety/qa/sheet/${p.sheetId}/pdf`} target="_blank" rel="noopener noreferrer">Download PDF</a>
         </div>
-        <div className="hint" style={{ marginTop: 6 }}>Save before downloading — the PDF is built from what&apos;s saved. {locked ? "This sheet is complete and can't be changed." : ""}</div>
+        <div className="hint" style={{ marginTop: 6 }}>
+          {autoMsg ? `${autoMsg}. ` : ""}The PDF is built from what&apos;s saved. {locked ? "This sheet is complete and can't be changed." : ""}
+        </div>
       </div>
     </form>
   );
