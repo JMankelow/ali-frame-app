@@ -1,9 +1,8 @@
 "use client";
 
-import { useActionState, useState } from "react";
-import { generateQuote, sendQuoteEmail, type GenerateQuoteResult, type SendQuoteEmailResult } from "./actions";
+import { useActionState, useEffect, useState } from "react";
+import { generateQuote, getQuoteSources, sendQuoteEmail, type GenerateQuoteResult, type QuoteSources, type SendQuoteEmailResult } from "./actions";
 import { JobPicker, type JobPickerOption } from "@/components/JobPicker";
-import { buildSharePointSearchUrl } from "@/lib/sharepoint";
 
 const genInitial: GenerateQuoteResult = {};
 const sendInitial: SendQuoteEmailResult = {};
@@ -14,25 +13,33 @@ export function SendQuoteForm({ jobs, suggestedTotals }: { jobs: JobPickerOption
   const [sendState, sendAction, sendPending] = useActionState(sendQuoteEmail, sendInitial);
   const [quoteNumber, setQuoteNumber] = useState("");
   const [emailText, setEmailText] = useState("");
+  const [sources, setSources] = useState<QuoteSources | null>(null);
+
+  // Pull what the job already has: measure sheet, supplier schedule and the prepared price.
+  useEffect(() => {
+    let live = true;
+    setSources(null);
+    if (jobNumber) getQuoteSources(jobNumber).then((r) => live && setSources(r)).catch(() => live && setSources({ measureSheets: [], supplierSchedules: [], error: "Couldn't load this job's documents." }));
+    return () => {
+      live = false;
+    };
+  }, [jobNumber]);
+  const DocList = ({ title, files, missing }: { title: string; files: QuoteSources["measureSheets"]; missing: string }) => (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ fontWeight: 700 }}>{title}</div>
+      {files.length === 0 && <div className="hint">{missing}</div>}
+      {files.map((f) => (
+        <label key={f.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input type="checkbox" name="partFileIds" value={f.id} defaultChecked={f.mergeable} disabled={!f.mergeable} />
+          {f.fileName}
+          {!f.mergeable && <span className="hint">(not a PDF/image — convert to PDF to include it)</span>}
+        </label>
+      ))}
+    </div>
+  );
 
   return (
     <div>
-      {jobNumber && (
-        <div className="card">
-          <div className="topbar" style={{ marginBottom: 8 }}>
-            <div className="label">Source Documents</div>
-            <a href={buildSharePointSearchUrl(jobNumber)} target="_blank" rel="noopener noreferrer" className="btn light">
-              Find in SharePoint ↗
-            </a>
-          </div>
-          <div className="hint">
-            The measure sheet, supplier schedule and install price live in this job's SharePoint folder. Ask Claude in
-            chat to prepare the quote wording from those (using the Quote Wording skill) if it isn't ready yet, then
-            paste the finished wording and approved total below.
-          </div>
-        </div>
-      )}
-
       <div className="card" style={{ marginTop: 16 }}>
         <div className="label">Quote Details</div>
         <form action={genAction} style={{ marginTop: 10 }}>
@@ -60,6 +67,35 @@ export function SendQuoteForm({ jobs, suggestedTotals }: { jobs: JobPickerOption
                 <option value="including">Total includes GST</option>
               </select>
             </div>
+            {jobNumber && (
+              <div className="full" style={{ border: "1px solid #e5e7eb", borderRadius: 8, padding: 10 }}>
+                <div className="label">Quote pack — one PDF sent to the client</div>
+                <div className="hint" style={{ marginBottom: 8 }}>
+                  Order: the quote, then the measure sheet, then the supplier schedule, then the company profile.
+                </div>
+                {!sources && <div className="hint">Loading this job&apos;s documents…</div>}
+                {sources?.error && <div className="authError">{sources.error}</div>}
+                {sources && (
+                  <>
+                    {DocList({ title: "Measure sheet", files: sources.measureSheets, missing: "No measure sheet on this job yet — save one from Site Measure." })}
+                    {DocList({ title: "Supplier schedule", files: sources.supplierSchedules, missing: "No supplier schedule on this job — upload it on the job's Files tab as type “Supplier Quote”." })}
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontWeight: 700 }}>Prepared price</div>
+                      {sources.prepared ? (
+                        <div className="hint">
+                          Taken from Prepare Price: {sources.prepared.total.toLocaleString("en-NZ", { style: "currency", currency: "NZD" })} + GST (supplier {sources.prepared.supplierPrice.toLocaleString("en-NZ", { style: "currency", currency: "NZD" })}, install {sources.prepared.installAllowance.toLocaleString("en-NZ", { style: "currency", currency: "NZD" })}) — filled in below.
+                        </div>
+                      ) : (
+                        <div className="hint">No price prepared for this job yet — use Prepare Price first, or type the approved total below.</div>
+                      )}
+                    </div>
+                  </>
+                )}
+                <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input type="checkbox" name="includeProfile" defaultChecked /> Include the AliFrame company profile
+                </label>
+              </div>
+            )}
             <div className="full">
               <label>Quote Wording</label>
               <textarea
@@ -70,6 +106,7 @@ export function SendQuoteForm({ jobs, suggestedTotals }: { jobs: JobPickerOption
             </div>
           </div>
           {genState.error && <div className="authError">{genState.error}</div>}
+          {genState.note && <div className="hint" style={{ marginTop: 6 }}>{genState.note}</div>}
           <div className="actions" style={{ marginTop: 12 }}>
             <button type="submit" className="btn primary" disabled={genPending || !jobNumber}>
               {genPending ? "Generating…" : "Generate Quote PDF"}
