@@ -12,13 +12,19 @@ export default async function QaReportsPage({ searchParams }: { searchParams: Pr
   const { error } = await searchParams;
   const installer = isInstallerProfile(user);
 
-  const [jobs, reports] = await Promise.all([
+  const [jobs, reports, sheets] = await Promise.all([
     prisma.job.findMany({ where: { archived: false }, orderBy: { number: "desc" }, select: { number: true, title: true } }),
     prisma.qaReport.findMany({
       where: installer ? { createdById: user.id } : {},
       orderBy: { reportDate: "desc" },
       take: 100,
       include: { job: { select: { title: true, address: true } }, createdBy: { select: { name: true } }, _count: { select: { photos: true } } },
+    }),
+    prisma.qaCheckSheet.findMany({
+      where: installer ? { createdById: user.id } : {},
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+      include: { job: { select: { title: true } }, createdBy: { select: { name: true } } },
     }),
   ]);
 
@@ -36,7 +42,28 @@ export default async function QaReportsPage({ searchParams }: { searchParams: Pr
       <NewQaReportForm jobs={jobs} />
 
       <div className="card" style={{ marginTop: 16 }}>
-        <div className="label">{installer ? "My reports" : "Reports"}</div>
+        <div className="label">{installer ? "My QA check sheets" : "QA check sheets"}</div>
+        <table style={{ marginTop: 8 }}>
+          <thead>
+            <tr><th>Updated</th><th>Type</th><th>Job</th><th>By</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {sheets.map((x) => (
+              <tr key={x.id}>
+                <td>{x.updatedAt.toLocaleDateString("en-NZ")}</td>
+                <td><Link href={`/health-safety/qa/sheet/${x.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{x.kind === "RESIDENTIAL" ? "Residential QA check sheet" : "Commercial QA check sheet"}</Link></td>
+                <td>{x.jobNumber} — {x.job.title}</td>
+                <td>{x.createdBy.name}</td>
+                <td><span className={`status ${x.status === "Complete" ? "green" : "orange"}`}>{x.status}</span></td>
+              </tr>
+            ))}
+            {sheets.length === 0 && <tr><td colSpan={5} className="hint">No check sheets yet — select a job above to start one.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="label">{installer ? "My photo reports" : "Photo reports"}</div>
         <table style={{ marginTop: 8 }}>
           <thead>
             <tr><th>Date</th><th>Job</th><th>Report</th><th style={{ textAlign: "right" }}>Photos</th><th>By</th><th>Status</th></tr>

@@ -84,6 +84,7 @@ model User {
   jobQuoteInputsUpdated     JobQuoteInputs[]
   invites                   InviteToken[]         @relation("UserInvites")
   qaReportsCreated          QaReport[]            @relation("QaReportCreator")
+  qaCheckSheetsCreated      QaCheckSheet[]        @relation("QaCheckSheetCreator")
   incidentReportsSubmitted  IncidentReport[]      @relation("IncidentReportSubmittedBy")
   hsCompetencies            HsCompetency[]        @relation("UserCompetency")
   employeeDetail            EmployeeDetail?       @relation("EmployeeDetail")
@@ -255,6 +256,7 @@ model Job {
   sssp                 HsSssp?               @relation("JobSssp")
   checkMeasurePack     CheckMeasurePack?
   qaReports            QaReport[]
+  qaCheckSheets        QaCheckSheet[]
 }
 
 // Metadata row for a file stored in Cloudflare R2 — the actual bytes never
@@ -1189,4 +1191,22 @@ model IncidentReport {
   safetyIncidentId String?
 
   @@index([status, submittedAt])
+}
+
+// Aliframe QA check sheets under Health & Safety → QA Reporting: "RESIDENTIAL" (17-item yes/no sheet) or "COMMERCIAL"
+// (full QA per window/door item with senior-leader sign-off). `data` holds the answers (see src/lib/qaSheets.ts).
+model QaCheckSheet {
+  id          String    @id @default(cuid())
+  kind        String // RESIDENTIAL | COMMERCIAL
+  jobNumber   String
+  job         Job       @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  status      String    @default("Draft") // Draft | Complete
+  data        Json
+  createdById String
+  createdBy   User      @relation("QaCheckSheetCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  @@index([jobNumber, kind])
 }

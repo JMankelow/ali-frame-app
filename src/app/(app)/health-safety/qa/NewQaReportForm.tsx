@@ -6,12 +6,13 @@
 import { useState } from "react";
 import { JobPicker, type JobPickerOption } from "@/components/JobPicker";
 import { createQaReport } from "./actions";
+import { createQaSheet } from "./sheetActions";
 
 export function NewQaReportForm({ jobs }: { jobs: JobPickerOption[] }) {
   const [jobNumber, setJobNumber] = useState("");
   return (
     <div className="card">
-      <div className="label">Create report</div>
+      <div className="label">Create report — select the job, then choose the type</div>
       <form action={createQaReport} style={{ marginTop: 8 }}>
         <input type="hidden" name="jobNumber" value={jobNumber} />
         <div className="form">
@@ -24,8 +25,10 @@ export function NewQaReportForm({ jobs }: { jobs: JobPickerOption[] }) {
             <input name="title" placeholder="Installation QA Report" />
           </div>
         </div>
-        <div className="actions" style={{ marginTop: 10 }}>
-          <button type="submit" className="btn primary" disabled={!jobNumber}>Create report &amp; add photos</button>
+        <div className="actions" style={{ marginTop: 10, flexWrap: "wrap" }}>
+          <button type="submit" formAction={createQaSheet} name="kind" value="RESIDENTIAL" className="btn primary" disabled={!jobNumber}>Residential QA check sheet</button>
+          <button type="submit" formAction={createQaSheet} name="kind" value="COMMERCIAL" className="btn primary" disabled={!jobNumber}>Commercial QA check sheet</button>
+          <button type="submit" className="btn light" disabled={!jobNumber}>QA photo report (label &amp; describe photos)</button>
         </div>
       </form>
     </div>
