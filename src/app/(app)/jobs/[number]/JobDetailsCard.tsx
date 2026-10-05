@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { JobEditForm } from "./JobEditForm";
 import { JOB_STATUS_COLOR } from "@/lib/jobStatus";
+import { jobStatusStyle } from "@/lib/statusColors";
 import { AddressLink } from "@/components/AddressLink";
 
 export function JobDetailsCard({
@@ -76,7 +77,7 @@ export function JobDetailsCard({
           <div>
             <label>Status</label>
             <div>
-              <span className={`status ${JOB_STATUS_COLOR[status] ?? "grey"}`}>{status}</span>
+              <span className={`status ${JOB_STATUS_COLOR[status] ?? "grey"}`} style={jobStatusStyle(status)}>{status}</span>
             </div>
           </div>
           <div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { archiveJob, reactivateJob } from "./actions";
 import { JOB_STATUS_COLOR } from "@/lib/jobStatus";
+import { jobStatusStyle } from "@/lib/statusColors";
 import { AddressLink } from "@/components/AddressLink";
 
 export interface JobRow {
@@ -71,7 +72,7 @@ export function JobsView({ jobs, showArchived, canManage = true }: { jobs: JobRo
                 <td><AddressLink address={job.address} /></td>
                 <td>{job.type === "COMMERCIAL" ? "Commercial" : "Residential"}</td>
                 <td>
-                  <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
+                  <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`} style={jobStatusStyle(job.status)}>{job.status}</span>
                 </td>
                 <td>{job.supplier ?? "—"}</td>
                 <td>{canManage && <ArchiveButton job={job} showArchived={showArchived} />}</td>
@@ -97,7 +98,7 @@ export function JobsView({ jobs, showArchived, canManage = true }: { jobs: JobRo
                 <span className={`status ${job.type === "COMMERCIAL" ? "green" : "blue"}`}>
                   {job.type === "COMMERCIAL" ? "Commercial" : "Residential"}
                 </span>
-                <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`}>{job.status}</span>
+                <span className={`status ${JOB_STATUS_COLOR[job.status] ?? "grey"}`} style={jobStatusStyle(job.status)}>{job.status}</span>
               </div>
               <div className="hint">
                 <AddressLink address={job.address} fallback="No address" />

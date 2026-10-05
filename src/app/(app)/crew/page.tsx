@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { JOB_STATUS_COLOR as STATUS_COLOR } from "@/lib/jobStatus";
+import { jobStatusStyle } from "@/lib/statusColors";
 
 export default async function CrewPage() {
   const user = await requireUser();
@@ -33,7 +34,7 @@ export default async function CrewPage() {
             {j.number} — {j.title}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
-            <span className={`status ${STATUS_COLOR[j.status] ?? "grey"}`}>{j.status}</span>
+            <span className={`status ${STATUS_COLOR[j.status] ?? "grey"}`} style={jobStatusStyle(j.status)}>{j.status}</span>
             {j.dueDate && <span className="status blue">Due {j.dueDate.toLocaleDateString("en-NZ")}</span>}
           </div>
           <div className="hint">

@@ -101,6 +101,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     endDate: t.endDate ? t.endDate.toISOString() : null,
     status: t.status,
     notes: t.notes,
+    startTime: t.startTime,
+    endTime: t.endTime,
     assigneeIds: t.assignees.map((a) => a.id),
     assigneeNames: t.assignees.map((a) => a.name),
   }));

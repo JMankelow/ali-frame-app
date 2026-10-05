@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { createScheduledTask, updateScheduledTask, type ScheduledTaskState } from "../actions";
 import { JOB_BOOKING_STATUSES } from "@/lib/jobStatus";
 import { TeamPicker } from "@/components/TeamPicker";
+import { taskStatusHex, textOn } from "@/lib/statusColors";
 
 const TASK_TYPES = ["Sales Measure", "Check Measure", "Installation", "Remedial"];
 
@@ -31,6 +32,8 @@ export interface ScheduledTaskRow {
   type: string;
   scheduledDate: string;
   endDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
   status: string;
   notes: string | null;
   assigneeIds: string[];
@@ -93,11 +96,11 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
     return (
       <tr>
         <td>{task.type}</td>
-        <td>{new Date(task.scheduledDate).toLocaleDateString("en-NZ")}</td>
+        <td>{new Date(task.scheduledDate).toLocaleDateString("en-NZ")}{task.startTime ? ` ${task.startTime}${task.endTime ? `–${task.endTime}` : ""}` : ""}</td>
         <td>{task.endDate ? new Date(task.endDate).toLocaleDateString("en-NZ") : "—"}</td>
         <td>{task.assigneeNames.join(", ") || "—"}</td>
         <td>
-          <span className={`status ${BOOKING_STATUS_COLOR[task.status] ?? "grey"}`}>{task.status}</span>
+          <span className={`status ${BOOKING_STATUS_COLOR[task.status] ?? "grey"}`} style={taskStatusHex(task.status) ? { background: taskStatusHex(task.status)!, color: textOn(taskStatusHex(task.status)!) } : undefined}>{task.status}</span>
         </td>
         <td>{task.notes ?? "—"}</td>
         <td>
@@ -122,6 +125,8 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
           </select>
           <input type="date" name="scheduledDate" defaultValue={task.scheduledDate.slice(0, 10)} required />
           <input type="date" name="endDate" defaultValue={task.endDate ? task.endDate.slice(0, 10) : ""} placeholder="To (optional)" />
+          <input type="time" name="startTime" defaultValue={task.startTime ?? ""} title="Start time" />
+          <input type="time" name="endTime" defaultValue={task.endTime ?? ""} title="End time" />
           <select name="status" defaultValue={task.status}>
             {!JOB_BOOKING_STATUSES.includes(task.status) && <option value={task.status}>{task.status}</option>}
             {JOB_BOOKING_STATUSES.map((s) => (
@@ -168,6 +173,14 @@ function NewTaskForm({ jobNumber, staff }: { jobNumber: string; staff: { id: str
         <div>
           <label>To Date (optional — for multi-day bookings)</label>
           <input type="date" name="endDate" />
+        </div>
+        <div>
+          <label>Start Time (optional)</label>
+          <input type="time" name="startTime" />
+        </div>
+        <div>
+          <label>End Time (optional)</label>
+          <input type="time" name="endTime" />
         </div>
         <div>
           <label>Status</label>

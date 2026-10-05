@@ -172,6 +172,11 @@ export interface ScheduledTaskState {
   error?: string;
 }
 
+const timeOf = (v: FormDataEntryValue | null) => {
+  const t = String(v ?? "").trim();
+  return /^([01]d|2[0-3]):[0-5]d$/.test(t) ? t : null;
+};
+
 const TASK_TYPES = ["Sales Measure", "Check Measure", "Installation", "Remedial"];
 
 export async function createScheduledTask(
@@ -213,6 +218,8 @@ export async function createScheduledTask(
       type,
       scheduledDate: new Date(scheduledDateRaw),
       endDate,
+      startTime: timeOf(formData.get("startTime")),
+      endTime: timeOf(formData.get("endTime")),
       status,
       notes: notes || null,
       createdById: user.id,
@@ -260,6 +267,8 @@ export async function updateScheduledTask(
       type,
       scheduledDate: new Date(scheduledDateRaw),
       endDate: endDateRaw ? new Date(endDateRaw) : null,
+      startTime: timeOf(formData.get("startTime")),
+      endTime: timeOf(formData.get("endTime")),
       notes: notes || null,
       status,
       completedAt: status === "Fully Invoiced" ? new Date() : null,
