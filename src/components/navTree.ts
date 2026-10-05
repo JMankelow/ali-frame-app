@@ -165,24 +165,14 @@ export const NAV_TREE: NavGroup[] = [
       { label: "Costing & Margin", href: "/costing" },
       { label: "WIP Report", href: "/wip" },
       { label: "Cashflow", href: "/cashflow" },
-      {
-        label: "Invoicing",
-        items: [
-          { label: "Sales", href: "/invoicing/sales" },
-          { label: "Purchases", href: "/invoicing/purchases" },
-        ],
-      },
-      {
-        label: "Reports",
-        items: [
-          { label: "Profit & Loss", href: "/reports/profit-loss" },
-          { label: "Balance Sheet", href: "/reports/balance-sheet" },
-          { label: "Budget vs Actual", href: "/reports/budget" },
-          { label: "Accounts Receivable", href: "/reports/accounts-receivable" },
-          { label: "Accounts Payable", href: "/reports/accounts-payable" },
-          { label: "Monthly Management Report", href: "/reports/monthly" },
-        ],
-      },
+      { label: "Sales", href: "/invoicing/sales" },
+      { label: "Purchases", href: "/invoicing/purchases" },
+      { label: "Profit & Loss", href: "/reports/profit-loss" },
+      { label: "Balance Sheet", href: "/reports/balance-sheet" },
+      { label: "Budget vs Actual", href: "/reports/budget" },
+      { label: "Accounts Receivable", href: "/reports/accounts-receivable" },
+      { label: "Accounts Payable", href: "/reports/accounts-payable" },
+      { label: "Monthly Management Report", href: "/reports/monthly" },
     ],
   },
   {
