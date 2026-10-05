@@ -29,17 +29,17 @@ function Kpi({ label, value, hint, href, tone }: { label: string; value: ReactNo
 }
 
 /** Simple horizontal bars (no chart library) — each row is { label, value, text }. */
-function Bars({ rows, color = "#0057b8" }: { rows: { label: string; value: number; text: string }[]; color?: string }) {
+function Bars({ rows, color = "#0057b8", labelWidth = 64 }: { rows: { label: string; value: number; text: string }[]; color?: string; labelWidth?: number }) {
   const max = Math.max(1, ...rows.map((r) => r.value));
   return (
     <div style={{ marginTop: 8 }}>
       {rows.map((r) => (
-        <div key={r.label} style={{ display: "grid", gridTemplateColumns: "150px 1fr 90px", gap: 8, alignItems: "center", padding: "3px 0", fontSize: 13 }}>
-          <span>{r.label}</span>
+        <div key={r.label} style={{ display: "grid", gridTemplateColumns: `${labelWidth}px minmax(40px, 1fr) max-content`, gap: 12, alignItems: "center", padding: "3px 0", fontSize: 13 }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.label}>{r.label}</span>
           <div style={{ background: "#eef2f7", borderRadius: 6, height: 14 }}>
             <div style={{ width: `${(r.value / max) * 100}%`, background: color, height: 14, borderRadius: 6, minWidth: r.value > 0 ? 4 : 0 }} />
           </div>
-          <span style={{ textAlign: "right", fontWeight: 700 }}>{r.text}</span>
+          <span style={{ textAlign: "right", fontWeight: 700, whiteSpace: "nowrap" }}>{r.text}</span>
         </div>
       ))}
     </div>
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
     prisma.lead.count({ where: { status: "New" } }),
     prisma.quote.findMany({ where: { dateSent: { gte: startOfWeek } }, select: { total: true } }),
     prisma.quote.findMany({ where: { dateSent: { gte: sixMonthsAgo } }, select: { dateSent: true, total: true } }),
-    prisma.quote.findMany({ where: { status: "Sent" }, select: { total: true } }),
+    prisma.quote.findMany({ where: { status: "Sent" }, select: { total: true, quoteDate: true, dateSent: true } }),
     prisma.quote.findMany({ where: { status: "Sent", expiryDate: { gte: now, lte: in7 } }, select: { quoteNumber: true, customerName: true, expiryDate: true }, take: 6 }),
     prisma.remedialItem.count({ where: { status: "Open" } }),
     prisma.remedialItem.count({ where: { createdAt: { gte: startOfMonth } } }),
@@ -128,6 +128,16 @@ export default async function DashboardPage() {
   const underCount = budgetRows.filter((r) => r.under === true).length;
   const overCount = budgetRows.filter((r) => r.under === false).length;
 
+  // Quotes outstanding, aged from the day they were sent: Current (under 30 days), 30 days (30–59), 60+ days.
+  const ageBuckets = { current: { n: 0, v: 0 }, d30: { n: 0, v: 0 }, d60: { n: 0, v: 0 } };
+  for (const q of outstandingQuotes) {
+    const sent = q.dateSent ?? q.quoteDate;
+    const days = sent ? Math.floor((now.getTime() - sent.getTime()) / 86400000) : 0;
+    const b = days >= 60 ? ageBuckets.d60 : days >= 30 ? ageBuckets.d30 : ageBuckets.current;
+    b.n += 1;
+    b.v += q.total ?? 0;
+  }
+
   const sum = (rows: { total: number | null }[]) => rows.reduce((s, r) => s + (r.total ?? 0), 0);
   const acceptedMonth = acceptedCosting.filter((c) => c.dateAccepted && c.dateAccepted >= startOfMonth);
   const salesMonth = acceptedMonth.reduce((s, c) => s + (c.quotedTotal ?? 0), 0);
@@ -177,7 +187,26 @@ export default async function DashboardPage() {
       {isSuper && (
         <div className="cards" style={{ marginTop: 16 }}>
           <Kpi label="Sales Accepted — This Month" value={money(salesMonth)} hint={`${acceptedMonth.length} job(s) accepted`} href="/costing" />
-          <Kpi label="Quotes Outstanding" value={money(sum(outstandingQuotes))} hint={`${outstandingQuotes.length} awaiting a decision`} href="/quotes" />
+          <Link href="/quotes" className="card" style={{ textDecoration: "none", color: "inherit" }}>
+            <div className="label">Quotes Outstanding</div>
+            <div className="metric">{money(sum(outstandingQuotes))}</div>
+            <div className="hint" style={{ marginBottom: 8 }}>{outstandingQuotes.length} awaiting a decision</div>
+            <table style={{ fontSize: 13 }}>
+              <tbody>
+                {([
+                  ["Current", ageBuckets.current, "green"],
+                  ["30 days", ageBuckets.d30, "orange"],
+                  ["60+ days", ageBuckets.d60, "red"],
+                ] as const).map(([label, b, tone]) => (
+                  <tr key={label}>
+                    <td><span className={`status ${tone}`}>{label}</span></td>
+                    <td style={{ textAlign: "right" }}>{b.n}</td>
+                    <td style={{ textAlign: "right", fontWeight: 700 }}>{money(b.v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Link>
           <Kpi label="Jobs Under Budget — This Week" value={`${underCount} / ${underCount + overCount}`} hint={overCount ? `${overCount} over budget` : "of jobs completed with figures"} href="/costing" tone={overCount ? "red" : undefined} />
           <Kpi label="Remedial Cost (tracked jobs)" value={money(remedialCosting._sum.remedialCost ?? 0)} hint={`${remedialCosting._count} job(s) with remedial`} href="/costing" />
         </div>
@@ -196,7 +225,7 @@ export default async function DashboardPage() {
         </div>
         <div className="card">
           <div className="label">Active jobs by status</div>
-          <Bars rows={statusGroups.slice(0, 10).map((s) => ({ label: s.status, value: s._count, text: String(s._count) }))} color="#7c3aed" />
+          <Bars rows={statusGroups.slice(0, 10).map((s) => ({ label: s.status, value: s._count, text: String(s._count) }))} color="#7c3aed" labelWidth={150} />
         </div>
       </div>
 
