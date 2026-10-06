@@ -85,7 +85,7 @@ export async function getFileDownloadUrl(fileId: string): Promise<{ url?: string
   const user = await requireUser();
   const file = await prisma.fileAsset.findUnique({ where: { id: fileId } });
   if (!file) return { error: "File not found." };
-  if (isInstallerProfile(user) && !["Photos", "Site Measure"].includes(file.fileType)) return { error: "File not found." };
+  if (isInstallerProfile(user) && !["Photos", "Site Measure", "Plan"].includes(file.fileType)) return { error: "File not found." };
 
   const url = await getDownloadUrl(file.storageKey, file.fileName);
   await logAudit({ userId: user.id, action: "file_downloaded", entityType: "FileAsset", entityId: file.id, metadata: { jobNumber: file.jobNumber } });

@@ -14,9 +14,10 @@ import { BookCheckMeasureForm } from "../../email-client/BookCheckMeasureForm";
 import { SendTemplateEmailForm } from "./SendTemplateEmailForm";
 import { JobTimeSection } from "./JobTimeSection";
 import { isInstallerProfile } from "@/lib/permissions";
+import { createQaSheet } from "../../health-safety/qa/sheetActions";
 
 // Field staff only get these tabs — no quotes, orders, costing, supplier invoices or client email.
-const INSTALLER_TABS = ["details", "tasks", "photos", "notes", "time", "sitemeasure", "checklist"];
+const INSTALLER_TABS = ["details", "tasks", "photos", "notes", "time", "files", "sitemeasure", "qa", "checklist"];
 const INSTALLER_HIDDEN_AUDIT = /^(purchase_order|templated_email|check_measure_booking|repricing|quote)/;
 
 function money(v: number | null | undefined): string {
@@ -59,6 +60,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     prisma.supplier.findMany({ orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
   ]);
   if (!job) notFound();
+  // Field staff can only open jobs they are booked on — customer details for every other job stay private.
+  if (installer && !(await prisma.jobScheduledTask.findFirst({ where: { jobNumber: number, assignees: { some: { id: currentUser.id } } }, select: { id: true } }))) notFound();
 
   const [files, scheduledTasks, notes, auditLogs, quotes, purchaseOrders, emailTemplates] = await Promise.all([
     prisma.fileAsset.findMany({ where: { jobNumber: number }, include: { uploadedBy: true }, orderBy: { createdAt: "desc" } }),
@@ -93,7 +96,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
 
   const siteMeasureFiles = files.filter((f) => f.fileType === "Site Measure");
   const photoFiles = files.filter((f) => f.fileType === "Photos");
-  const otherFiles = files.filter((f) => f.fileType !== "Site Measure" && f.fileType !== "Photos");
+  const allOtherFiles = files.filter((f) => f.fileType !== "Site Measure" && f.fileType !== "Photos");
+  // Field staff see the job's plans / check measure pack only — not supplier quotes, repricing or correspondence.
+  const otherFiles = installer ? allOtherFiles.filter((f) => f.fileType === "Plan") : allOtherFiles;
 
   const taskRows: ScheduledTaskRow[] = scheduledTasks.map((t) => ({
     id: t.id,
@@ -176,6 +181,13 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         readOnly={installer}
       />
 
+      {job.description && (
+        <details className="card" style={{ marginTop: 16 }}>
+          <summary style={{ cursor: "pointer", fontWeight: 800 }}>Enquiry / job notes</summary>
+          <div style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{job.description}</div>
+        </details>
+      )}
+
       {installer && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="label">Install budget</div>
@@ -256,12 +268,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     <div className="card">
       <div className="topbar" style={{ marginBottom: 8 }}>
         <div className="label">Files</div>
-        <a href={buildSharePointSearchUrl(job.number)} target="_blank" rel="noopener noreferrer" className="btn primary">
-          Open in SharePoint ↗
-        </a>
+        {!installer && (
+          <a href={buildSharePointSearchUrl(job.number)} target="_blank" rel="noopener noreferrer" className="btn primary">
+            Open in SharePoint ↗
+          </a>
+        )}
       </div>
       <div className="hint" style={{ marginBottom: 10 }}>
-        Job folders are in SharePoint. Below: files added through this app.
+        {installer ? "Plans and the check measure pack for this job. Photos are on the Photos tab; measure sheets are on Site Measure." : "Job folders are in SharePoint. Below: files added through this app."}
       </div>
       {otherFiles.length === 0 ? (
         <div className="hint">No other files uploaded for this job yet.</div>
@@ -286,11 +300,54 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
                 fileType={f.fileType}
                 uploadedByName={f.uploadedBy?.name ?? "—"}
                 date={f.createdAt.toLocaleDateString("en-NZ")}
+                readOnly={installer}
               />
             ))}
           </tbody>
         </table>
       )}
+    </div>
+  );
+
+  // QA check sheets for this job — everyone can start one; field staff only see their own.
+  const qaSheets = await prisma.qaCheckSheet.findMany({ where: { jobNumber: number, ...(installer ? { createdById: currentUser.id } : {}) }, orderBy: { updatedAt: "desc" }, select: { id: true, kind: true, status: true, updatedAt: true, data: true } });
+  const qaTab = (
+    <div className="card">
+      <div className="label">QA check sheet</div>
+      <div className="hint" style={{ marginTop: 4 }}>The install questionnaire for this job — tick each item off, label and describe your photos. It saves as you go and stays open until the whole job is complete.</div>
+      {qaSheets.length > 0 && (
+        <table style={{ marginTop: 10 }}>
+          <thead><tr><th>Sheet</th><th>Items</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+          <tbody>
+            {qaSheets.map((q) => {
+              const n = (q.data as { items?: unknown[] } | null)?.items?.length ?? 0;
+              return (
+                <tr key={q.id}>
+                  <td><Link href={`/health-safety/qa/sheet/${q.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{q.kind === "COMMERCIAL" ? "Commercial QA check sheet" : "Residential QA check sheet"}</Link></td>
+                  <td>{n}</td>
+                  <td><span className={`status ${q.status === "Complete" ? "green" : "orange"}`}>{q.status}</span></td>
+                  <td>{q.updatedAt.toLocaleDateString("en-NZ")}</td>
+                  <td><a className="btn light" href={`/health-safety/qa/sheet/${q.id}/pdf`} target="_blank" rel="noopener noreferrer">Download PDF</a></td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
+      <form action={createQaSheet} style={{ marginTop: 12 }}>
+        <input type="hidden" name="jobNumber" value={job.number} />
+        <input type="hidden" name="kind" value={job.type} />
+        <div className="form">
+          <div>
+            <label>How many items (windows/doors)?</label>
+            <input name="itemCount" type="number" min={1} max={60} defaultValue={1} />
+          </div>
+        </div>
+        <div className="actions" style={{ marginTop: 10 }}>
+          <button type="submit" className="btn primary">Start {job.type === "COMMERCIAL" ? "Commercial" : "Residential"} QA check sheet</button>
+          <Link href="/health-safety/qa" className="btn light">QA photo reports</Link>
+        </div>
+      </form>
     </div>
   );
 
@@ -485,6 +542,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           },
           { key: "files", label: "Files", content: filesTab },
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },
+          { key: "qa", label: "QA", content: qaTab },
           {
             key: "emailclient",
             label: "Emails",

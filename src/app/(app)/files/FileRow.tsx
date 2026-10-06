@@ -11,6 +11,7 @@ export function FileRow({
   fileType,
   uploadedByName,
   date,
+  readOnly = false,
 }: {
   id: string;
   name: string;
@@ -18,6 +19,7 @@ export function FileRow({
   fileType: string;
   uploadedByName: string;
   date: string;
+  readOnly?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -57,9 +59,11 @@ export function FileRow({
           <button className="btn light" onClick={handleDownload} disabled={pending}>
             Download
           </button>
-          <button className="btn light" onClick={handleDelete} disabled={pending}>
-            Delete
-          </button>
+          {!readOnly && (
+            <button className="btn light" onClick={handleDelete} disabled={pending}>
+              Delete
+            </button>
+          )}
         </div>
         {error && <div className="hint" style={{ color: "#b91c1c" }}>{error}</div>}
       </td>

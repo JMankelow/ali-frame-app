@@ -18,6 +18,7 @@ export default async function JobsPage({
   const jobsRaw = await prisma.job.findMany({
     where: {
       archived: showArchived,
+      ...(readOnly ? { scheduledTasks: { some: { assignees: { some: { id: user.id } } } } } : {}), // field staff only see jobs they are booked on
       ...(jobType ? { type: jobType as "RESIDENTIAL" | "COMMERCIAL" } : {}),
     },
     select: { number: true, title: true, address: true, type: true, status: true, supplier: true, client: { select: { name: true } } },
