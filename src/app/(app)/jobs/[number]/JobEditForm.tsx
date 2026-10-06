@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { updateJobDetails, type JobEditState } from "../actions";
 import { JOB_STATUS_OPTIONS, JOB_PRICE_TYPES, JOB_LEAD_SOURCES } from "@/lib/jobStatus";
+import { useCloseOnSuccess } from "@/lib/useCloseOnSuccess";
 
 const initialState: JobEditState = {};
 
@@ -41,6 +42,7 @@ export function JobEditForm({
 }) {
   const action = updateJobDetails.bind(null, jobNumber);
   const [state, formAction, pending] = useActionState(action, initialState);
+  useCloseOnSuccess(pending, state.error, onDone);
 
   return (
     <form action={formAction}>

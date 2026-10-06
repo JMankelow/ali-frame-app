@@ -25,9 +25,10 @@ export default async function JobsPage({
   });
 
   // Next free job number = highest plain-number job + 1; supplier drop-down from the real supplier list.
-  const [numbers, supplierRows] = await Promise.all([
+  const [numbers, supplierRows, salesStaff] = await Promise.all([
     prisma.job.findMany({ select: { number: true } }),
     prisma.supplier.findMany({ select: { companyName: true }, where: { NOT: { companyName: { startsWith: "Ali-Frame (internal" } } } }),
+    prisma.user.findMany({ where: { isActive: true, role: "SALES" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   const highest = numbers.reduce((max, j) => (/^\d+$/.test(j.number) ? Math.max(max, Number(j.number)) : max), 0);
   const nextNumber = highest ? String(highest + 1) : "";
@@ -55,7 +56,7 @@ export default async function JobsPage({
 
       <JobsView jobs={jobs} showArchived={showArchived} canManage={!readOnly} />
 
-      {!readOnly && <JobForm nextNumber={nextNumber} suppliers={supplierNames} />}
+      {!readOnly && <JobForm nextNumber={nextNumber} suppliers={supplierNames} staff={salesStaff} />}
     </div>
   );
 }

@@ -8,8 +8,53 @@ import { installEndDate } from "@/lib/installDates";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
+/** Tells the job's sales rep, by email, that the job is now confirmed as booked in. Best-effort — never blocks the save. */
+async function notifySalesRepBookedIn(jobNumber: string, actor: { id: string; name: string; email: string }, when?: { start: Date; end?: Date | null; crew?: string[] }) {
+  try {
+    const job = await prisma.job.findUnique({ where: { number: jobNumber }, include: { assignedUser: { select: { id: true, name: true, email: true } }, client: { select: { name: true } } } });
+    const rep = job?.assignedUser;
+    if (!job || !rep?.email || rep.id === actor.id) return;
+    const fmt = (d: Date) => d.toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+    const lines = [
+      `Hi ${rep.name.split(" ")[0]},`,
+      "",
+      `Job ${job.number} (${job.client?.name ?? job.title}) has been confirmed as booked in.`,
+      ...(when ? [`Install: ${fmt(when.start)}${when.end && when.end.getTime() !== when.start.getTime() ? ` to ${fmt(when.end)}` : ""}`] : []),
+      ...(when?.crew?.length ? [`Crew: ${when.crew.join(", ")}`] : []),
+      ...(job.address ? [`Address: ${job.address}`] : []),
+      "",
+      `Booked by ${actor.name}.`,
+    ];
+    await sendPlainNotificationEmail({ to: rep.email, subject: `Job ${job.number} booked in — ${job.client?.name ?? job.title}`, text: lines.join("\n"), replyTo: actor.email, signer: profileSigner(actor.email) ?? { name: actor.name } });
+    await logAudit({ userId: actor.id, action: "sales_rep_notified_booked_in", entityType: "Job", entityId: jobNumber, metadata: { to: rep.name } });
+  } catch (e) {
+    console.error("[jobs] booked-in notification failed", e);
+  }
+}
+
 export interface JobFormState {
   error?: string;
+}
+
+export interface ClientHit {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+}
+
+/** Type-ahead for the Add Job form — finds previous customers so their details don't have to be typed again. */
+export async function searchClients(q: string): Promise<ClientHit[]> {
+  await requireNotInstaller();
+  const term = String(q ?? "").trim().slice(0, 60);
+  if (term.length < 2) return [];
+  return prisma.client.findMany({
+    where: { OR: [{ name: { contains: term, mode: "insensitive" } }, { phone: { contains: term } }, { email: { contains: term, mode: "insensitive" } }] },
+    orderBy: { name: "asc" },
+    take: 8,
+    select: { id: true, name: true, phone: true, email: true, address: true },
+  });
 }
 
 export async function createJob(_prevState: JobFormState, formData: FormData): Promise<JobFormState> {
@@ -17,29 +62,66 @@ export async function createJob(_prevState: JobFormState, formData: FormData): P
   // tighten with requireRole(...) once role rules for Jobs are decided.
   const user = await requireNotInstaller();
 
-  const number = String(formData.get("number") ?? "").trim();
-  const title = String(formData.get("title") ?? "").trim();
-  const address = String(formData.get("address") ?? "").trim();
-  const type = String(formData.get("type") ?? "RESIDENTIAL");
-  const status = String(formData.get("status") ?? "New").trim() || "New";
-  const supplier = String(formData.get("supplier") ?? "").trim();
+  const str = (k: string) => String(formData.get(k) ?? "").trim();
+  const number = str("number");
+  const clientName = str("clientName");
+  const clientPhone = str("clientPhone");
+  const clientEmail = str("clientEmail");
+  const existingClientId = str("clientId");
+  const address = str("address");
+  const type = str("type") || "RESIDENTIAL";
+  const status = str("status") || "New";
+  const supplier = str("supplier");
+  const priceType = str("priceType");
+  const leadSource = str("leadSource");
+  const assignedUserId = str("assignedUserId");
+  const installDaysRaw = str("installDays");
+  const installDays = installDaysRaw ? parseFloat(installDaysRaw) : null;
 
   if (!number) return { error: "Job number is required." };
-  if (!title) return { error: "Job title is required." };
+  if (!clientName) return { error: "Customer name is required." };
+  if (installDays != null && (!Number.isFinite(installDays) || installDays <= 0 || installDays > 60)) return { error: "Install days must be a number between 0.5 and 60." };
+  if (status === "Quote Accepted" && !installDays) return { error: "How many install days does this job need? Enter it before marking the quote accepted." };
 
   const existing = await prisma.job.findUnique({ where: { number } });
   if (existing) return { error: `Job ${number} already exists.` };
 
+  // A previous customer picked from the search keeps their record; otherwise a new customer is created.
+  let clientId: string | null = null;
+  if (existingClientId) {
+    const c = await prisma.client.findUnique({ where: { id: existingClientId }, select: { id: true } });
+    if (c) {
+      clientId = c.id;
+      await prisma.client.update({ where: { id: c.id }, data: { name: clientName, phone: clientPhone || null, email: clientEmail || null, ...(address ? { address } : {}) } });
+    }
+  }
+  if (!clientId) {
+    const created = await prisma.client.create({ data: { name: clientName, phone: clientPhone || null, email: clientEmail || null, address: address || null } });
+    clientId = created.id;
+  }
+
   await prisma.job.create({
     data: {
       number,
-      title,
+      title: clientName,
+      clientId,
       address: address || null,
+      phone: clientPhone || null,
+      email: clientEmail || null,
       type: type === "COMMERCIAL" ? "COMMERCIAL" : "RESIDENTIAL",
       status,
       supplier: supplier || null,
+      priceType: priceType || null,
+      leadSource: leadSource || null,
+      installDays: installDays ?? null,
+      assignedUserId: assignedUserId || null,
     },
   });
+
+  // Same automatic records as when a job's status is edited to these values.
+  if (status === "Quote Accepted") {
+    await prisma.acceptance.create({ data: { jobNumber: number, acceptedBy: clientName, notes: "Auto-recorded on job creation as Quote Accepted", createdById: user.id } });
+  }
 
   await logAudit({ userId: user.id, action: "job_created", entityType: "Job", entityId: number });
   revalidatePath("/jobs");
@@ -147,6 +229,11 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
     for (const t of installs) await prisma.jobScheduledTask.update({ where: { id: t.id }, data: { endDate: installEndDate(t.scheduledDate, installDays) } });
   }
 
+  if (status === "Installation Date Confirmed" && job.status !== "Installation Date Confirmed") {
+    const inst = await prisma.jobScheduledTask.findFirst({ where: { jobNumber: number, type: "Installation", status: { not: "Cancelled" } }, orderBy: { scheduledDate: "asc" }, include: { assignees: { select: { name: true } } } });
+    await notifySalesRepBookedIn(number, user, inst ? { start: inst.scheduledDate, end: inst.endDate, crew: inst.assignees.map((a) => a.name) } : undefined);
+  }
+
   await logAudit({
     userId: user.id,
     action: "job_updated",
@@ -181,8 +268,23 @@ export interface ScheduledTaskState {
 
 const timeOf = (v: FormDataEntryValue | null) => {
   const t = String(v ?? "").trim();
-  return /^([01]d|2[0-3]):[0-5]d$/.test(t) ? t : null;
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
 };
+
+/** Measures show on the Calendar by time: a start time is needed, and with no end time they run for one hour. */
+function bookingTimes(type: string, formData: FormData): { startTime: string | null; endTime: string | null; error?: string } {
+  const startTime = timeOf(formData.get("startTime"));
+  let endTime = timeOf(formData.get("endTime"));
+  const isMeasure = type === "Sales Measure" || type === "Check Measure";
+  if (isMeasure && !startTime) return { startTime, endTime, error: "Enter a start time for the measure — it's what puts it in the right slot on the calendar." };
+  if (startTime && endTime && endTime <= startTime) return { startTime, endTime, error: "End time must be after the start time." };
+  if (isMeasure && startTime && !endTime) {
+    const [h, m] = startTime.split(":").map(Number);
+    const end = Math.min(h * 60 + m + 60, 23 * 60 + 59);
+    endTime = String(Math.floor(end / 60)).padStart(2, "0") + ":" + String(end % 60).padStart(2, "0");
+  }
+  return { startTime, endTime };
+}
 
 const TASK_TYPES = ["Sales Measure", "Check Measure", "Installation", "Remedial"];
 
@@ -203,6 +305,8 @@ export async function createScheduledTask(
   if (!TASK_TYPES.includes(type)) return { error: "Pick a valid booking type." };
   if (!scheduledDateRaw) return { error: "A date is required." };
   if (endDateRaw && endDateRaw < scheduledDateRaw) return { error: "To date can't be before the from date." };
+  const times = bookingTimes(type, formData);
+  if (times.error) return { error: times.error };
 
   // A multi-day install with no end date given runs for the job's install days (working days, skipping weekends).
   let endDate: Date | null = endDateRaw ? new Date(endDateRaw) : null;
@@ -217,8 +321,8 @@ export async function createScheduledTask(
       type,
       scheduledDate: new Date(scheduledDateRaw),
       endDate,
-      startTime: timeOf(formData.get("startTime")),
-      endTime: timeOf(formData.get("endTime")),
+      startTime: times.startTime,
+      endTime: times.endTime,
       status,
       notes: notes || null,
       createdById: user.id,
@@ -234,6 +338,7 @@ export async function createScheduledTask(
     entityId: jobNumber,
     metadata: { type, scheduledDate: task.scheduledDate, assignees: task.assignees.map((a) => a.name) },
   });
+  if (type === "Installation") await notifySalesRepBookedIn(jobNumber, user, { start: task.scheduledDate, end: task.endDate, crew: task.assignees.map((a) => a.name) });
   revalidatePath(`/jobs/${jobNumber}`);
   revalidatePath("/calendar");
   return {};
@@ -259,6 +364,8 @@ export async function updateScheduledTask(
   if (!TASK_TYPES.includes(type)) return { error: "Pick a valid booking type." };
   if (!scheduledDateRaw) return { error: "A date is required." };
   if (endDateRaw && endDateRaw < scheduledDateRaw) return { error: "To date can't be before the from date." };
+  const times = bookingTimes(type, formData);
+  if (times.error) return { error: times.error };
 
   await prisma.jobScheduledTask.update({
     where: { id },
@@ -266,8 +373,8 @@ export async function updateScheduledTask(
       type,
       scheduledDate: new Date(scheduledDateRaw),
       endDate: endDateRaw ? new Date(endDateRaw) : type === "Installation" ? installEndDate(new Date(scheduledDateRaw), (await prisma.job.findUnique({ where: { number: existing.jobNumber }, select: { installDays: true } }))?.installDays) : null,
-      startTime: timeOf(formData.get("startTime")),
-      endTime: timeOf(formData.get("endTime")),
+      startTime: times.startTime,
+      endTime: times.endTime,
       notes: notes || null,
       status,
       completedAt: status === "Fully Invoiced" ? new Date() : null,

@@ -364,7 +364,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
       // Everything typed into the sheet's fields, grouped by page and opening, so the supplier gets one proper PDF.
       const pageMap = new Map<number, { header: Record<string, string>; openings: Map<number, Record<string, string>> }>();
       document.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('[name^="page"]').forEach((el) => {
-        const m = el.name.match(/^page(d+)_(?:opening(d+)_)?(.+)$/);
+        const m = el.name.match(/^page(\d+)_(?:opening(\d+)_)?(.+)$/);
         if (!m) return;
         const page = Number(m[1]);
         const entry: { header: Record<string, string>; openings: Map<number, Record<string, string>> } = pageMap.get(page) ?? { header: {}, openings: new Map() };

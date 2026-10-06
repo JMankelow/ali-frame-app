@@ -28,6 +28,7 @@ const AUDIT_LABELS: Record<string, (m: Record<string, unknown> | null) => string
   job_created: () => "Job created.",
   job_updated: (m) =>
     m?.statusFrom && m?.statusTo ? `Status changed from ${m.statusFrom} to ${m.statusTo}.` : "Job details updated.",
+  sales_rep_notified_booked_in: (m) => `Sales rep${m?.to ? ` (${m.to})` : ""} emailed that the job is booked in.`,
   job_archived: () => "Job archived.",
   job_reactivated: () => "Job reactivated.",
   note_added: () => "Added a note.",
@@ -129,10 +130,25 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
   const isCompleted = job.status === "Completed";
   const invoiceSent = quotes.some((q) => (q.amountInvoiced ?? 0) > 0) || job.status === "Deposit Invoice Sent";
 
+  // The job's journey, in order. A step counts as done from what has actually happened on the job (bookings,
+  // quotes, orders, files) or because the job's status has moved past it — never just because the status isn't "New".
+  const ACCEPTED_OR_LATER = ["Quote Accepted", "Commercial Acceptance", "Check Measure Required", "Final Check Measure Complete", "Joinery Ordered", "Deposit Invoice Sent", "Installation Date Confirmed", "In Progress", "Completed", "Remedial Work Required"];
+  const acceptanceLogged = !!(await prisma.acceptance.findFirst({ where: { jobNumber: number }, select: { id: true } }));
+  const accepted = ACCEPTED_OR_LATER.includes(job.status) || acceptanceLogged;
+  const salesMeasureBooked = scheduledTasks.some((t) => t.type === "Sales Measure") || job.status === "Measure & Quoted Booked" || accepted;
+  const quoteSentToSupplier = ["Quote Sent to Supplier", "Gone to Supplier for Requote"].includes(job.status) || files.some((f) => f.fileType === "Supplier Quote") || accepted;
+  const quoteSent = ["Quote Sent", "Commercial Quote Sent", "Followed Up After Quote Sent"].includes(job.status) || quotes.length > 0 || accepted;
+  const finalMeasureDone = ["Final Check Measure Complete", "Joinery Ordered", "Deposit Invoice Sent", "Installation Date Confirmed", "In Progress", "Completed"].includes(job.status);
+
   const checklistItems: ChecklistItem[] = [
-    { label: "Quote accepted", done: job.status !== "New" && job.status !== "Quote Sent" && job.status !== "Quote Sent to Supplier" },
-    { label: "Check Measure booked", done: checkMeasureBooked, detail: checkMeasureBooked ? undefined : "No Check Measure booking on this job yet." },
-    { label: "Joinery ordered", done: purchaseOrders.length > 0, detail: purchaseOrders.length > 0 ? undefined : "No purchase order raised yet." },
+    { label: "Job added", done: true },
+    { label: "Sales measure booked", done: salesMeasureBooked, detail: salesMeasureBooked ? undefined : "No sales measure booking on this job yet." },
+    { label: "Quote sent to supplier", done: quoteSentToSupplier },
+    { label: "Quote sent to customer", done: quoteSent },
+    { label: "Quote accepted", done: accepted, detail: accepted ? undefined : "Marked done when the job's status is moved to Quote Accepted." },
+    { label: "Check Measure booked", done: checkMeasureBooked || finalMeasureDone, detail: checkMeasureBooked ? undefined : "No Check Measure booking on this job yet." },
+    { label: "Final Check Measure complete", done: finalMeasureDone },
+    { label: "Joinery ordered", done: purchaseOrders.length > 0 || ["Joinery Ordered", "Deposit Invoice Sent", "Installation Date Confirmed", "In Progress", "Completed"].includes(job.status), detail: purchaseOrders.length > 0 ? undefined : "No purchase order raised yet." },
     { label: "Installation booked", done: installationBooked, detail: installationBooked ? undefined : "No install booking yet." },
     { label: "Photos / files uploaded", done: files.length > 0, detail: files.length > 0 ? `${files.length} file(s) on this job.` : "Nothing uploaded to this job yet." },
     { label: "Invoice sent", done: invoiceSent, detail: invoiceSent ? undefined : "No invoiced amount recorded against this job's quote yet." },

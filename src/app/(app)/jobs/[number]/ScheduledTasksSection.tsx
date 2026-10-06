@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { useCloseOnSuccess } from "@/lib/useCloseOnSuccess";
 import { createScheduledTask, updateScheduledTask, type ScheduledTaskState } from "../actions";
 import { JOB_BOOKING_STATUSES } from "@/lib/jobStatus";
 import { TeamPicker } from "@/components/TeamPicker";
@@ -91,6 +92,7 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
   const [editing, setEditing] = useState(false);
   const action = updateScheduledTask.bind(null, task.id);
   const [state, formAction, pending] = useActionState(action, initialState);
+  useCloseOnSuccess(pending, state.error, () => setEditing(false));
 
   if (!editing) {
     return (
@@ -175,7 +177,7 @@ function NewTaskForm({ jobNumber, staff }: { jobNumber: string; staff: { id: str
           <input type="date" name="endDate" />
         </div>
         <div>
-          <label>Start Time (optional)</label>
+          <label>Start Time (needed for measures)</label>
           <input type="time" name="startTime" />
         </div>
         <div>
