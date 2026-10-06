@@ -12,7 +12,8 @@ export default async function NotesPage() {
       include: { author: true, assignedTo: true, attachments: true },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
-    prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    // Notes can only be assigned to Jo or Tanya (or Claude, below).
+    prisma.user.findMany({ where: { isActive: true, email: { in: ["jo@aliframe.co.nz", "tanya@aliframe.co.nz"] } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.user.findUnique({ where: { email: "claude@aliframe.local" }, select: { id: true, name: true } }),
   ]);
 

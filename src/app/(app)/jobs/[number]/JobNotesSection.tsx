@@ -49,7 +49,14 @@ export function JobNotesSection({ jobNumber, feed }: { jobNumber: string; feed: 
               {f.kind === "note" ? "Note" : "Activity"}
             </span>
             <div style={{ flex: 1 }}>
-              <div>{f.text}</div>
+              {f.text.length > 280 ? (
+                <details>
+                  <summary style={{ cursor: "pointer" }}>{f.text.slice(0, 220).trimEnd()}… <b style={{ color: "var(--blueDark)" }}>Show more</b></summary>
+                  <div style={{ whiteSpace: "pre-wrap", marginTop: 6 }}>{f.text}</div>
+                </details>
+              ) : (
+                <div style={{ whiteSpace: "pre-wrap" }}>{f.text}</div>
+              )}
               <div className="hint" style={{ marginTop: 2 }}>
                 {f.authorName} — {new Date(f.createdAt).toLocaleString("en-NZ")}
               </div>

@@ -245,8 +245,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         </a>
       </div>
       <div className="hint" style={{ marginBottom: 10 }}>
-        This job's real files live in SharePoint — the table below is only files uploaded directly through this app
-        (a stopgap until uploads go straight to SharePoint).
+        Job folders are in SharePoint. Below: files added through this app.
       </div>
       {otherFiles.length === 0 ? (
         <div className="hint">No other files uploaded for this job yet.</div>

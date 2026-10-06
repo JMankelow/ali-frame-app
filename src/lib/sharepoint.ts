@@ -9,8 +9,12 @@
 // separate step, same shape as the Xero setup.
 const SHAREPOINT_BASE = "https://blbconsultantsltd-my.sharepoint.com/personal/jo_aliframe_co_nz";
 
+// Job folders are in the "Ali Frame - Sales & Operations" team site, which the whole team can open
+// (the old link went to Jo's personal OneDrive, which nobody else can see).
+const SALES_OPS_SITE = "https://blbconsultantsltd.sharepoint.com/sites/AliFrameWindowsDoors-SalesOperations";
+
 export function buildSharePointSearchUrl(jobNumber: string): string {
-  return `${SHAREPOINT_BASE}/_layouts/15/search.aspx?q=${encodeURIComponent(jobNumber)}`;
+  return `${SALES_OPS_SITE}/_layouts/15/search.aspx?q=${encodeURIComponent(jobNumber)}`;
 }
 
 // Employee HR folders live under the same site

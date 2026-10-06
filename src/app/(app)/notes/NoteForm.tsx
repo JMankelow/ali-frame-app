@@ -5,6 +5,17 @@ import { createNote, requestNoteImageUpload, type NoteFormState } from "./action
 
 const initialState: NoteFormState = {};
 
+// Windows/phones sometimes leave the type blank (e.g. HEIC) — fall back to the extension.
+const EXT_TYPES: Record<string, string> = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", heic: "image/heic", heif: "image/heif",
+  pdf: "application/pdf", txt: "text/plain", csv: "text/csv", doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+};
+const typeOf = (f: File) => f.type || EXT_TYPES[(f.name.split(".").pop() ?? "").toLowerCase()] || "";
+const canPreview = (t: string) => ["image/png", "image/jpeg", "image/webp", "image/gif"].includes(t);
+
 interface Shot {
   storageKey: string;
   fileName: string;
@@ -21,25 +32,26 @@ export function NoteForm({ users }: { users: { id: string; name: string }[] }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
-  /** Uploads each image straight to storage and keeps it in the list until the note is added. */
+  /** Uploads each photo/file straight to storage and keeps it in the list until the note is added. */
   async function addFiles(files: FileList | File[] | null) {
-    const list = Array.from(files ?? []).filter((f) => f.type.startsWith("image/"));
+    const list = Array.from(files ?? []);
     if (list.length === 0) return;
     setBusy(true);
     setError("");
     for (const file of list) {
+      const mime = typeOf(file);
       const name = file.name && file.name !== "image.png" ? file.name : `screenshot-${Date.now()}.png`;
-      const { error: reqError, storageKey, uploadUrl } = await requestNoteImageUpload(name, file.type, file.size);
+      const { error: reqError, storageKey, uploadUrl } = await requestNoteImageUpload(name, mime, file.size);
       if (reqError || !storageKey || !uploadUrl) {
-        setError(reqError ?? "Couldn't attach that image.");
+        setError(reqError ?? "Couldn't attach that file.");
         continue;
       }
-      const put = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": file.type }, body: file });
+      const put = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": mime }, body: file });
       if (!put.ok) {
         setError(`Upload failed for ${name}.`);
         continue;
       }
-      setShots((prev) => [...prev, { storageKey, fileName: name, mimeType: file.type, sizeBytes: file.size, preview: URL.createObjectURL(file) }]);
+      setShots((prev) => [...prev, { storageKey, fileName: name, mimeType: mime, sizeBytes: file.size, preview: canPreview(mime) ? URL.createObjectURL(file) : "" }]);
     }
     if (fileRef.current) fileRef.current.value = "";
     setBusy(false);
@@ -65,7 +77,7 @@ export function NoteForm({ users }: { users: { id: string; name: string }[] }) {
               name="text"
               rows={3}
               required
-              placeholder="A bug, a request, something that still needs building... (you can paste a screenshot straight in here)"
+              placeholder="A bug, a request, something that still needs building... (you can paste a screenshot straight in here, or add photos and files below)"
               onPaste={(e) => {
                 const imgs = Array.from(e.clipboardData.files).filter((f) => f.type.startsWith("image/"));
                 if (imgs.length) {
@@ -76,23 +88,36 @@ export function NoteForm({ users }: { users: { id: string; name: string }[] }) {
             />
           </div>
           <div className="full">
-            <label>Screenshots (optional)</label>
-            <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple disabled={busy} onChange={(e) => addFiles(e.target.files)} />
-            <div className="hint" style={{ marginTop: 4 }}>Or click in the note box and press Ctrl+V to paste a screenshot you&apos;ve just taken.</div>
+            <label>Add photos or files (optional)</label>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,.heic,.heif,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt"
+              multiple
+              disabled={busy}
+              onChange={(e) => addFiles(e.target.files)}
+            />
+            <div className="hint" style={{ marginTop: 4 }}>Photos, PDFs, Word, Excel and PowerPoint files (up to 15 MB each). You can also click in the note box and press Ctrl+V to paste a screenshot.</div>
             {busy && <div className="hint">Uploading…</div>}
             {error && <div className="authError">{error}</div>}
             {shots.length > 0 && (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
                 {shots.map((s) => (
                   <div key={s.storageKey} style={{ position: "relative" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={s.preview} alt={s.fileName} style={{ height: 80, borderRadius: 6, border: "1px solid var(--line)" }} />
+                    {s.preview ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.preview} alt={s.fileName} style={{ height: 80, borderRadius: 6, border: "1px solid var(--line)" }} />
+                    ) : (
+                      <div style={{ height: 80, minWidth: 110, maxWidth: 170, display: "flex", alignItems: "center", padding: "0 26px 0 10px", borderRadius: 6, border: "1px solid var(--line)", background: "#f4f6fa", fontSize: 12, fontWeight: 600, overflow: "hidden", wordBreak: "break-all" }}>
+                        {s.fileName}
+                      </div>
+                    )}
                     <button
                       type="button"
                       className="btn light"
                       style={{ position: "absolute", top: 2, right: 2, padding: "0 6px" }}
                       onClick={() => setShots((prev) => prev.filter((x) => x.storageKey !== s.storageKey))}
-                      aria-label="Remove screenshot"
+                      aria-label="Remove file"
                     >
                       ×
                     </button>

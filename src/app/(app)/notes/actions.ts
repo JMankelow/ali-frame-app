@@ -10,20 +10,27 @@ export interface NoteFormState {
   error?: string;
 }
 
-const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+// Photos (incl. iPhone HEIC) and everyday documents can be attached to a note.
+const FILE_TYPES = [
+  "image/png", "image/jpeg", "image/webp", "image/gif", "image/heic", "image/heif",
+  "application/pdf", "text/plain", "text/csv",
+  "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+];
+const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
-/** Step 1 of attaching a screenshot: hands back a short-lived URL the browser PUTs the image to. */
+/** Step 1 of attaching a photo or file: hands back a short-lived URL the browser PUTs it to. */
 export async function requestNoteImageUpload(fileName: string, mimeType: string, sizeBytes: number): Promise<{ error?: string; storageKey?: string; uploadUrl?: string }> {
   await requireNotInstaller();
-  if (!IMAGE_TYPES.includes(mimeType)) return { error: "Only PNG, JPG, WebP or GIF images can be attached." };
-  if (sizeBytes > MAX_IMAGE_BYTES) return { error: "That image is over 10 MB." };
-  const storageKey = buildGenericStorageKey("notes", fileName || "screenshot.png");
+  if (!FILE_TYPES.includes(mimeType)) return { error: "That file type can't be attached — use a photo, PDF, Word, Excel, PowerPoint, CSV or text file." };
+  if (sizeBytes > MAX_FILE_BYTES) return { error: "That file is over 15 MB." };
+  const storageKey = buildGenericStorageKey("notes", fileName || "photo.jpg");
   try {
     return { storageKey, uploadUrl: await getUploadUrl(storageKey, mimeType) };
   } catch (e) {
     console.error("[notes] file storage unavailable", e);
-    return { error: `File storage problem — the image couldn't be attached. (Reason: ${e instanceof Error ? e.message.slice(0, 160) : "unknown"})` };
+    return { error: `File storage problem — the file couldn't be attached. (Reason: ${e instanceof Error ? e.message.slice(0, 160) : "unknown"})` };
   }
 }
 
@@ -33,16 +40,20 @@ export async function createNote(_prevState: NoteFormState, formData: FormData):
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
 
   if (!text) return { error: "Write something before adding the note." };
+  if (assignedToId) {
+    const a = await prisma.user.findUnique({ where: { id: assignedToId }, select: { email: true } });
+    if (!a || !["jo@aliframe.co.nz", "tanya@aliframe.co.nz", "claude@aliframe.local"].includes(a.email)) return { error: "Notes can only be assigned to Jo, Tanya or Claude." };
+  }
 
-  // Screenshots already uploaded straight to storage (see requestNoteImageUpload).
+  // Photos/files already uploaded straight to storage (see requestNoteImageUpload).
   let attachments: { storageKey: string; fileName: string; mimeType: string; sizeBytes: number }[] = [];
   try {
     const raw = JSON.parse(String(formData.get("attachments") ?? "[]"));
     if (Array.isArray(raw)) {
       attachments = raw
         .slice(0, 10)
-        .map((a) => ({ storageKey: String(a?.storageKey ?? ""), fileName: String(a?.fileName ?? "screenshot.png").slice(0, 120), mimeType: String(a?.mimeType ?? ""), sizeBytes: Number(a?.sizeBytes) || 0 }))
-        .filter((a) => a.storageKey.startsWith("notes/") && IMAGE_TYPES.includes(a.mimeType));
+        .map((a) => ({ storageKey: String(a?.storageKey ?? ""), fileName: String(a?.fileName ?? "photo.jpg").slice(0, 120), mimeType: String(a?.mimeType ?? ""), sizeBytes: Number(a?.sizeBytes) || 0 }))
+        .filter((a) => a.storageKey.startsWith("notes/") && FILE_TYPES.includes(a.mimeType));
     }
   } catch {
     /* ignore malformed attachment list */
