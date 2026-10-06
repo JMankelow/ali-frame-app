@@ -28,7 +28,7 @@ export default async function BookAppointmentPage() {
         </div>
       </div>
       <BookAppointmentForm
-        jobs={jobs.map((j) => ({ number: j.number, title: j.client?.name ?? j.title, email: j.client?.email ?? j.email, address: j.address }))}
+        jobs={[...jobs].sort((a, b) => Number(b.number) - Number(a.number)).map((j) => ({ number: j.number, title: j.client?.name ?? j.title, email: j.client?.email ?? j.email, address: j.address }))}
         staff={staff}
       />
     </div>

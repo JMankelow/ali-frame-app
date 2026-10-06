@@ -1,6 +1,7 @@
 // Copyright (c) 2026 BLB Consultants Limited T/A Ali-Frame Windows & Doors. All rights reserved.
 // Proprietary and confidential. Unauthorised copying, use or distribution is prohibited.
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
+import { byNumberDesc } from "@/lib/jobSort";
 import { requireNotInstaller } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { cleanPack, emptyPack } from "@/lib/checkMeasure";
@@ -49,7 +50,7 @@ export default async function PrepareCheckMeasurePage({ searchParams }: { search
           </div>
         </div>
       </div>
-      <CheckMeasureForm key={job?.number ?? "none"} jobs={jobs} jobNumber={job?.number ?? ""} initial={initial} supplierFiles={job?.files ?? []} hasSaved={!!job?.checkMeasurePack} />
+      <CheckMeasureForm key={job?.number ?? "none"} jobs={byNumberDesc(jobs)} jobNumber={job?.number ?? ""} initial={initial} supplierFiles={job?.files ?? []} hasSaved={!!job?.checkMeasurePack} />
     </div>
   );
 }

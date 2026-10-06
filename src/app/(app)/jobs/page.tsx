@@ -20,7 +20,7 @@ export default async function JobsPage({
       archived: showArchived,
       ...(jobType ? { type: jobType as "RESIDENTIAL" | "COMMERCIAL" } : {}),
     },
-    include: { client: true },
+    select: { number: true, title: true, address: true, type: true, status: true, supplier: true, client: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });
 
@@ -30,11 +30,12 @@ export default async function JobsPage({
     prisma.supplier.findMany({ select: { companyName: true }, where: { NOT: { companyName: { startsWith: "Ali-Frame (internal" } } } }),
     prisma.user.findMany({ where: { isActive: true, role: "SALES" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
-  const highest = numbers.reduce((max, j) => (/^\d+$/.test(j.number) ? Math.max(max, Number(j.number)) : max), 0);
+  const highest = numbers.reduce((max, j) => (/^\d{4,6}$/.test(j.number) ? Math.max(max, Number(j.number)) : max), 0); // 4-6 digits only, so a test number like 1000000001 can't skew it
   const nextNumber = highest ? String(highest + 1) : "";
   const supplierNames = [...new Set(supplierRows.map((r) => r.companyName.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
 
-  const jobs = jobsRaw.map((j) => ({ ...j, clientName: j.client?.name ?? null }));
+  // Only the fields the list shows (the full rows carry long descriptions — thousands of them on the Inactive list).
+  const jobs = jobsRaw.map((j) => ({ number: j.number, title: j.title, clientName: j.client?.name ?? null, address: j.address, type: j.type, status: j.status, supplier: j.supplier }));
 
   const heading = showArchived ? "Inactive Jobs" : type ? `${type} Jobs` : "Jobs";
 

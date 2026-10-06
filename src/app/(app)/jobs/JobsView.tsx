@@ -37,7 +37,7 @@ export function JobsView({ jobs: allJobs, showArchived, canManage = true }: { jo
   const [viewMode, setViewMode] = useState<"table" | "card">("table");
   const [q, setQ] = useState("");
   // Search across number, title, client, address, supplier, type and status — every word typed has to match somewhere.
-  const words = q.toLowerCase().split(/s+/).filter(Boolean);
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const jobs = words.length
     ? allJobs.filter((j) => {
         const hay = [j.number, j.title, j.clientName, j.address, j.supplier, j.status, j.type === "COMMERCIAL" ? "commercial" : "residential"].join(" ").toLowerCase();

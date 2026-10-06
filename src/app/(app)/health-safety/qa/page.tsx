@@ -1,6 +1,7 @@
 // Copyright (c) 2026 BLB Consultants Limited T/A Ali-Frame Windows & Doors. All rights reserved.
 // Proprietary and confidential. Unauthorised copying, use or distribution is prohibited.
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
+import { byNumberDesc } from "@/lib/jobSort";
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { isInstallerProfile } from "@/lib/permissions";
@@ -40,7 +41,7 @@ export default async function QaReportsPage({ searchParams }: { searchParams: Pr
 
       {error === "job" && <div className="authError">Select a job first.</div>}
       {error === "schedule" && <div className="authError">Couldn't read items from that schedule — pick another file, or type the items in instead.</div>}
-      <NewQaReportForm jobs={jobs} />
+      <NewQaReportForm jobs={byNumberDesc(jobs)} />
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="label">{installer ? "My QA check sheets" : "QA check sheets"}</div>
