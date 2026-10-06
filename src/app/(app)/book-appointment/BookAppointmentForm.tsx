@@ -5,6 +5,7 @@
 
 import { useActionState, useState } from "react";
 import { JobPicker } from "@/components/JobPicker";
+import { TeamPicker } from "@/components/TeamPicker";
 import { bookAppointment, type BookAppointmentState } from "./actions";
 
 const initial: BookAppointmentState = {};
@@ -62,13 +63,7 @@ export function BookAppointmentForm({ jobs, staff }: { jobs: JobOption[]; staff:
           </div>
           <div className="full">
             <label>Who is going</label>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginTop: 4 }}>
-              {staff.map((s) => (
-                <label key={s.id} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <input type="checkbox" name="assigneeIds" value={s.id} /> {s.name}
-                </label>
-              ))}
-            </div>
+            <TeamPicker name="assigneeIds" staff={staff} allowAdd={false} />
           </div>
           <div className="full">
             <label>Notes (optional)</label>
