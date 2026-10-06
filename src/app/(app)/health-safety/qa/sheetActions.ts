@@ -9,7 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, type SessionUser } from "@/lib/session";
 import { isInstallerProfile } from "@/lib/permissions";
 import { logAudit } from "@/lib/audit";
-import { getDownloadUrl } from "@/lib/storage";
+import { getDownloadUrl, getObjectBuffer } from "@/lib/storage";
+import { describeItem, parseSchedulePdf, type ScheduleItem } from "@/lib/scheduleParse";
 import {
   COM_SECTIONS, RES_CHECKS, RES_FINAL, RES_REMEDIAL, checkKey, emptyComItem, emptyCommercial, emptyResidential, emptyResItem, emptyQa, itemProblems, residentialProblems,
   type CommercialData, type ComItem, type ResidentialData, type ResItem, type Result, type Stamped, type YesNo,
@@ -29,6 +30,46 @@ export async function canSignQa(user: SessionUser): Promise<boolean> {
 }
 const canEdit = (user: SessionUser, createdById: string) => !isInstallerProfile(user) || user.id === createdById;
 
+/** Reads the chosen supplier-schedule PDF on the job (must belong to that job). */
+async function loadSchedule(jobNumber: string, fileId: string): Promise<{ items?: ScheduleItem[]; error?: string }> {
+  const f = await prisma.fileAsset.findFirst({ where: { id: fileId, jobNumber, mimeType: "application/pdf" } });
+  if (!f) return { error: "That schedule file wasn't found on this job." };
+  try {
+    const items = await parseSchedulePdf(await getObjectBuffer(f.storageKey));
+    if (!items.length) return { error: "No items were found in that file — is it a supplier schedule (Item 1, Item 2 …)? You can still type the items in below." };
+    return { items: items.slice(0, 60) };
+  } catch {
+    return { error: "Couldn't read that file just now — please try again, or type the items in below." };
+  }
+}
+
+export interface ScheduleOptions {
+  jobType?: "RESIDENTIAL" | "COMMERCIAL";
+  files?: { id: string; name: string; type: string }[];
+  error?: string;
+}
+/** For the chosen job: its type (commercial / residential) and the PDFs that could be its supplier schedule. */
+export async function getScheduleOptions(jobNumber: string): Promise<ScheduleOptions> {
+  await requireUser();
+  const job = await prisma.job.findUnique({ where: { number: String(jobNumber) }, select: { type: true } });
+  if (!job) return { error: "Job not found." };
+  const files = await prisma.fileAsset.findMany({
+    where: { jobNumber: String(jobNumber), mimeType: "application/pdf" },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, fileName: true, fileType: true },
+    take: 60,
+  });
+  const score = (f: { fileName: string; fileType: string }) => (/schedule/i.test(f.fileName) ? 0 : 2) + (f.fileType === "Supplier Quote" ? 0 : 1);
+  files.sort((a, b) => score(a) - score(b));
+  return { jobType: job.type as "RESIDENTIAL" | "COMMERCIAL", files: files.map((f) => ({ id: f.id, name: f.fileName, type: f.fileType })) };
+}
+
+/** Reads the schedule and returns its items so they can be checked before the sheet is built. */
+export async function previewSchedule(jobNumber: string, fileId: string): Promise<{ items?: ScheduleItem[]; error?: string }> {
+  await requireUser();
+  return loadSchedule(String(jobNumber), String(fileId));
+}
+
 /** Pick the type and the job → creates a draft sheet and opens it. Open to installers. */
 export async function createQaSheet(formData: FormData) {
   const user = await requireUser();
@@ -42,13 +83,27 @@ export async function createQaSheet(formData: FormData) {
   const labels = String(formData.get("itemLabels") ?? "").split(/\r?\n/).map((l) => l.trim().slice(0, 120)).filter(Boolean).slice(0, 60);
   const total = Math.max(count, labels.length);
   const data = kind === "COMMERCIAL" ? emptyCommercial(today()) : emptyResidential(today());
-  data.items = Array.from({ length: total }, (_, i) => {
+  // A schedule picked on the form fills every item (window code, frame type, size) automatically.
+  const scheduleFileId = String(formData.get("scheduleFileId") ?? "").trim();
+  let scheduleItems: ScheduleItem[] | null = null;
+  if (scheduleFileId) {
+    const r = await loadSchedule(jobNumber, scheduleFileId);
+    if (!r.items) redirect("/health-safety/qa?error=schedule");
+    scheduleItems = r.items;
+  }
+  if (scheduleItems) {
+    data.items = scheduleItems.map((it) =>
+      kind === "COMMERCIAL"
+        ? { ...emptyComItem(), n: String(it.n), code: it.code.slice(0, 60), loc: describeItem(it).slice(0, 120) }
+        : { ...emptyResItem(), label: [it.code, describeItem(it)].filter(Boolean).join(" — ").slice(0, 120) },
+    ) as never;
+  } else data.items = Array.from({ length: total }, (_, i) => {
     const label = labels[i] ?? "";
     if (kind === "COMMERCIAL") return { ...emptyComItem(), n: String(i + 1), code: label };
     return { ...emptyResItem(), label };
   }) as never;
   const sheet = await prisma.qaCheckSheet.create({ data: { kind, jobNumber, data: data as never, createdById: user.id } });
-  await logAudit({ userId: user.id, action: "qa_sheet_created", entityType: "QaCheckSheet", entityId: sheet.id, metadata: { kind, jobNumber } });
+  await logAudit({ userId: user.id, action: "qa_sheet_created", entityType: "QaCheckSheet", entityId: sheet.id, metadata: { kind, jobNumber, schedule: scheduleItems ? scheduleItems.length : undefined } });
   redirect(`/health-safety/qa/sheet/${sheet.id}`);
 }
 

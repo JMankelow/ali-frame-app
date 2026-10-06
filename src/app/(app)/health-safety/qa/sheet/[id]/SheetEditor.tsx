@@ -31,6 +31,8 @@ const seg = (on: boolean, color: string): CSSProperties => ({
   flex: 1, textAlign: "center", border: `1.5px solid ${on ? color : "var(--line)"}`, borderRadius: 8, padding: "8px 10px", cursor: "pointer",
   fontWeight: 700, background: on ? color : "#fff", color: on ? "#fff" : "inherit", userSelect: "none",
 });
+/** Compact version for Pass / Fail / N/A — small buttons that don't stretch across the row. */
+const segSm = (on: boolean, color: string): CSSProperties => ({ ...seg(on, color), flex: "0 0 auto", minWidth: 56, padding: "3px 10px", fontSize: 13, borderRadius: 6 });
 const stampText = (iso: string) => (iso ? new Date(iso).toLocaleString("en-NZ", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "");
 
 export function SheetEditor(p: Props) {
@@ -383,10 +385,10 @@ function Commercial({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Commer
             return (
               <div key={k} style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--line)" }}>
                 <div style={{ fontWeight: 600 }}>{c}</div>
-                <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                  <label style={seg(x.r === "Pass", "#1f8a4c")}><input type="radio" style={{ display: "none" }} disabled={!senior || locked} checked={x.r === "Pass"} onChange={() => setR("Pass")} />Pass</label>
-                  <label style={seg(x.r === "Fail", "#c62828")}><input type="radio" style={{ display: "none" }} disabled={!senior || locked} checked={x.r === "Fail"} onChange={() => setR("Fail")} />Fail</label>
-                  <label style={seg(x.r === "NA", "#667085")}><input type="radio" style={{ display: "none" }} disabled={!senior || locked} checked={x.r === "NA"} onChange={() => setR("NA")} />N/A</label>
+                <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+                  <label style={segSm(x.r === "Pass", "#1f8a4c")}><input type="radio" style={{ display: "none" }} disabled={!senior || locked} checked={x.r === "Pass"} onChange={() => setR("Pass")} />Pass</label>
+                  <label style={segSm(x.r === "Fail", "#c62828")}><input type="radio" style={{ display: "none" }} disabled={!senior || locked} checked={x.r === "Fail"} onChange={() => setR("Fail")} />Fail</label>
+                  <label style={segSm(x.r === "NA", "#667085")}><input type="radio" style={{ display: "none" }} disabled={!senior || locked} checked={x.r === "NA"} onChange={() => setR("NA")} />N/A</label>
                 </div>
                 {x.r === "Fail" && (
                   <textarea rows={2} disabled={!senior || locked} value={x.note} onChange={(e) => upd((q) => ({ ...q, qa: { ...q.qa, checks: { ...q.qa.checks, [k]: { ...x, note: e.target.value } } } }))} placeholder="Describe the issue and corrective action (required)…" style={{ width: "100%", marginTop: 6 }} />
