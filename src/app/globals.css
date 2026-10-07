@@ -130,6 +130,9 @@ textarea{min-height:82px}
 .form .full{grid-column:1/-1}
 .notice{background:#e7f0ff;border-left:4px solid var(--blueDark);padding:12px 14px;border-radius:12px;margin-bottom:16px;color:#0f356b;font-size:14px}
 
+.app > main{min-width:0}
+.usersTable td{vertical-align:top;padding-top:12px;padding-bottom:12px}
+.usersTable .usersGroupRow td{background:#eef4fb;padding:8px 12px;border-bottom:1px solid #d6e4f5}
 .stickyUnderNav{position:sticky;top:92px;z-index:4}
 .menuBtn{display:none;background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:42px;height:34px;font-size:22px;line-height:1;cursor:pointer;flex:0 0 auto}
 
