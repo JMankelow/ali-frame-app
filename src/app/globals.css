@@ -130,12 +130,29 @@ textarea{min-height:82px}
 .form .full{grid-column:1/-1}
 .notice{background:#e7f0ff;border-left:4px solid var(--blueDark);padding:12px 14px;border-radius:12px;margin-bottom:16px;color:#0f356b;font-size:14px}
 
+.stickyUnderNav{position:sticky;top:92px;z-index:4}
+.menuBtn{display:none;background:rgba(255,255,255,.18);border:none;color:#fff;border-radius:8px;width:42px;height:34px;font-size:22px;line-height:1;cursor:pointer;flex:0 0 auto}
+
 @media(max-width:900px){
   .app{grid-template-columns:1fr}
-  aside{position:relative;height:auto;top:0}
   .form{grid-template-columns:1fr}
   .topUtilityBar{overflow-x:auto}
   .syncBtn{flex:0 0 auto}
+
+  /* Phones: page first, menu is a three-line drop-down */
+  .menuBtn{display:inline-flex;align-items:center;justify-content:center}
+  .hideOnMobile{display:none !important}
+  .app aside{display:none}
+  body > .topTabs, .topTabs{display:none}
+  .mobileMenuBackdrop{position:fixed;inset:48px 0 0 0;background:rgba(0,0,0,.4);z-index:29}
+  .mobileMenu{position:fixed;top:48px;left:0;right:0;max-height:calc(100vh - 48px);overflow-y:auto;background:var(--nav);color:#fff;z-index:30;padding:14px 16px 28px;box-shadow:0 14px 30px rgba(0,0,0,.45)}
+  .mobileMenu .topTabs{display:flex;position:static;height:auto;flex-wrap:wrap;gap:6px;padding:0;margin:0 0 12px;overflow:visible}
+  .mobileMenuUser{font-size:13px;opacity:.85;margin-bottom:10px}
+  .brandbar{display:none}
+  .stickyUnderNav{top:56px}
+}
+@media(min-width:901px){
+  .mobileMenu,.mobileMenuBackdrop{display:none}
 }
 
 @media print{aside,.topUtilityBar,.no-print{display:none !important}.app{display:block}body{background:#fff}.pagebreak{break-before:page}.card{box-shadow:none;border:1px solid #ccc}}

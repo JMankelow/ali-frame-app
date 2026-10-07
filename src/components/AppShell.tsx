@@ -54,21 +54,28 @@ export function AppShell({
     if (section && visibleSections.includes(section)) setSelectedSection(section);
   }, [pathname, visibleSections]);
 
+  // Phones: the page itself comes first and the menu is a three-line drop-down; it closes when you pick something.
+  const [menuOpen, setMenuOpen] = useState(false);
+  useEffect(() => setMenuOpen(false), [pathname]);
+
   return (
     <>
       <div className="topUtilityBar">
+        <button type="button" className="menuBtn" aria-label="Menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
+          {menuOpen ? "\u2715" : "\u2630"}
+        </button>
         <div className="side-logo" style={{ width: 34, height: 34 }}>
           <img src="/icon.svg" alt="Ali-Frame" style={{ width: "100%", height: "100%", borderRadius: 8 }} />
         </div>
-        <Link href="/notes" className="syncBtn" style={{ fontWeight: 900 }}>
+        <Link href="/notes" className="syncBtn hideOnMobile" style={{ fontWeight: 900 }}>
           📝 Update Notes
         </Link>
-        <Link href="/communications" className="syncBtn" style={{ fontWeight: 900 }}>
+        <Link href="/communications" className="syncBtn hideOnMobile" style={{ fontWeight: 900 }}>
           💬 Communications Hub
         </Link>
         <div style={{ flex: 1 }} />
         {SYNC_BUTTONS.map((s) => (
-          <Link key={s.href} href={s.href} className="syncBtn">
+          <Link key={s.href} href={s.href} className="syncBtn hideOnMobile">
             {s.label}
           </Link>
         ))}
@@ -76,9 +83,25 @@ export function AppShell({
           🔔
           {openTaskCount > 0 && <span className="taskBadge">{openTaskCount}</span>}
         </Link>
-        <div className="topUtilityUser">{userBadge}</div>
+        <div className="topUtilityUser hideOnMobile">{userBadge}</div>
         {signOutForm}
       </div>
+      {menuOpen && <div className="mobileMenuBackdrop" onClick={() => setMenuOpen(false)} />}
+      {menuOpen && (
+        <div className="mobileMenu" role="dialog" aria-label="Menu">
+          <div className="mobileMenuUser">{userBadge}</div>
+          <TopTabs selected={selectedSection} onSelect={setSelectedSection} visibleSections={visibleSections} />
+          <NavSidebar isSuperUser={isSuperUser} fieldStaff={isFieldStaff} pins={pins} selectedSection={selectedSection} />
+          {!isFieldStaff && (
+            <div className="navUnsorted">
+              <div className="navUnsorted-label">Not yet migrated</div>
+              <a href={PROTOTYPE_URL} target="_blank" rel="noopener noreferrer">
+                Other tools (prototype) ↗
+              </a>
+            </div>
+          )}
+        </div>
+      )}
       <TopTabs selected={selectedSection} onSelect={setSelectedSection} visibleSections={visibleSections} />
       <div className="app">
         <aside>

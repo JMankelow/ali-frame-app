@@ -129,7 +129,7 @@ function ItemTabs({ tabs, cur, onSelect, onAdd, locked }: { tabs: Tab[]; cur: st
   const done = tabs.filter((t) => t.state === "Complete").length;
   const go = (n: number) => { if (tabs[n]) onSelect(tabs[n].id); };
   return (
-    <div className="card" style={{ position: "sticky", top: 92, zIndex: 4, padding: 8, boxShadow: "0 2px 10px rgba(0,0,0,.08)" }}>
+    <div className="card stickyUnderNav" style={{ padding: 8, boxShadow: "0 2px 10px rgba(0,0,0,.08)" }}>
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
         <button type="button" className="btn light" onClick={() => go(idx - 1)} disabled={idx <= 0} aria-label="Previous item">&larr;</button>
         <select
