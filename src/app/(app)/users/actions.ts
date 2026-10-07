@@ -1,6 +1,7 @@
 "use server";
 
 import { randomBytes } from "crypto";
+import { INSTALLER_ROLES, INSTALLER_SECTIONS, SECTIONS, clampSectionsForRole } from "@/lib/permissions";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireSuperUser } from "@/lib/session";
@@ -41,7 +42,7 @@ export async function createUser(_prevState: UserFormState, formData: FormData):
   const passwordHash = await hashPassword(tempPassword);
 
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role, mustResetPassword: true, isActive: true },
+    data: { name, email, passwordHash, role, mustResetPassword: true, isActive: true, ...(INSTALLER_ROLES.includes(role) ? { permissions: [...INSTALLER_SECTIONS] } : {}) },
   });
 
   await logAudit({
@@ -58,8 +59,11 @@ export async function createUser(_prevState: UserFormState, formData: FormData):
 
 /** Replaces a user's whole section-access list in one call — the matrix's
  * checkboxes always send the complete new set, not one-at-a-time deltas. */
-export async function setUserPermissions(userId: string, sections: string[]) {
+export async function setUserPermissions(userId: string, sectionsIn: string[]) {
   const actor = await requireSuperUser();
+  const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (!target) return;
+  const sections = clampSectionsForRole(target.role, (Array.isArray(sectionsIn) ? sectionsIn : []).map(String).filter((s) => (SECTIONS as readonly string[]).includes(s)));
   await prisma.user.update({ where: { id: userId }, data: { permissions: sections } });
   await logAudit({ userId: actor.id, action: "user_permissions_updated", entityType: "User", entityId: userId, metadata: { sections } });
   revalidatePath("/users");
@@ -67,6 +71,8 @@ export async function setUserPermissions(userId: string, sections: string[]) {
 
 export async function setUserSuperUser(userId: string, isSuperUser: boolean) {
   const actor = await requireSuperUser();
+  const who = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+  if (isSuperUser && who && INSTALLER_ROLES.includes(who.role)) return; // field staff are never super users
   await prisma.user.update({ where: { id: userId }, data: { isSuperUser } });
   await logAudit({ userId: actor.id, action: "user_superuser_updated", entityType: "User", entityId: userId, metadata: { isSuperUser } });
   revalidatePath("/users");
@@ -75,7 +81,8 @@ export async function setUserSuperUser(userId: string, isSuperUser: boolean) {
 export async function updateUserRole(userId: string, roleInput: string) {
   const actor = await requireSuperUser();
   if (!VALID_ROLES.includes(roleInput as Role)) return;
-  await prisma.user.update({ where: { id: userId }, data: { role: roleInput as Role } });
+  // Field roles are limited to Installers + Communications from the moment the role is set.
+  await prisma.user.update({ where: { id: userId }, data: { role: roleInput as Role, ...(INSTALLER_ROLES.includes(roleInput) ? { permissions: [...INSTALLER_SECTIONS], isSuperUser: false } : {}) } });
   await logAudit({ userId: actor.id, action: "user_role_updated", entityType: "User", entityId: userId, metadata: { role: roleInput } });
   revalidatePath("/users");
 }

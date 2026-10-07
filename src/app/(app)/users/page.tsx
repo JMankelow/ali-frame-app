@@ -1,11 +1,9 @@
 import { requireSuperUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { deactivateUser, reactivateUser } from "./actions";
 import { UserForm } from "./UserForm";
 import { PermissionsMatrix } from "./PermissionsMatrix";
-import { InviteButton, InviteAllButton } from "./InviteButtons";
+import { InviteAllButton } from "./InviteButtons";
 import { UserTasksSection } from "./UserTasksSection";
-import { ROLE_LABELS } from "@/lib/roles";
 
 export default async function UsersPage() {
   // Real server-side gate — this page (and every action it calls) is
@@ -31,60 +29,13 @@ export default async function UsersPage() {
 
       <InviteAllButton pendingCount={users.filter((u) => u.isActive && u.mustResetPassword && !u.email.endsWith(".local")).length} />
 
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>First login</th>
-              <th>Invite</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
-                <td>{u.name}</td>
-                <td>{u.email}</td>
-                <td>{ROLE_LABELS[u.role] ?? u.role}</td>
-                <td>
-                  <span className={`status ${u.isActive ? "green" : "grey"}`}>
-                    {u.isActive ? "Active" : "Deactivated"}
-                  </span>
-                </td>
-                <td>{u.mustResetPassword ? "Pending" : "Done"}</td>
-                <td>{u.isActive && !u.email.endsWith(".local") && <InviteButton userId={u.id} firstLoginDone={!u.mustResetPassword} />}</td>
-                <td>
-                  {u.isActive ? (
-                    <form action={deactivateUser.bind(null, u.id)}>
-                      <button type="submit" className="btn danger">
-                        Deactivate
-                      </button>
-                    </form>
-                  ) : (
-                    <form action={reactivateUser.bind(null, u.id)}>
-                      <button type="submit" className="btn light">
-                        Reactivate
-                      </button>
-                    </form>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
       <UserForm />
 
       <div style={{ marginTop: 16 }}>
         <PermissionsMatrix
           rows={users
-            .filter((u) => u.isActive)
-            .map((u) => ({ id: u.id, name: u.name, role: u.role, isSuperUser: u.isSuperUser, permissions: u.permissions }))}
+            .filter((u) => !u.email.endsWith(".local"))
+            .map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isActive: u.isActive, mustResetPassword: u.mustResetPassword, isSuperUser: u.isSuperUser, permissions: u.permissions }))}
           currentUserId={actor.id}
         />
       </div>

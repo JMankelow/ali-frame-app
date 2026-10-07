@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { isInstallerProfile } from "@/lib/permissions";
 
 const EMAIL_ACTION_LABELS: Record<string, string> = {
   site_measure_emailed: "Site Measure sheet emailed to supplier",
@@ -12,6 +13,36 @@ const EMAIL_ACTION_LABELS: Record<string, string> = {
 
 export default async function CommunicationsHubPage() {
   const user = await requireUser();
+
+  // Field staff get only their own tasks — not the team's notes or the log of emails the app has sent.
+  if (isInstallerProfile(user)) {
+    const mine = await prisma.note.findMany({ where: { assignedToId: user.id, status: { not: "Done" } }, include: { author: true }, orderBy: { createdAt: "desc" }, take: 20 });
+    return (
+      <div>
+        <div className="topbar">
+          <div>
+            <h2>Communications</h2>
+            <div className="subtitle">Tasks the office has given you.</div>
+          </div>
+        </div>
+        <div className="card">
+          <div className="label">My Open Tasks</div>
+          {mine.length === 0 ? (
+            <div className="hint" style={{ marginTop: 8 }}>Nothing assigned to you right now.</div>
+          ) : (
+            <table style={{ marginTop: 8 }}>
+              <thead><tr><th>Task</th><th>From</th><th>Date</th></tr></thead>
+              <tbody>
+                {mine.map((n) => (
+                  <tr key={n.id}><td>{n.text}</td><td>{n.author.name}</td><td>{n.createdAt.toLocaleDateString("en-NZ")}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const [myTasks, recentNotes, sentComms] = await Promise.all([
     prisma.note.findMany({

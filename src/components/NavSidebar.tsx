@@ -35,12 +35,14 @@ function NavGroupView({
   pathname,
   pins,
   isSuperUser,
+  fieldStaff,
   depth,
 }: {
   group: NavGroup;
   pathname: string;
   pins: Pins;
   isSuperUser: boolean;
+  fieldStaff: boolean;
   depth: number;
 }) {
   // Depth 1 (e.g. Commercial/Residential under Sales) gets the normal indent
@@ -78,9 +80,10 @@ function NavGroupView({
             pathname={pathname}
             pins={pins}
             isSuperUser={isSuperUser}
+            fieldStaff={fieldStaff}
             depth={depth + 1}
           />
-        ) : item.superUserOnly && !isSuperUser ? null : (
+        ) : (item.superUserOnly && !isSuperUser) || (item.officeOnly && fieldStaff) ? null : (
           <NavItem key={item.href + item.label} item={item} pathname={pathname} pins={pins} />
         )
       )}
@@ -91,15 +94,15 @@ function NavGroupView({
 /** The sidebar always shows Dashboard/Tasks/Notes, then whichever top-level
  * section is currently selected in the top tab bar — not the whole nav tree
  * at once (that was the old design; see AppShell for the tab-driven split). */
-export function NavSidebar({ isSuperUser, pins, selectedSection }: { isSuperUser: boolean; pins: Pins; selectedSection: string | null }) {
+export function NavSidebar({ isSuperUser, fieldStaff = false, pins, selectedSection }: { isSuperUser: boolean; fieldStaff?: boolean; pins: Pins; selectedSection: string | null }) {
   const pathname = usePathname();
   const activeGroup = NAV_TREE.find((g) => g.label === selectedSection);
 
   return (
     <nav className="nav">
       <NavItem item={{ label: "Dashboard", href: "/dashboard" }} pathname={pathname} pins={pins} />
-      <NavItem item={{ label: "Tasks", href: "/tasks" }} pathname={pathname} pins={pins} />
-      <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />
+      {!fieldStaff && <NavItem item={{ label: "Tasks", href: "/tasks" }} pathname={pathname} pins={pins} />}
+      {!fieldStaff && <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />}
       <NavItem item={{ label: "Calendar", href: "/calendar" }} pathname={pathname} pins={pins} />
       {activeGroup && (
         <div className="navSectionLabel">{activeGroup.label}</div>
@@ -112,9 +115,10 @@ export function NavSidebar({ isSuperUser, pins, selectedSection }: { isSuperUser
             pathname={pathname}
             pins={pins}
             isSuperUser={isSuperUser}
+            fieldStaff={fieldStaff}
             depth={1}
           />
-        ) : item.superUserOnly && !isSuperUser ? null : (
+        ) : (item.superUserOnly && !isSuperUser) || (item.officeOnly && fieldStaff) ? null : (
           <NavItem key={item.href + item.label} item={item} pathname={pathname} pins={pins} />
         )
       )}

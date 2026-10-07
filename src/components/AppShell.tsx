@@ -19,6 +19,7 @@ const SYNC_BUTTONS = [
 
 export function AppShell({
   isSuperUser,
+  isFieldStaff = false,
   visibleSections,
   userBadge,
   signOutForm,
@@ -26,6 +27,8 @@ export function AppShell({
   children,
 }: {
   isSuperUser: boolean;
+  /** Installers / crew / contractors — office-only menu items are hidden. */
+  isFieldStaff?: boolean;
   visibleSections: string[];
   userBadge: React.ReactNode;
   signOutForm: React.ReactNode;
@@ -79,7 +82,7 @@ export function AppShell({
       <TopTabs selected={selectedSection} onSelect={setSelectedSection} visibleSections={visibleSections} />
       <div className="app">
         <aside>
-          <NavSidebar isSuperUser={isSuperUser} pins={pins} selectedSection={selectedSection} />
+          <NavSidebar isSuperUser={isSuperUser} fieldStaff={isFieldStaff} pins={pins} selectedSection={selectedSection} />
           <div className="navUnsorted">
             <div className="navUnsorted-label">Not yet migrated</div>
             <a href={PROTOTYPE_URL} target="_blank" rel="noopener noreferrer">

@@ -30,7 +30,13 @@ export const SUPER_ONLY_PATH_PREFIXES: readonly string[] = ["/payroll"];
  * narrow it further through the permissions matrix but never widen it.
  */
 export const INSTALLER_ROLES: readonly string[] = ["SENIOR_INSTALLER", "INTERMEDIATE_INSTALLER", "JUNIOR_INSTALLER", "CREW_MOBILE", "CONTRACTOR"];
-export const INSTALLER_SECTIONS: readonly string[] = ["Installers"];
+export const INSTALLER_SECTIONS: readonly string[] = ["Installers", "Communications"];
+
+/** Field staff can only ever hold Installers and Communications — anything else is dropped, whoever asks. */
+export function clampSectionsForRole(role: string | undefined, sections: string[]): string[] {
+  if (!role || !INSTALLER_ROLES.includes(role)) return sections;
+  return INSTALLER_SECTIONS.filter((s) => sections.includes(s));
+}
 export const INSTALLER_PATH_PREFIXES: readonly string[] = [
   "/dashboard",
   "/calendar",
@@ -42,6 +48,7 @@ export const INSTALLER_PATH_PREFIXES: readonly string[] = [
   "/health-safety",
   "/policies",
   "/reviews",
+  "/communications",
 ];
 
 export function isInstallerProfile(user: { isSuperUser: boolean; role?: string }): boolean {

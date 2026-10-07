@@ -45,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <AppShell
       isSuperUser={user.isSuperUser}
+      isFieldStaff={isInstallerProfile(user)}
       visibleSections={visibleSections}
       openTaskCount={openTaskCount}
       userBadge={

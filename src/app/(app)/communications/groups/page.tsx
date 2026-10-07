@@ -1,9 +1,12 @@
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { MemberCheckbox } from "./MemberCheckbox";
 
 export default async function CommunicationGroupsPage() {
-  await requireUser();
+  const me = await requireUser();
+  if (isInstallerProfile(me)) redirect("/communications"); // the staff roster / group lists are office-only
 
   const [groups, users] = await Promise.all([
     prisma.communicationGroup.findMany({

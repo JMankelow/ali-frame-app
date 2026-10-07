@@ -2,6 +2,8 @@ export interface NavLeaf {
   label: string;
   href: string;
   superUserOnly?: boolean;
+  /** Hidden from field staff (installers/crew/contractors). */
+  officeOnly?: boolean;
 }
 export interface NavGroup {
   label: string;
@@ -188,10 +190,10 @@ export const NAV_TREE: NavGroup[] = [
     label: "Communications",
     items: [
       { label: "Hub", href: "/communications" },
-      { label: "Groups", href: "/communications/groups" },
-      { label: "Notes", href: "/notes" },
-      { label: "Email Templates", href: "/templates" },
-      { label: "Leads", href: "/leads" },
+      { label: "Groups", href: "/communications/groups", officeOnly: true },
+      { label: "Notes", href: "/notes", officeOnly: true },
+      { label: "Email Templates", href: "/templates", officeOnly: true },
+      { label: "Leads", href: "/leads", officeOnly: true },
     ],
   },
   {
