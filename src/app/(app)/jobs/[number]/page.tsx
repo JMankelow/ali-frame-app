@@ -15,9 +15,10 @@ import { SendTemplateEmailForm } from "./SendTemplateEmailForm";
 import { JobTimeSection } from "./JobTimeSection";
 import { isInstallerProfile } from "@/lib/permissions";
 import { createQaSheet } from "../../health-safety/qa/sheetActions";
+import { cleanPack, dollars, labourLine } from "@/lib/checkMeasure";
 
 // Field staff only get these tabs — no quotes, orders, costing, supplier invoices or client email.
-const INSTALLER_TABS = ["details", "tasks", "photos", "notes", "time", "files", "sitemeasure", "qa", "checklist"];
+const INSTALLER_TABS = ["details", "tasks", "photos", "notes", "time", "files", "sitemeasure", "checklist"];
 const INSTALLER_HIDDEN_AUDIT = /^(purchase_order|templated_email|check_measure_booking|repricing|quote)/;
 
 function money(v: number | null | undefined): string {
@@ -309,8 +310,36 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     </div>
   );
 
-  // QA check sheets for this job — everyone can start one; field staff only see their own.
-  const qaSheets = await prisma.qaCheckSheet.findMany({ where: { jobNumber: number, ...(installer ? { createdById: currentUser.id } : {}) }, orderBy: { updatedAt: "desc" }, select: { id: true, kind: true, status: true, updatedAt: true, data: true } });
+  // What the install involves — labour, materials, rubbish and the scope of supply, from the job's check measure pack.
+  const cmPackRow = await prisma.checkMeasurePack.findUnique({ where: { jobNumber: number }, select: { data: true } });
+  const cmPack = cmPackRow ? cleanPack(cmPackRow.data) : null;
+  const labourText = cmPack ? cmPack.labourLines.trim() || labourLine(cmPack.installAmount, cmPack.teamSize) : "";
+  const budgetHours = quoteInputs || job.costing ? job.costing?.labourHoursQuoted : null;
+  const scopeRows: [string, string][] = [
+    ["LABOUR", labourText || (budgetHours ? `${budgetHours} hours` : "")],
+    ["MATERIALS", (cmPack ? dollars(cmPack.materials) : "") || (job.costing?.materialsQuoted != null ? money(job.costing.materialsQuoted) : "")],
+    ["RUBBISH", (cmPack ? cmPack.rubbish.trim() : "") || (job.costing?.rubbishQuoted != null ? money(job.costing.rubbishQuoted) : "")],
+  ];
+  const scopeCard = (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div className="label">What's involved in this install</div>
+      {scopeRows.some(([, v]) => v) ? (
+        <div style={{ marginTop: 8, fontWeight: 800, lineHeight: 1.7 }}>
+          {scopeRows.filter(([, v]) => v).map(([k, v]) => (
+            <div key={k}>&#9656; {k} - {v}</div>
+          ))}
+        </div>
+      ) : (
+        <div className="hint" style={{ marginTop: 6 }}>No labour / materials / rubbish figures on this job yet.</div>
+      )}
+      {cmPack?.summary.trim() && <div style={{ whiteSpace: "pre-wrap", marginTop: 12 }}>{cmPack.summary.trim()}</div>}
+      {cmPack?.notes.trim() && <div style={{ whiteSpace: "pre-wrap", marginTop: 12 }}>{cmPack.notes.trim()}</div>}
+      {!cmPack && job.description && <div className="hint" style={{ marginTop: 8 }}>The check measure pack hasn't been prepared yet — see the enquiry notes above for what the customer asked for.</div>}
+    </div>
+  );
+
+  // QA check sheets for this job — everyone on the job can open them (including ones the office set up) and start another.
+  const qaSheets = await prisma.qaCheckSheet.findMany({ where: { jobNumber: number }, orderBy: { updatedAt: "desc" }, select: { id: true, kind: true, status: true, updatedAt: true, data: true } });
   const qaTab = (
     <div className="card">
       <div className="label">QA check sheet</div>
@@ -504,7 +533,17 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
 
       <JobTabs
         tabs={tabsFor([
-          { key: "details", label: "Job Details", content: detailsTab },
+          {
+            key: "details",
+            label: "Job Details",
+            content: (
+              <>
+                {detailsTab}
+                {scopeCard}
+                {installer && qaTab}
+              </>
+            ),
+          },
           {
             key: "tasks",
             label: "Scheduled Tasks",
@@ -542,7 +581,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           },
           { key: "files", label: "Files", content: filesTab },
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },
-          { key: "qa", label: "QA", content: qaTab },
+          ...(installer ? [] : [{ key: "qa", label: "QA", content: qaTab }]),
           {
             key: "emailclient",
             label: "Emails",

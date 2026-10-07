@@ -28,7 +28,12 @@ const today = () => new Date().toISOString().slice(0, 10);
 export async function canSignQa(user: SessionUser): Promise<boolean> {
   return user.isSuperUser || user.role === "ADMIN_MANAGEMENT";
 }
-const canEdit = (user: SessionUser, createdById: string) => !isInstallerProfile(user) || user.id === createdById;
+/** Office staff can work on any sheet; field staff on sheets they started, or any sheet on a job they are booked on (e.g. one the office set up for them). */
+export async function canWorkOnSheet(user: SessionUser, sheet: { createdById: string; jobNumber: string }): Promise<boolean> {
+  if (!isInstallerProfile(user) || user.id === sheet.createdById) return true;
+  const booked = await prisma.jobScheduledTask.findFirst({ where: { jobNumber: sheet.jobNumber, assignees: { some: { id: user.id } } }, select: { id: true } });
+  return !!booked;
+}
 
 /** Reads the chosen supplier-schedule PDF on the job (must belong to that job). */
 async function loadSchedule(jobNumber: string, fileId: string): Promise<{ items?: ScheduleItem[]; error?: string }> {
@@ -111,7 +116,7 @@ export async function createQaSheet(formData: FormData) {
 export async function registerQaSheetPhotos(sheetId: string, storageKeys: string[]): Promise<{ error?: string; photos?: { id: string; url: string }[] }> {
   const user = await requireUser();
   const sheet = await prisma.qaCheckSheet.findUnique({ where: { id: sheetId } });
-  if (!sheet || !canEdit(user, sheet.createdById)) return { error: "Sheet not found." };
+  if (!sheet || !(await canWorkOnSheet(user, sheet))) return { error: "Sheet not found." };
   const keys = (Array.isArray(storageKeys) ? storageKeys : []).map(String).slice(0, 40);
   const files = await prisma.fileAsset.findMany({ where: { jobNumber: sheet.jobNumber, storageKey: { in: keys }, mimeType: { startsWith: "image/" } } });
   const photos = await Promise.all(files.map(async (f) => ({ id: f.id, url: await getDownloadUrl(f.storageKey, f.fileName).catch(() => "") })));
@@ -205,7 +210,7 @@ async function cleanCommercial(jobNumber: string, raw: Record<string, unknown>, 
 export async function saveQaSheet(sheetId: string, _prev: SheetState, formData: FormData): Promise<SheetState> {
   const user = await requireUser();
   const sheet = await prisma.qaCheckSheet.findUnique({ where: { id: sheetId } });
-  if (!sheet || !canEdit(user, sheet.createdById)) return { error: "Sheet not found." };
+  if (!sheet || !(await canWorkOnSheet(user, sheet))) return { error: "Sheet not found." };
   if (sheet.status === "Complete") return { error: "This sheet is complete — it can't be changed." };
 
   let raw: Record<string, unknown>;

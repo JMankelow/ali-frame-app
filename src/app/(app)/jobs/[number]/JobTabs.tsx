@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export interface JobTab {
   key: string;
@@ -10,6 +10,17 @@ export interface JobTab {
 
 export function JobTabs({ tabs }: { tabs: JobTab[] }) {
   const [active, setActive] = useState(tabs[0]?.key);
+
+  // Remember the open tab in the address (#photos etc.) so a page refresh — e.g. after uploading photos — stays on it.
+  useEffect(() => {
+    const h = window.location.hash.replace("#", "");
+    if (h && tabs.some((t) => t.key === h)) setActive(h);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  function open(key: string) {
+    setActive(key);
+    window.history.replaceState(null, "", `#${key}`);
+  }
 
   return (
     <div style={{ marginTop: 16 }}>
@@ -27,7 +38,7 @@ export function JobTabs({ tabs }: { tabs: JobTab[] }) {
           <button
             key={t.key}
             type="button"
-            onClick={() => setActive(t.key)}
+            onClick={() => open(t.key)}
             style={{
               border: `1.5px solid ${active === t.key ? "#0057b8" : "#b9dff5"}`,
               cursor: "pointer",

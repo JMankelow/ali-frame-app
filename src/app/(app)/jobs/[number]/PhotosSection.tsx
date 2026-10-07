@@ -29,6 +29,7 @@ export function PhotosSection({
     if (!files || files.length === 0) return;
     setBusy(true);
     setError("");
+    let uploaded = 0;
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
@@ -56,6 +57,7 @@ export function PhotosSection({
           mimeType: file.type || "application/octet-stream",
           sizeBytes: file.size,
         });
+        uploaded += 1;
       } catch {
         setError(`Something went wrong uploading ${file.name}.`);
       }
@@ -64,7 +66,8 @@ export function PhotosSection({
     setProgress("");
     setBusy(false);
     if (inputRef.current) inputRef.current.value = "";
-    window.location.reload();
+    // Only refresh when something was saved — otherwise the error message would flash and vanish.
+    if (uploaded > 0) window.location.reload();
   }
 
   return (

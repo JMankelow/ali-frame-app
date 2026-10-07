@@ -3,7 +3,7 @@
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { isInstallerProfile } from "@/lib/permissions";
+import { canWorkOnSheet } from "../../../sheetActions";
 import { prisma } from "@/lib/prisma";
 import { getObjectBuffer } from "@/lib/storage";
 import { generateCommercialQaPdf, generateResidentialQaPdf, type PhotoMap } from "@/lib/qaSheetPdf";
@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   const { id } = await params;
   const sheet = await prisma.qaCheckSheet.findUnique({ where: { id }, include: { job: { include: { client: true } }, createdBy: { select: { name: true } } } });
-  if (!sheet || (isInstallerProfile(user) && sheet.createdById !== user.id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!sheet || !(await canWorkOnSheet(user, sheet))) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const data = sheet.kind === "RESIDENTIAL" ? migrateResidential(sheet.data) : (sheet.data as unknown as CommercialData);
   const ids = new Set<string>();

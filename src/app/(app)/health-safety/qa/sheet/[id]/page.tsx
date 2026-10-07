@@ -8,7 +8,7 @@ import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getDownloadUrl } from "@/lib/storage";
 import { migrateResidential, type CommercialData, type ResidentialData } from "@/lib/qaSheets";
-import { canSignQa } from "../../sheetActions";
+import { canSignQa, canWorkOnSheet } from "../../sheetActions";
 import { SheetEditor } from "./SheetEditor";
 
 export default async function QaSheetPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +16,7 @@ export default async function QaSheetPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const sheet = await prisma.qaCheckSheet.findUnique({ where: { id }, include: { job: { include: { client: true } }, createdBy: { select: { name: true } } } });
   if (!sheet) notFound();
-  if (isInstallerProfile(user) && sheet.createdById !== user.id) notFound();
+  if (!(await canWorkOnSheet(user, sheet))) notFound();
 
   // Every photo referenced anywhere in the sheet → a short-lived preview URL.
   const data = sheet.kind === "RESIDENTIAL" ? migrateResidential(sheet.data) : (sheet.data as unknown as CommercialData);

@@ -22,7 +22,8 @@ export default async function QaReportsPage({ searchParams }: { searchParams: Pr
       include: { job: { select: { title: true, address: true } }, createdBy: { select: { name: true } }, _count: { select: { photos: true } } },
     }),
     prisma.qaCheckSheet.findMany({
-      where: installer ? { createdById: user.id } : {},
+      // field staff: sheets they started, plus any sheet on a job they're booked on (set up for them by the office)
+      where: installer ? { OR: [{ createdById: user.id }, { job: { scheduledTasks: { some: { assignees: { some: { id: user.id } } } } } }] } : {},
       orderBy: { updatedAt: "desc" },
       take: 100,
       include: { job: { select: { title: true } }, createdBy: { select: { name: true } } },
