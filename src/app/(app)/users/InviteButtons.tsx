@@ -6,7 +6,7 @@
 import { useState, useTransition } from "react";
 import { sendInvite, sendAllPendingInvites } from "./actions";
 
-export function InviteButton({ userId, firstLoginDone }: { userId: string; firstLoginDone: boolean }) {
+export function InviteButton({ userId, firstLoginDone, small = false }: { userId: string; firstLoginDone: boolean; small?: boolean }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
 
@@ -15,6 +15,7 @@ export function InviteButton({ userId, firstLoginDone }: { userId: string; first
       <button
         type="button"
         className="btn light"
+        style={small ? { padding: "4px 10px", fontSize: 12, whiteSpace: "nowrap" } : undefined}
         disabled={pending}
         onClick={() =>
           startTransition(async () => {

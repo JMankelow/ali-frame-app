@@ -18,8 +18,13 @@ export interface PermissionRow {
 }
 
 const isFieldRole = (role: string) => INSTALLER_ROLES.includes(role);
+// Short labels so all nine sections fit on one line (hover for the full name).
+const SHORT: Record<string, string> = {
+  Sales: "Sales", Jobs: "Jobs", Operations: "Ops", "Human Resources": "HR", Accounts: "Accounts",
+  Marketing: "Mktg", Communications: "Comms", Installers: "Installers", Settings: "Settings",
+};
 
-/** One list for everyone: who they are, their role, which sections they can see, and the invite / deactivate actions. */
+/** One line per person: who, role, sections they can see, and the actions. */
 export function PermissionsMatrix({ rows, currentUserId }: { rows: PermissionRow[]; currentUserId: string }) {
   const active = rows.filter((r) => r.isActive);
   const office = active.filter((r) => !isFieldRole(r.role));
@@ -52,15 +57,15 @@ export function PermissionsMatrix({ rows, currentUserId }: { rows: PermissionRow
         <table className="usersTable">
           <thead>
             <tr>
-              <th style={{ minWidth: 160 }}>Person</th>
-              <th style={{ minWidth: 150 }}>Role</th>
-              <th style={{ minWidth: 110 }}>Status</th>
-              <th style={{ minWidth: 280 }}>Can see</th>
-              <th style={{ minWidth: 140 }}></th>
+              <th>Person</th>
+              <th>Role</th>
+              <th>Can see</th>
+              <th>Super</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {group("Office & management", "full access follows the ticks", office)}
+            {group("Office & management", "full access follows the sections ticked", office)}
             {group("Field staff", "installers, crew and contractors — fixed to Installers + Communications", field)}
             {group("Deactivated", "can't sign in", inactive)}
           </tbody>
@@ -91,12 +96,14 @@ function UserRow({ row, isSelf }: { row: PermissionRow; isSelf: boolean }) {
     background: on ? "#0057b8" : "#fff",
     color: on ? "#fff" : "#667085",
     borderRadius: 999,
-    padding: "3px 10px",
-    fontSize: 12,
+    padding: "2px 8px",
+    fontSize: 11,
     fontWeight: 700,
     cursor: disabled ? "default" : "pointer",
-    opacity: disabled ? 0.7 : 1,
+    opacity: disabled ? 0.75 : 1,
+    whiteSpace: "nowrap" as const,
   });
+  const small = { padding: "4px 10px", fontSize: 12 };
 
   return (
     <tr style={row.isActive ? undefined : { opacity: 0.6 }}>
@@ -105,12 +112,15 @@ function UserRow({ row, isSelf }: { row: PermissionRow; isSelf: boolean }) {
           {row.name}
           {isSelf && <span className="hint"> (you)</span>}
         </div>
-        <div className="hint">{row.email}</div>
+        <div className="hint">
+          {row.email} · <span style={{ color: row.mustResetPassword ? "#b45309" : "#1f8a4c", fontWeight: 700 }}>{row.mustResetPassword ? "not signed in yet" : "signed in"}</span>
+        </div>
       </td>
       <td>
         <select
           value={role}
           disabled={locked}
+          style={{ padding: "5px 8px", fontSize: 13 }}
           onChange={(e) => {
             const v = e.target.value;
             setRole(v);
@@ -129,55 +139,51 @@ function UserRow({ row, isSelf }: { row: PermissionRow; isSelf: boolean }) {
         </select>
       </td>
       <td>
-        <span className={`status ${row.isActive ? "green" : "grey"}`}>{row.isActive ? "Active" : "Deactivated"}</span>
-        <div className="hint" style={{ marginTop: 4 }}>{row.mustResetPassword ? "Hasn't signed in yet" : "Signed in"}</div>
-      </td>
-      <td>
         {!row.isActive ? (
           <span className="hint">—</span>
         ) : field ? (
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 4, flexWrap: "nowrap" }}>
             {INSTALLER_SECTIONS.map((s) => (
-              <span key={s} style={chip(true, true)}>{s}</span>
+              <span key={s} style={chip(true, true)}>{SHORT[s] ?? s}</span>
             ))}
           </div>
         ) : superUser ? (
-          <div>
-            <span style={chip(true, true)}>Everything (Super User)</span>
-          </div>
+          <span style={chip(true, true)}>Everything</span>
         ) : (
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 4, flexWrap: "nowrap" }}>
             {SECTIONS.map((s) => (
-              <button key={s} type="button" disabled={locked} onClick={() => toggleSection(s)} style={chip(selected.includes(s), locked)}>
-                {s}
+              <button key={s} type="button" title={s} disabled={locked} onClick={() => toggleSection(s)} style={chip(selected.includes(s), locked)}>
+                {SHORT[s] ?? s}
               </button>
             ))}
           </div>
         )}
-        {row.isActive && !field && !isSelf && (
-          <label style={{ display: "inline-flex", gap: 6, alignItems: "center", marginTop: 8, fontSize: 12, fontWeight: 600, textTransform: "none" }}>
-            <input
-              type="checkbox"
-              checked={superUser}
-              disabled={locked}
-              onChange={(e) => {
-                setSuperUser(e.target.checked);
-                startTransition(() => setUserSuperUser(row.id, e.target.checked));
-              }}
-            />
-            Super User (sees everything)
-          </label>
+      </td>
+      <td style={{ textAlign: "center" }}>
+        {row.isActive && !field ? (
+          <input
+            type="checkbox"
+            title="Super User — sees everything"
+            checked={superUser}
+            disabled={locked}
+            onChange={(e) => {
+              setSuperUser(e.target.checked);
+              startTransition(() => setUserSuperUser(row.id, e.target.checked));
+            }}
+          />
+        ) : (
+          <span className="hint">—</span>
         )}
       </td>
       <td>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
-          {row.isActive && <InviteButton userId={row.id} firstLoginDone={!row.mustResetPassword} />}
+        <div style={{ display: "flex", gap: 6, alignItems: "flex-start", flexWrap: "nowrap" }}>
+          {row.isActive && <InviteButton userId={row.id} firstLoginDone={!row.mustResetPassword} small />}
           {row.isActive ? (
-            <button type="button" className="btn light" disabled={pending || isSelf} onClick={() => startTransition(() => deactivateUser(row.id))} style={{ color: "#b91c1c" }}>
+            <button type="button" className="btn light" disabled={pending || isSelf} onClick={() => startTransition(() => deactivateUser(row.id))} style={{ ...small, color: "#b91c1c" }}>
               Deactivate
             </button>
           ) : (
-            <button type="button" className="btn light" disabled={pending} onClick={() => startTransition(() => reactivateUser(row.id))}>
+            <button type="button" className="btn light" disabled={pending} onClick={() => startTransition(() => reactivateUser(row.id))} style={small}>
               Reactivate
             </button>
           )}
