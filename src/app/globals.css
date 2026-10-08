@@ -160,3 +160,38 @@ textarea{min-height:82px}
 }
 
 @media print{aside,.topUtilityBar,.no-print{display:none !important}.app{display:block}body{background:#fff}.pagebreak{break-before:page}.card{box-shadow:none;border:1px solid #ccc}}
+
+/* ---------- Phones: nothing runs off the page ---------- */
+html,body{max-width:100%}
+img,video,canvas,svg{max-width:100%;height:auto}
+pre,code{white-space:pre-wrap;overflow-wrap:anywhere}
+@media(max-width:700px){
+  body{overflow-x:hidden;font-size:15px}
+  main{padding:14px 12px;min-width:0}
+  h2{font-size:21px;line-height:1.2}
+  .topbar{gap:10px;margin-bottom:14px}
+  .topbar>div{min-width:0}
+  .topbar .actions{width:100%}
+  .subtitle{font-size:13px;overflow-wrap:anywhere}
+  .card{padding:12px;border-radius:14px;overflow-wrap:anywhere}
+  .card .label{overflow-wrap:anywhere}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .metric{font-size:26px}
+  .hint,.status{overflow-wrap:anywhere}
+  th{white-space:nowrap}
+  td{overflow-wrap:break-word;min-width:72px}
+  .status{max-width:100%}
+  /* wide tables scroll sideways inside their own box instead of pushing the page wider */
+  table{display:block;max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  th,td{padding:8px 8px;font-size:13px}
+  /* bigger tap targets; 16px inputs stop iPhones zooming in when you tap a field */
+  select,input,textarea{font-size:16px;max-width:100%}
+  input[type=checkbox],input[type=radio]{width:auto}
+  .btn{min-height:42px;padding:10px 14px}
+  .actions{gap:8px}
+  .form{gap:12px}
+  .authOverlay{padding:14px}
+  .authCard{padding:20px;border-radius:18px}
+  .jobPickerResults{max-height:220px}
+  .userBadge{white-space:normal}
+}
