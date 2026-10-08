@@ -10,11 +10,12 @@ import { prisma } from "@/lib/prisma";
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  if (isInstallerProfile(user)) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const { id } = await params;
-  const att = await prisma.noteAttachment.findUnique({ where: { id }, select: { storageKey: true, fileName: true, mimeType: true } });
+  const att = await prisma.noteAttachment.findUnique({ where: { id }, select: { storageKey: true, fileName: true, mimeType: true, note: { select: { authorId: true, assignedToId: true } } } });
   if (!att || !att.storageKey.startsWith("db:")) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // field staff can only open attachments on notes they wrote or were given
+  if (isInstallerProfile(user) && att.note.authorId !== user.id && att.note.assignedToId !== user.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const blob = await prisma.noteFileBlob.findUnique({ where: { id: att.storageKey.slice(3) } });
   if (!blob) return NextResponse.json({ error: "Not found" }, { status: 404 });
 

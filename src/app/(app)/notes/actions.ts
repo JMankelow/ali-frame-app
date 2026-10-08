@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireNotInstaller } from "@/lib/session";
+import { requireNotInstaller, requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
+import { sendPlainNotificationEmail } from "@/lib/email";
 import { logAudit } from "@/lib/audit";
 import { buildGenericStorageKey, getUploadUrl } from "@/lib/storage";
 
@@ -22,7 +24,7 @@ const MAX_FILE_BYTES = 15 * 1024 * 1024;
 
 /** Step 1 of attaching a photo or file: hands back a short-lived URL the browser PUTs it to. */
 export async function requestNoteImageUpload(fileName: string, mimeType: string, sizeBytes: number): Promise<{ error?: string; storageKey?: string; uploadUrl?: string }> {
-  await requireNotInstaller();
+  await requireUser();
   if (!FILE_TYPES.includes(mimeType)) return { error: "That file type can't be attached — use a photo, PDF, Word, Excel, PowerPoint, CSV or text file." };
   if (sizeBytes > MAX_FILE_BYTES) return { error: "That file is over 15 MB." };
   const storageKey = buildGenericStorageKey("notes", fileName || "photo.jpg");
@@ -35,14 +37,16 @@ export async function requestNoteImageUpload(fileName: string, mimeType: string,
 }
 
 export async function createNote(_prevState: NoteFormState, formData: FormData): Promise<NoteFormState> {
-  const user = await requireNotInstaller();
+  const user = await requireUser();
+  const field = isInstallerProfile(user);
   const text = String(formData.get("text") ?? "").trim();
   const assignedToId = String(formData.get("assignedToId") ?? "").trim();
 
   if (!text) return { error: "Write something before adding the note." };
   if (assignedToId) {
     const a = await prisma.user.findUnique({ where: { id: assignedToId }, select: { email: true } });
-    if (!a || !["jo@aliframe.co.nz", "tanya@aliframe.co.nz", "claude@aliframe.local"].includes(a.email)) return { error: "Notes can only be assigned to Jo, Tanya or Claude." };
+    const ok = field ? ["tanya@aliframe.co.nz", "tristam@aliframe.co.nz"] : ["jo@aliframe.co.nz", "tanya@aliframe.co.nz", "claude@aliframe.local"];
+    if (!a || !ok.includes(a.email)) return { error: field ? "You can assign a note to Tanya or Tristam." : "Notes can only be assigned to Jo, Tanya or Claude." };
   }
 
   // Photos/files already uploaded straight to storage (see requestNoteImageUpload).
@@ -70,6 +74,14 @@ export async function createNote(_prevState: NoteFormState, formData: FormData):
     data: { text, authorId: user.id, assignedToId: assignedToId || null, attachments: { create: attachments } },
   });
 
+  // A note from field staff pings the person it's assigned to straight away (email now; it also shows on their bell / My Tasks).
+  if (field && assignedToId) {
+    const to = await prisma.user.findUnique({ where: { id: assignedToId }, select: { email: true, name: true } });
+    if (to) {
+      await sendPlainNotificationEmail({ to: to.email, subject: `New note from ${user.name}`, text: `${user.name} left you a note:\n\n${text}\n\nOpen it in the app: My Tasks.`, replyTo: user.email }).catch((e) => console.error("[notes] alert email failed", e));
+    }
+  }
+
   await logAudit({ userId: user.id, action: "note_created", entityType: "Note" });
   revalidatePath("/notes");
   revalidatePath("/users");
@@ -90,7 +102,9 @@ export async function updateNoteText(id: string, _prevState: NoteFormState, form
 }
 
 export async function resolveNote(id: string) {
-  const user = await requireNotInstaller();
+  const user = await requireUser();
+  // Field staff may only tick off a task that was assigned to them.
+  if (isInstallerProfile(user) && !(await prisma.note.findFirst({ where: { id, assignedToId: user.id }, select: { id: true } }))) return;
   await prisma.note.update({ where: { id }, data: { status: "Done", resolvedAt: new Date() } });
   await logAudit({ userId: user.id, action: "note_resolved", entityType: "Note", entityId: id });
   revalidatePath("/notes");

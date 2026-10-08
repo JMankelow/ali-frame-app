@@ -21,10 +21,12 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
   const last = new Date(first);
   last.setUTCDate(last.getUTCDate() + DAYS_SHOWN - 1);
 
+  const alerts = await prisma.notification.findMany({ where: { userId, readAt: null }, orderBy: { createdAt: "desc" }, take: 3 });
   const [bookings, jobs, checklists, assetCount, preStartToday] = await Promise.all([
     prisma.jobScheduledTask.findMany({
       where: {
         assignees: { some: { id: userId } },
+        type: "Installation", // installs only — not measures
         status: { not: "Cancelled" },
         scheduledDate: { lte: last },
         OR: [{ endDate: { gte: first } }, { endDate: null, scheduledDate: { gte: first } }],
@@ -66,6 +68,16 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
       <ReviewAlerts userId={userId} />
 
       <WorkClockPanel user={{ id: userId, isSuperUser: false, role }} onlyIfRunning />
+
+      {alerts.length > 0 && (
+        <Link href="/tasks" className="card" style={{ ...{ textDecoration: "none", color: "inherit" }, display: "block", borderLeft: "6px solid #0057b8", marginBottom: 16 }}>
+          <div className="label">New alerts ({alerts.length}{alerts.length === 3 ? "+" : ""})</div>
+          {alerts.map((a) => (
+            <div key={a.id} style={{ marginTop: 6, fontWeight: 600 }}>{a.text.length > 140 ? a.text.slice(0, 140) + "…" : a.text}</div>
+          ))}
+          <div className="hint" style={{ marginTop: 6 }}>Tap to see all →</div>
+        </Link>
+      )}
 
       <div className="cards">
         <Link href="/health-safety/prestart" className="card" style={card}>

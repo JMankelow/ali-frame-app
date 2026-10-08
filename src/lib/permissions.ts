@@ -50,6 +50,8 @@ export const INSTALLER_PATH_PREFIXES: readonly string[] = [
   "/reviews",
   "/communications",
   "/account",
+  "/notes",
+  "/tasks",
 ];
 
 export function isInstallerProfile(user: { isSuperUser: boolean; role?: string }): boolean {

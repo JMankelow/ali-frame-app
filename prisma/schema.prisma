@@ -60,6 +60,7 @@ model User {
   timesheetEntries          TimesheetEntry[]
   timeClock                 TimeClock?
   // Authenticator-app (TOTP) sign-in. The key is stored encrypted; totpLastStep stops a code being used twice.
+  notifications             Notification[]
   totpSecretEnc             String?
   totpEnabledAt             DateTime?
   totpLastStep              Int?
@@ -311,6 +312,19 @@ model Note {
 
   @@index([status, createdAt])
   @@index([jobNumber, createdAt])
+}
+
+// An in-app alert for one person (e.g. the office added a note to a job they're booked on). Shows on the bell + My Tasks.
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  text      String
+  href      String
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId, readAt])
 }
 
 // A browser the person chose to "remember" for 30 days — it skips the sign-in code (never the password).

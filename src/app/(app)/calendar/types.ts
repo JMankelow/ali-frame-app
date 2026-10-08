@@ -5,3 +5,6 @@
 // Plain module (no "use client") so the server page can use the array — a constant exported from a client
 // component reaches a server component as an opaque reference, which crashed /calendar (".includes is not a function").
 export const ALL_TYPES = ["Installation", "Check Measure", "Sales Measure", "Remedial", "Leave", "Vehicle Maintenance"];
+
+/** What field staff (installers) can see: installs they're on, leave, and vehicle reminders — not measures or remedials. */
+export const FIELD_TYPES = ["Installation", "Leave", "Vehicle Maintenance"];

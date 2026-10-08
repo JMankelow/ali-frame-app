@@ -3,7 +3,6 @@
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 // Backup route for note attachments: keeps the file in the database when file storage (R2) can't be reached,
@@ -19,7 +18,7 @@ const MAX_BYTES = 8 * 1024 * 1024;
 
 export async function POST(req: Request) {
   const user = await getSessionUser();
-  if (!user || isInstallerProfile(user)) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   // Same-site only (the session cookie is SameSite already — this is belt and braces).
   const origin = req.headers.get("origin");
   if (origin && new URL(origin).host !== req.headers.get("host")) return NextResponse.json({ error: "Not allowed" }, { status: 403 });

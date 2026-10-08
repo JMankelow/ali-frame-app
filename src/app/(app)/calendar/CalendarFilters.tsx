@@ -4,7 +4,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 import { ALL_TYPES } from "./types";
 
-export function CalendarFilters({ activeTypes }: { activeTypes: string[] }) {
+export function CalendarFilters({ activeTypes, types = ALL_TYPES }: { activeTypes: string[]; types?: string[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -12,7 +12,7 @@ export function CalendarFilters({ activeTypes }: { activeTypes: string[] }) {
   function toggle(type: string) {
     const next = activeTypes.includes(type) ? activeTypes.filter((t) => t !== type) : [...activeTypes, type];
     const params = new URLSearchParams(searchParams.toString());
-    if (next.length === ALL_TYPES.length || next.length === 0) {
+    if (next.length === types.length || next.length === 0) {
       params.delete("types");
     } else {
       params.set("types", next.join(","));
@@ -22,7 +22,7 @@ export function CalendarFilters({ activeTypes }: { activeTypes: string[] }) {
 
   return (
     <div style={{ display: "flex", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
-      {ALL_TYPES.map((t) => (
+      {types.map((t) => (
         <label key={t} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           <input type="checkbox" checked={activeTypes.includes(t)} onChange={() => toggle(t)} />
           {t}

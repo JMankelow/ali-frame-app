@@ -101,8 +101,8 @@ export function NavSidebar({ isSuperUser, fieldStaff = false, pins, selectedSect
   return (
     <nav className="nav">
       <NavItem item={{ label: "Dashboard", href: "/dashboard" }} pathname={pathname} pins={pins} />
-      {!fieldStaff && <NavItem item={{ label: "Tasks", href: "/tasks" }} pathname={pathname} pins={pins} />}
-      {!fieldStaff && <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />}
+      <NavItem item={{ label: "Tasks", href: "/tasks" }} pathname={pathname} pins={pins} />
+      <NavItem item={{ label: "Notes", href: "/notes" }} pathname={pathname} pins={pins} />
       <NavItem item={{ label: "Calendar", href: "/calendar" }} pathname={pathname} pins={pins} />
       {activeGroup && (
         <div className="navSectionLabel">{activeGroup.label}</div>

@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/session";
 import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { CalendarFilters } from "./CalendarFilters";
-import { ALL_TYPES } from "./types";
+import { ALL_TYPES, FIELD_TYPES } from "./types";
 import { taskStatusHex, textOn } from "@/lib/statusColors";
 import { AddLeaveForm } from "./AddLeaveForm";
 
@@ -126,7 +126,9 @@ export default async function CalendarPage({
   // Field staff open the calendar as cards (agenda) — easier on a phone; everyone can switch views.
   const view = viewRaw === "day" || viewRaw === "month" || viewRaw === "agenda" || viewRaw === "week" ? viewRaw : readOnly ? "agenda" : "week";
   const anchor = dateRaw ? atMidnight(new Date(dateRaw)) : atMidnight(new Date());
-  const activeTypes = typesRaw ? typesRaw.split(",").filter(Boolean) : ALL_TYPES;
+  // Installers only ever see installs (their own), leave and vehicle reminders.
+  const availableTypes = readOnly ? FIELD_TYPES : ALL_TYPES;
+  const activeTypes = (typesRaw ? typesRaw.split(",").filter(Boolean) : availableTypes).filter((t) => availableTypes.includes(t));
   const q = (qRaw ?? "").trim().toLowerCase();
 
   let gridStart: Date;
@@ -179,6 +181,7 @@ export default async function CalendarPage({
           where: {
             type: { in: taskTypeFilter },
             status: { not: "Cancelled" },
+            ...(readOnly ? { assignees: { some: { id: me.id } } } : {}),
             scheduledDate: { lt: gridEnd },
             OR: [{ endDate: null, scheduledDate: { gte: gridStart } }, { endDate: { gte: gridStart } }],
           },
@@ -291,7 +294,7 @@ export default async function CalendarPage({
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const dParam = anchor.toISOString().slice(0, 10);
-  const typesParam = activeTypes.length === ALL_TYPES.length ? "" : `&types=${encodeURIComponent(activeTypes.join(","))}`;
+  const typesParam = activeTypes.length === availableTypes.length ? "" : `&types=${encodeURIComponent(activeTypes.join(","))}`;
   const qParam = q ? `&q=${encodeURIComponent(q)}` : "";
   const viewLink = (v: string) => `/calendar?view=${v}&date=${dParam}${typesParam}${qParam}`;
   const navLink = (d: Date) => `/calendar?view=${view}&date=${d.toISOString().slice(0, 10)}${typesParam}${qParam}`;
@@ -430,7 +433,7 @@ export default async function CalendarPage({
           <Link href={navLink(prevDate)} className="btn light" aria-label="Previous">◀</Link>
           <Link href={navLink(nextDate)} className="btn light" aria-label="Next">▶</Link>
         </div>
-        <CalendarFilters activeTypes={activeTypes} />
+        <CalendarFilters activeTypes={activeTypes} types={availableTypes} />
         <div style={{ display: "flex", gap: 6 }}>
           {(["day", "week", "month", "agenda"] as const).map((v) => (
             <Link

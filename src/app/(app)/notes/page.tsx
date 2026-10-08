@@ -1,20 +1,25 @@
 import { requireUser } from "@/lib/session";
+import { isInstallerProfile } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { NoteForm } from "./NoteForm";
 import { NoteImages } from "./NoteImages";
 import { resolveNote, reopenNote, completeAndReturnToCreator } from "./actions";
 
 export default async function NotesPage() {
-  await requireUser();
+  const me = await requireUser();
+  const field = isInstallerProfile(me);
 
   const [notes, activeUsers, claudeUser] = await Promise.all([
     prisma.note.findMany({
+      // field staff only ever see notes they wrote or that were assigned to them
+      where: field ? { OR: [{ authorId: me.id }, { assignedToId: me.id }] } : {},
       include: { author: true, assignedTo: true, attachments: true },
       orderBy: [{ status: "asc" }, { createdAt: "desc" }],
     }),
     // Notes can only be assigned to Jo or Tanya (or Claude, below).
-    prisma.user.findMany({ where: { isActive: true, email: { in: ["jo@aliframe.co.nz", "tanya@aliframe.co.nz"] } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
-    prisma.user.findUnique({ where: { email: "claude@aliframe.local" }, select: { id: true, name: true } }),
+    // Field staff can assign to Tanya or Tristam only.
+    prisma.user.findMany({ where: { isActive: true, email: { in: field ? ["tanya@aliframe.co.nz", "tristam@aliframe.co.nz"] : ["jo@aliframe.co.nz", "tanya@aliframe.co.nz"] } }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    field ? Promise.resolve(null) : prisma.user.findUnique({ where: { email: "claude@aliframe.local" }, select: { id: true, name: true } }),
   ]);
 
   // Claude is a real (but never-login-able) User row purely so notes can be
@@ -69,7 +74,7 @@ export default async function NotesPage() {
                   <td>{n.assignedTo?.name ?? "—"}</td>
                   <td>{n.createdAt.toLocaleDateString("en-NZ")}</td>
                   <td>
-                    {n.assignedTo?.email === "claude@aliframe.local" ? (
+                    {field ? null : n.assignedTo?.email === "claude@aliframe.local" ? (
                       <form action={completeAndReturnToCreator.bind(null, n.id)}>
                         <button type="submit" className="btn primary">
                           Complete → Return to {n.author.name}
@@ -114,11 +119,13 @@ export default async function NotesPage() {
                   <td>{n.assignedTo?.name ?? "—"}</td>
                   <td>{n.resolvedAt?.toLocaleDateString("en-NZ") ?? "—"}</td>
                   <td>
-                    <form action={reopenNote.bind(null, n.id)}>
-                      <button type="submit" className="btn light">
-                        Reopen
-                      </button>
-                    </form>
+                    {!field && (
+                      <form action={reopenNote.bind(null, n.id)}>
+                        <button type="submit" className="btn light">
+                          Reopen
+                        </button>
+                      </form>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -40,7 +40,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/dashboard");
   }
 
-  const openTaskCount = await prisma.note.count({ where: { assignedToId: user.id, status: { not: "Done" } } });
+  const openTaskCount =
+    (await prisma.note.count({ where: { assignedToId: user.id, status: { not: "Done" } } })) + (await prisma.notification.count({ where: { userId: user.id, readAt: null } }));
   const visibleSections: string[] = SECTIONS.filter((s) => hasSectionAccess(user, s));
 
   return (

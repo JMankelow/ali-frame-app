@@ -6,6 +6,7 @@ import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { installEndDate } from "@/lib/installDates";
 import { ensureQaSheet } from "@/lib/qaAuto";
+import { crewOnJob, notifyUsers } from "@/lib/notify";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
@@ -262,6 +263,12 @@ export async function createJobNote(jobNumber: string, _prevState: JobNoteState,
   if (!text) return { error: "Note text is required." };
 
   await prisma.note.create({ data: { text, authorId: user.id, jobNumber } });
+  // Everyone booked on this job gets an in-app alert (bell + My Tasks) — except whoever wrote the note.
+  try {
+    await notifyUsers(await crewOnJob(jobNumber, user.id), `New note on job ${jobNumber} from ${user.name}: ${text}`, `/jobs/${jobNumber}#notes`);
+  } catch (e) {
+    console.error("[jobs] note alert failed", e);
+  }
   await logAudit({ userId: user.id, action: "note_added", entityType: "Job", entityId: jobNumber });
   revalidatePath(`/jobs/${jobNumber}`);
   return {};

@@ -552,6 +552,9 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
               Find in SharePoint ↗
             </a>
           )}
+          <Link href={`/jobs/${job.number}/notify-remedial`} className="btn" style={{ background: "#c62828", color: "#fff", border: "none", fontWeight: 800 }}>
+            ⚠ Notify remedial
+          </Link>
           <Link href="/jobs" className="btn light">
             ← All Jobs
           </Link>
