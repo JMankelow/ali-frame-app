@@ -18,7 +18,7 @@ import { createQaSheet } from "../../health-safety/qa/sheetActions";
 import { cleanPack, dollars, labourLine } from "@/lib/checkMeasure";
 
 // Field staff only get these tabs — no quotes, orders, costing, supplier invoices or client email.
-const INSTALLER_TABS = ["details", "tasks", "photos", "notes", "time", "files", "sitemeasure", "checklist"];
+const INSTALLER_TABS = ["details", "qa", "tasks", "photos", "notes", "time", "files", "sitemeasure", "checklist"];
 const INSTALLER_HIDDEN_AUDIT = /^(purchase_order|templated_email|check_measure_booking|repricing|quote)/;
 
 function money(v: number | null | undefined): string {
@@ -99,7 +99,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
   const photoFiles = files.filter((f) => f.fileType === "Photos");
   const allOtherFiles = files.filter((f) => f.fileType !== "Site Measure" && f.fileType !== "Photos");
   // Field staff see the job's plans / check measure pack only — not supplier quotes, repricing or correspondence.
-  const otherFiles = installer ? allOtherFiles.filter((f) => f.fileType === "Plan") : allOtherFiles;
+  const otherFiles = installer ? allOtherFiles.filter((f) => f.fileType === "Plan" || f.fileType === "Supplier Schedule") : allOtherFiles;
 
   const taskRows: ScheduledTaskRow[] = scheduledTasks.map((t) => ({
     id: t.id,
@@ -276,7 +276,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         )}
       </div>
       <div className="hint" style={{ marginBottom: 10 }}>
-        {installer ? "Plans and the check measure pack for this job. Photos are on the Photos tab; measure sheets are on Site Measure." : "Job folders are in SharePoint. Below: files added through this app."}
+        {installer ? "Plans, the check measure pack and the supplier schedule for this job. Photos are on the Photos tab; measure sheets are on Site Measure." : "Job folders are in SharePoint. Below: files added through this app."}
       </div>
       {otherFiles.length === 0 ? (
         <div className="hint">No other files uploaded for this job yet.</div>
@@ -366,12 +366,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
       <form action={createQaSheet} style={{ marginTop: 12 }}>
         <input type="hidden" name="jobNumber" value={job.number} />
         <input type="hidden" name="kind" value={job.type} />
-        <div className="form">
-          <div>
-            <label>How many items (windows/doors)?</label>
-            <input name="itemCount" type="number" min={1} max={60} defaultValue={1} />
+        {job.type === "COMMERCIAL" && (
+          <div className="form">
+            <div>
+              <label>How many items (windows/doors)?</label>
+              <input name="itemCount" type="number" min={1} max={60} defaultValue={1} />
+            </div>
           </div>
-        </div>
+        )}
         <div className="actions" style={{ marginTop: 10 }}>
           <button type="submit" className="btn primary">Start {job.type === "COMMERCIAL" ? "Commercial" : "Residential"} QA check sheet</button>
           <Link href="/health-safety/qa" className="btn light">QA photo reports</Link>
@@ -522,9 +524,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           </div>
         </div>
         <div className="actions">
-          <a href={buildSharePointSearchUrl(job.number)} target="_blank" rel="noopener noreferrer" className="btn light">
-            Find in SharePoint ↗
-          </a>
+          {!installer && (
+            <a href={buildSharePointSearchUrl(job.number)} target="_blank" rel="noopener noreferrer" className="btn light">
+              Find in SharePoint ↗
+            </a>
+          )}
           <Link href="/jobs" className="btn light">
             ← All Jobs
           </Link>
@@ -540,7 +544,6 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
               <>
                 {detailsTab}
                 {scopeCard}
-                {installer && qaTab}
               </>
             ),
           },
@@ -556,7 +559,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
             content: (
               <PhotosSection
                 jobNumber={job.number}
-                sharePointUrl={buildSharePointSearchUrl(job.number)}
+                sharePointUrl={installer ? "" : buildSharePointSearchUrl(job.number)}
                 photos={photoFiles.map((f) => ({
                   id: f.id,
                   fileName: f.fileName,
@@ -581,7 +584,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           },
           { key: "files", label: "Files", content: filesTab },
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },
-          ...(installer ? [] : [{ key: "qa", label: "QA", content: qaTab }]),
+          { key: "qa", label: "Job QA", content: qaTab },
           {
             key: "emailclient",
             label: "Emails",

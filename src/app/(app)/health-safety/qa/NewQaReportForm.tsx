@@ -62,7 +62,7 @@ export function NewQaReportForm({ jobs }: { jobs: JobPickerOption[] }) {
             )}
           </div>
 
-          {jobNumber && (
+          {jobNumber && opts?.jobType !== "RESIDENTIAL" && (
             <div className="full">
               <label>Schedule — pick it and the items are filled in for you (window codes, frame type and size)</label>
               <select value={fileId} onChange={(e) => pickFile(e.target.value)} disabled={!opts || busy}>
@@ -79,7 +79,10 @@ export function NewQaReportForm({ jobs }: { jobs: JobPickerOption[] }) {
             </div>
           )}
 
-          {!items && (
+          {opts?.jobType === "RESIDENTIAL" && (
+            <div className="hint full">A Residential QA is one check sheet for the whole job — no items to set up. (Items and schedules are for Commercial jobs.)</div>
+          )}
+          {!items && opts?.jobType !== "RESIDENTIAL" && (
             <>
               <div>
                 <label>How many items (windows/doors) on this job?</label>

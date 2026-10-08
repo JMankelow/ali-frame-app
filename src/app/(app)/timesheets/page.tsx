@@ -2,6 +2,9 @@ import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { TimesheetForm } from "./TimesheetForm";
 import { approveTimesheetEntry } from "./actions";
+import { WorkClockPanel } from "./WorkClockPanel";
+import { isInstallerProfile } from "@/lib/permissions";
+import { byNumberDesc } from "@/lib/jobSort";
 
 const TIMESHEET_ADMIN_ROLES = ["ADMIN_MANAGEMENT", "OFFICE_SCHEDULING"];
 
@@ -16,7 +19,11 @@ export default async function TimesheetsPage() {
       orderBy: { dateWorked: "desc" },
       take: 100,
     }),
-    prisma.job.findMany({ where: { archived: false }, orderBy: { number: "asc" }, select: { number: true, title: true } }),
+    // field staff can only log time against jobs they're booked on
+    prisma.job.findMany({
+      where: { archived: false, ...(isInstallerProfile(user) ? { scheduledTasks: { some: { assignees: { some: { id: user.id } } } } } : {}) },
+      select: { number: true, title: true },
+    }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
@@ -35,6 +42,8 @@ export default async function TimesheetsPage() {
           <div className="subtitle">Installers and crew select a job before logging time — hours feed job costing and WIP reporting once those exist.</div>
         </div>
       </div>
+
+      <WorkClockPanel user={user} />
 
       <div className="cards">
         <div className="card">
@@ -95,7 +104,7 @@ export default async function TimesheetsPage() {
         </table>
       </div>
 
-      <TimesheetForm jobs={jobs} staff={staff} currentUserId={user.id} />
+      <TimesheetForm jobs={byNumberDesc(jobs)} staff={staff} currentUserId={user.id} />
     </div>
   );
 }

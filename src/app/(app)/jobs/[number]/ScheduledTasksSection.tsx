@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { useCloseOnSuccess } from "@/lib/useCloseOnSuccess";
+import { installEndDate } from "@/lib/installDates";
 import { createScheduledTask, updateScheduledTask, type ScheduledTaskState } from "../actions";
 import { JOB_BOOKING_STATUSES } from "@/lib/jobStatus";
 import { TeamPicker } from "@/components/TeamPicker";
@@ -127,6 +128,7 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
           </select>
           <input type="date" name="scheduledDate" defaultValue={task.scheduledDate.slice(0, 10)} required />
           <input type="date" name="endDate" defaultValue={task.endDate ? task.endDate.slice(0, 10) : ""} placeholder="To (optional)" />
+          <input type="number" name="days" min="0.5" max="60" step="0.5" placeholder="Days" title="Days required — overrides the To date" style={{ width: 90 }} />
           <input type="time" name="startTime" defaultValue={task.startTime ?? ""} title="Start time" />
           <input type="time" name="endTime" defaultValue={task.endTime ?? ""} title="End time" />
           <select name="status" defaultValue={task.status}>
@@ -153,6 +155,13 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
 function NewTaskForm({ jobNumber, staff }: { jobNumber: string; staff: { id: string; name: string }[] }) {
   const action = createScheduledTask.bind(null, jobNumber);
   const [state, formAction, pending] = useActionState(action, initialState);
+  const [from, setFrom] = useState("");
+  const [days, setDays] = useState("");
+  const dayCount = parseFloat(days);
+  const hasDays = Number.isFinite(dayCount) && dayCount > 0;
+  // Days required -> the booking runs that many working days (weekends skipped)
+  const lastDay = hasDays && from ? installEndDate(new Date(from + "T00:00:00Z"), dayCount) ?? new Date(from + "T00:00:00Z") : null;
+  const fmt = (d: Date) => d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
   return (
     <form action={formAction} style={{ marginTop: 16, borderTop: "1px solid #e5e7eb", paddingTop: 12 }}>
@@ -169,12 +178,19 @@ function NewTaskForm({ jobNumber, staff }: { jobNumber: string; staff: { id: str
           </select>
         </div>
         <div>
-          <label>From Date</label>
-          <input type="date" name="scheduledDate" required />
+          <label>Start Date</label>
+          <input type="date" name="scheduledDate" required value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div>
-          <label>To Date (optional — for multi-day bookings)</label>
-          <input type="date" name="endDate" />
+          <label>Days required</label>
+          <input type="number" name="days" min="0.5" max="60" step="0.5" placeholder="e.g. 3" value={days} onChange={(e) => setDays(e.target.value)} />
+          <div className="hint">
+            {lastDay ? `Books ${fmt(new Date(from + "T00:00:00Z"))}${lastDay.getTime() !== new Date(from + "T00:00:00Z").getTime() ? ` to ${fmt(lastDay)}` : ""} on the calendar (weekends skipped).` : "Fills that many working days on the calendar."}
+          </div>
+        </div>
+        <div>
+          <label>To Date (only if not using Days required)</label>
+          <input type="date" name="endDate" disabled={hasDays} />
         </div>
         <div>
           <label>Start Time (needed for measures)</label>

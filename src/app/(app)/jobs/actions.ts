@@ -271,6 +271,12 @@ const timeOf = (v: FormDataEntryValue | null) => {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : null;
 };
 
+/** "Days required" on a booking: the booking then runs that many working days from its start date (weekends skipped). */
+function daysRequired(formData: FormData): number | null {
+  const n = parseFloat(String(formData.get("days") ?? "").trim());
+  return Number.isFinite(n) && n > 0 && n <= 60 ? n : null;
+}
+
 /** Measures show on the Calendar by time: a start time is needed, and with no end time they run for one hour. */
 function bookingTimes(type: string, formData: FormData): { startTime: string | null; endTime: string | null; error?: string } {
   const startTime = timeOf(formData.get("startTime"));
@@ -309,8 +315,9 @@ export async function createScheduledTask(
   if (times.error) return { error: times.error };
 
   // A multi-day install with no end date given runs for the job's install days (working days, skipping weekends).
-  let endDate: Date | null = endDateRaw ? new Date(endDateRaw) : null;
-  if (!endDate && type === "Installation") {
+  const days = daysRequired(formData);
+  let endDate: Date | null = days ? installEndDate(new Date(scheduledDateRaw), days) : endDateRaw ? new Date(endDateRaw) : null;
+  if (!days && !endDate && type === "Installation") {
     const j = await prisma.job.findUnique({ where: { number: jobNumber }, select: { installDays: true } });
     endDate = installEndDate(new Date(scheduledDateRaw), j?.installDays);
   }
@@ -330,6 +337,8 @@ export async function createScheduledTask(
     },
     include: { assignees: true },
   });
+  // The days entered on an install booking are the job's install days too, so the job and the Calendar always agree.
+  if (days && type === "Installation") await prisma.job.update({ where: { number: jobNumber }, data: { installDays: days } });
 
   await logAudit({
     userId: user.id,
@@ -372,7 +381,7 @@ export async function updateScheduledTask(
     data: {
       type,
       scheduledDate: new Date(scheduledDateRaw),
-      endDate: endDateRaw ? new Date(endDateRaw) : type === "Installation" ? installEndDate(new Date(scheduledDateRaw), (await prisma.job.findUnique({ where: { number: existing.jobNumber }, select: { installDays: true } }))?.installDays) : null,
+      endDate: daysRequired(formData) ? installEndDate(new Date(scheduledDateRaw), daysRequired(formData)) : endDateRaw ? new Date(endDateRaw) : type === "Installation" ? installEndDate(new Date(scheduledDateRaw), (await prisma.job.findUnique({ where: { number: existing.jobNumber }, select: { installDays: true } }))?.installDays) : null,
       startTime: times.startTime,
       endTime: times.endTime,
       notes: notes || null,
@@ -381,6 +390,8 @@ export async function updateScheduledTask(
       assignees: { set: assigneeIds.map((aid) => ({ id: aid })) },
     },
   });
+
+  if (daysRequired(formData) && type === "Installation") await prisma.job.update({ where: { number: existing.jobNumber }, data: { installDays: daysRequired(formData) } });
 
   await logAudit({
     userId: user.id,

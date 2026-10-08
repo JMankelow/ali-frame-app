@@ -34,7 +34,7 @@ function ArchiveButton({ job, showArchived }: { job: JobRow; showArchived: boole
 }
 
 export function JobsView({ jobs: allJobs, showArchived, canManage = true }: { jobs: JobRow[]; showArchived: boolean; canManage?: boolean }) {
-  const [viewMode, setViewMode] = useState<"table" | "card">("table");
+  const [viewMode, setViewMode] = useState<"table" | "card">("card");
   const [q, setQ] = useState("");
   // Search across number, title, client, address, supplier, type and status — every word typed has to match somewhere.
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);

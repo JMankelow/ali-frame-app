@@ -58,6 +58,7 @@ model User {
   notesAuthored             Note[]                @relation("NoteAuthor")
   notesAssigned             Note[]                @relation("NoteAssignee")
   timesheetEntries          TimesheetEntry[]
+  timeClock                 TimeClock?
   purchaseOrders            PurchaseOrder[]
   remedialsRaised           RemedialItem[]        @relation("RemedialRaisedBy")
   remedialsAssigned         RemedialItem[]        @relation("RemedialAssignedTo")
@@ -241,6 +242,7 @@ model Job {
 
   files                FileAsset[]
   timesheetEntries     TimesheetEntry[]
+  timeClocks           TimeClock[]
   purchaseOrders       PurchaseOrder[]
   remedialItems        RemedialItem[]
   acceptances          Acceptance[]
@@ -303,6 +305,17 @@ model Note {
 
   @@index([status, createdAt])
   @@index([jobNumber, createdAt])
+}
+
+// A running work clock — one per person. Stopping it turns it into a TimesheetEntry.
+model TimeClock {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobNumber String
+  job       Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
+  workType  String   @default("Install")
+  startedAt DateTime @default(now())
 }
 
 model TimesheetEntry {

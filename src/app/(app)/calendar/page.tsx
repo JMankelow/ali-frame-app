@@ -123,7 +123,8 @@ export default async function CalendarPage({
   const me = await requireUser();
   const readOnly = isInstallerProfile(me);
   const { view: viewRaw, date: dateRaw, types: typesRaw, q: qRaw } = await searchParams;
-  const view = viewRaw === "day" || viewRaw === "month" || viewRaw === "agenda" ? viewRaw : "week";
+  // Field staff open the calendar as cards (agenda) — easier on a phone; everyone can switch views.
+  const view = viewRaw === "day" || viewRaw === "month" || viewRaw === "agenda" || viewRaw === "week" ? viewRaw : readOnly ? "agenda" : "week";
   const anchor = dateRaw ? atMidnight(new Date(dateRaw)) : atMidnight(new Date());
   const activeTypes = typesRaw ? typesRaw.split(",").filter(Boolean) : ALL_TYPES;
   const q = (qRaw ?? "").trim().toLowerCase();
@@ -587,30 +588,33 @@ export default async function CalendarPage({
       )}
 
       {view === "agenda" && (
-        <div className="card" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {days.map((d, i) => {
             const list = shown
               .filter((e) => clampedRange(e).s <= i && clampedRange(e).e >= i)
               .sort((a, b) => (a.startTime ?? "").localeCompare(b.startTime ?? ""));
             if (list.length === 0) return null;
+            const isToday = dayStr(d) === todayStr;
             return (
-              <div key={d.getTime()} style={{ display: "grid", gridTemplateColumns: "150px 1fr", gap: 12, padding: "8px 0", borderBottom: "1px solid #e5e7eb" }}>
-                <div style={{ fontWeight: 800, color: dayStr(d) === todayStr ? "#16a34a" : undefined }}>
-                  {d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short" })}
+              <div key={d.getTime()} className="card" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)", borderLeft: `6px solid ${isToday ? "#0057b8" : "#b9dff5"}` }}>
+                <div style={{ fontWeight: 800, fontSize: 15, color: isToday ? "#0057b8" : undefined }}>
+                  {d.toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" })}
+                  {isToday && <span className="status blue" style={{ marginLeft: 8 }}>Today</span>}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                   {list.map((e) => (
-                    <div key={e.key} style={{ display: "flex", gap: 8, alignItems: "center", minWidth: 0 }}>
-                      <span style={{ width: 70, fontSize: 12 }} className="hint">{e.startTime ? fmtTime(e.startTime) : "All day"}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>{pill(e)}</div>
-                      <span className="hint" style={{ fontSize: 12 }}>{e.sub ?? e.kind}</span>
+                    <div key={e.key} style={{ padding: "8px 10px", borderRadius: 10, background: "#f6f8fb", border: "1px solid var(--line)" }}>
+                      <div className="hint" style={{ fontSize: 12, fontWeight: 700 }}>
+                        {e.startTime ? `${fmtTime(e.startTime)}${e.endTime ? `–${fmtTime(e.endTime)}` : ""}` : "All day"} · {e.sub ?? e.kind}
+                      </div>
+                      <div style={{ marginTop: 4 }}>{pill(e)}</div>
                     </div>
                   ))}
                 </div>
               </div>
             );
           })}
-          {shown.filter(inGrid).length === 0 && <div className="hint">Nothing booked in this period.</div>}
+          {shown.filter(inGrid).length === 0 && <div className="card hint">Nothing booked in this period.</div>}
         </div>
       )}
     </div>

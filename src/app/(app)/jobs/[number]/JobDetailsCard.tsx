@@ -104,10 +104,12 @@ export function JobDetailsCard({
             <label>Supplier</label>
             <div>{supplier || "—"}</div>
           </div>
-          <div>
-            <label>Assigned To (Sales)</label>
-            <div>{assignedUserName || "—"}</div>
-          </div>
+          {!readOnly && (
+            <div>
+              <label>Assigned To (Sales)</label>
+              <div>{assignedUserName || "—"}</div>
+            </div>
+          )}
           <div className="full">
             <label>Address</label>
             <div><AddressLink address={address} /></div>

@@ -52,7 +52,7 @@ function monthKey(d: Date) {
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  if (isInstallerProfile(user)) return <InstallerDashboard userId={user.id} name={user.name} />;
+  if (isInstallerProfile(user)) return <InstallerDashboard userId={user.id} name={user.name} role={user.role} />;
   const isSuper = user.isSuperUser;
 
   const now = new Date();

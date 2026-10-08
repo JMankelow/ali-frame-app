@@ -229,6 +229,7 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
   const set = (n: number, a: "Yes" | "No") => upd((x) => ({ ...x, answers: { ...x.answers, [`q${n}`]: { a, reason: x.answers[`q${n}`]?.reason ?? "" } } }));
   const reason = (n: number, v: string) => upd((x) => ({ ...x, answers: { ...x.answers, [`q${n}`]: { a: x.answers[`q${n}`]?.a ?? "", reason: v } } }));
   const probs = resItemProblems(it);
+  const single = d.items.length === 1; // a Residential sheet is one check sheet for the whole job
 
   const yn = (n: number, text: string, withReason: boolean) => {
     const x = it.answers[`q${n}`];
@@ -256,6 +257,7 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
         </div>
       </div>
 
+      {!single && (
       <ItemTabs
         tabs={d.items.map((x, n) => ({ id: x.id, title: x.label.trim() ? `${n + 1} · ${x.label}` : `Item ${n + 1}`, state: resItemStatus(x).label }))}
         cur={it.id}
@@ -263,16 +265,19 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
         onAdd={() => { const n = emptyResItem(); setD({ ...d, items: [...d.items, n] }); setCur(n.id); }}
         locked={locked}
       />
-      {!locked && d.items.length > 1 && resItemStatus(it).label === "Not started" && (
+      )}
+      {!single && !locked && d.items.length > 1 && resItemStatus(it).label === "Not started" && (
         <div style={{ marginTop: 6 }}>
           <button type="button" className="btn light" onClick={() => { const rest = d.items.filter((x) => x.id !== it.id); setD({ ...d, items: rest }); setCur(rest[0].id); }}>Remove this empty item</button>
         </div>
       )}
 
+      {!single && (
       <div className="card" style={{ marginTop: 12 }}>
         <div className="label">Item {idx + 1} label *</div>
         <input disabled={locked} value={it.label} onChange={(e) => upd((x) => ({ ...x, label: e.target.value }))} placeholder="e.g. Lounge slider, Bedroom 2 window" style={!it.label.trim() && !locked ? { borderColor: "#dc2626", marginTop: 6 } : { marginTop: 6 }} />
       </div>
+      )}
 
       <div className="label" style={{ marginTop: 16 }}>2. QA Checks</div>
       {RES_CHECKS.map(([n, t]) => yn(n, t, true))}
@@ -306,6 +311,7 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
         </label>
       </div>
 
+      {!single && (
       <div className="card" style={{ marginTop: 12 }}>
         <div className="actions">
           <button type="button" className="btn light" disabled={idx === 0} onClick={() => setCur(d.items[idx - 1].id)}>‹ Previous item</button>
@@ -323,6 +329,19 @@ function Residential({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Resid
           <div className="status green" style={{ display: "inline-block", marginTop: 8 }}>This item is fully complete.</div>
         )}
       </div>
+      )}
+      {single && (
+        <div className="card" style={{ marginTop: 12 }}>
+          {probs.length > 0 ? (
+            <details>
+              <summary className="hint" style={{ cursor: "pointer" }}>{probs.length} thing{probs.length === 1 ? "" : "s"} still to do on this check sheet</summary>
+              <ul style={{ margin: "6px 0 0 18px", fontSize: 13 }}>{probs.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            </details>
+          ) : (
+            <div className="status green" style={{ display: "inline-block" }}>This check sheet is fully complete.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

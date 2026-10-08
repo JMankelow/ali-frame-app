@@ -88,6 +88,13 @@ export async function createQaSheet(formData: FormData) {
   const labels = String(formData.get("itemLabels") ?? "").split(/\r?\n/).map((l) => l.trim().slice(0, 120)).filter(Boolean).slice(0, 60);
   const total = Math.max(count, labels.length);
   const data = kind === "COMMERCIAL" ? emptyCommercial(today()) : emptyResidential(today());
+  // Residential = one check sheet for the whole job (no per-item sheets). Items (window codes etc.) are for Commercial only.
+  if (kind === "RESIDENTIAL") {
+    data.items = [{ ...emptyResItem(), label: "All items" }] as never;
+    const sheetR = await prisma.qaCheckSheet.create({ data: { kind, jobNumber, data: data as never, createdById: user.id } });
+    await logAudit({ userId: user.id, action: "qa_sheet_created", entityType: "QaCheckSheet", entityId: sheetR.id, metadata: { kind, jobNumber } });
+    redirect(`/health-safety/qa/sheet/${sheetR.id}`);
+  }
   // A schedule picked on the form fills every item (window code, frame type, size) automatically.
   const scheduleFileId = String(formData.get("scheduleFileId") ?? "").trim();
   let scheduleItems: ScheduleItem[] | null = null;

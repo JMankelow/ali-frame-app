@@ -74,14 +74,16 @@ export function PhotosSection({
     <div className="card">
       <div className="topbar" style={{ marginBottom: 8 }}>
         <div className="label">Photos</div>
-        <a href={sharePointUrl} target="_blank" rel="noopener noreferrer" className="btn light">
-          Open Client SharePoint Folder ↗
-        </a>
+        {sharePointUrl && (
+          <a href={sharePointUrl} target="_blank" rel="noopener noreferrer" className="btn light">
+            Open Client SharePoint Folder ↗
+          </a>
+        )}
       </div>
       <div className="hint" style={{ marginBottom: 10 }}>
-        Take or choose multiple photos at once. Uploaded here for now — drag them into the SharePoint folder above to
-        share with the client until automatic SharePoint delivery is set up (needs a Microsoft/Azure app registration
-        from Jo before that part can be built).
+        {sharePointUrl
+          ? "Take or choose multiple photos at once. Uploaded here for now — drag them into the SharePoint folder above to share with the client until automatic SharePoint delivery is set up (needs a Microsoft/Azure app registration from Jo before that part can be built)."
+          : "Take or choose several photos at once — they're saved to this job."}
       </div>
 
       <input
