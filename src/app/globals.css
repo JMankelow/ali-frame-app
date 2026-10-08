@@ -8,7 +8,9 @@
 }
 *{box-sizing:border-box}
 html,body{padding:0;margin:0}
-body{font-family:inherit;background:var(--bg);color:var(--ink)}
+/* Same clean system font as the Endeavour app: Segoe UI on Windows, the native font on iPhone / Mac / Android */
+body{font-family:"Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
 a{color:inherit}
 
 /* Auth pages (login / setup / reset / verify) */
