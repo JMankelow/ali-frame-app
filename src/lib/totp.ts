@@ -3,6 +3,7 @@
 // Developed with AI-assisted tooling; review and approval: PENDING ORGANISATION REVIEW.
 import "server-only";
 import { createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { appUrl } from "@/lib/invite";
 
 // Standard authenticator-app codes (RFC 6238: HMAC-SHA1, 6 digits, 30-second steps) — works with Google Authenticator,
 // Microsoft Authenticator, Authy, 1Password, etc.
@@ -55,6 +56,7 @@ export function verifyTotp(secret: string, submitted: string, lastUsedStep?: num
 }
 
 export function otpauthUrl(secret: string, account: string): string {
-  const issuer = "Ali-Frame Job Management";
-  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=${STEP_SECONDS}`;
+  const issuer = "Ali-Frame";
+  // `image` is the Ali-Frame logo icon — shown by authenticator apps that support custom icons (e.g. 2FAS, Aegis, Ente); Google/Microsoft Authenticator pick their own.
+  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=${STEP_SECONDS}&image=${encodeURIComponent(appUrl() + "/icon-192.png")}`;
 }
