@@ -64,6 +64,11 @@ export function TimesheetForm({ jobs, staff, currentUserId }: { jobs: JobPickerO
             <input id="breakMinutes" name="breakMinutes" type="number" defaultValue={30} min={0} />
           </div>
           <div className="full">
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 700, textTransform: "none", background: "#fff4e5", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 10px" }}>
+              <input type="checkbox" name="isRemedial" /> This is for <b>remedial</b> — not the usual install
+            </label>
+          </div>
+          <div className="full">
             <label htmlFor="notes">Work Completed / Notes</label>
             <textarea id="notes" name="notes" rows={2} />
           </div>

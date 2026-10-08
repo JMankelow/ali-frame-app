@@ -41,6 +41,11 @@ export function PurchaseOrderForm({ jobs }: { jobs: JobPickerOption[] }) {
             <input id="amount" name="amount" type="number" step="0.01" defaultValue="0" />
           </div>
           <div className="full">
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 700, textTransform: "none", background: "#fff4e5", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 10px" }}>
+              <input type="checkbox" name="isRemedial" /> This is for <b>remedial</b> — not the usual install
+            </label>
+          </div>
+          <div className="full">
             <label htmlFor="description">Description</label>
             <input id="description" name="description" placeholder="e.g. Aluminium joinery for Items 1-9" />
           </div>

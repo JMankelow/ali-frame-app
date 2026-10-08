@@ -14,13 +14,14 @@ export function WorkClock({
   active,
   jobs,
 }: {
-  active: { jobNumber: string; jobTitle: string; workType: string; startedAt: string } | null;
+  active: { jobNumber: string; jobTitle: string; workType: string; startedAt: string; isRemedial?: boolean } | null;
   jobs: { number: string; title: string }[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [job, setJob] = useState(jobs[0]?.number ?? "");
   const [workType, setWorkType] = useState("Install");
+  const [remedial, setRemedial] = useState(false);
   const [breakMin, setBreakMin] = useState("0");
   const [stopping, setStopping] = useState(false);
   const [msg, setMsg] = useState("");
@@ -58,7 +59,7 @@ export function WorkClock({
             <div style={{ fontSize: 34, fontWeight: 900, fontVariantNumeric: "tabular-nums", color: "#1f8a4c" }}>{clockText}</div>
             <div>
               <div style={{ fontWeight: 800 }}>{active.jobNumber} — {active.jobTitle}</div>
-              <div className="hint">{active.workType} · started {new Date(active.startedAt).toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })}</div>
+              <div className="hint">{active.workType}{active.isRemedial ? " · REMEDIAL" : ""} · started {new Date(active.startedAt).toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })}</div>
             </div>
           </div>
           {!stopping ? (
@@ -101,7 +102,10 @@ export function WorkClock({
                   {WORK_TYPES.map((t) => <option key={t}>{t}</option>)}
                 </select>
               </div>
-              <button type="button" className="btn primary" disabled={pending || !job} style={{ background: "#1f8a4c", borderColor: "#1f8a4c", fontSize: 16, padding: "12px 22px" }} onClick={() => run(() => startClock(job, workType))}>
+              <label style={{ flex: "1 1 100%", display: "flex", gap: 8, alignItems: "center", fontWeight: 700, background: "#fff4e5", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 10px" }}>
+                <input type="checkbox" checked={remedial} onChange={(e) => setRemedial(e.target.checked)} /> This is for <b>remedial</b> — not the usual install
+              </label>
+              <button type="button" className="btn primary" disabled={pending || !job} style={{ background: "#1f8a4c", borderColor: "#1f8a4c", fontSize: 16, padding: "12px 22px" }} onClick={() => run(() => startClock(job, workType, remedial))}>
                 {pending ? "Starting…" : "Start clock"}
               </button>
             </div>

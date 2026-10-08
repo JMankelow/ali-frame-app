@@ -17,6 +17,7 @@ export async function createPurchaseOrder(_prevState: PurchaseOrderFormState, fo
   const supplier = String(formData.get("supplier") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const amount = parseFloat(String(formData.get("amount") ?? "0")) || 0;
+  const isRemedial = formData.get("isRemedial") === "on";
 
   if (!poNumber) return { error: "PO number is required." };
   if (!jobNumber) return { error: "Job number is required." };
@@ -29,10 +30,10 @@ export async function createPurchaseOrder(_prevState: PurchaseOrderFormState, fo
   if (existing) return { error: `PO ${poNumber} already exists.` };
 
   await prisma.purchaseOrder.create({
-    data: { poNumber, jobNumber, supplier, description: description || null, amount, orderedById: user.id },
+    data: { poNumber, jobNumber, supplier, description: description || null, amount, isRemedial, orderedById: user.id },
   });
 
-  await logAudit({ userId: user.id, action: "purchase_order_created", entityType: "PurchaseOrder", entityId: poNumber, metadata: { jobNumber, supplier, amount } });
+  await logAudit({ userId: user.id, action: "purchase_order_created", entityType: "PurchaseOrder", entityId: poNumber, metadata: { jobNumber, supplier, amount, isRemedial } });
   revalidatePath("/purchase-orders");
   return {};
 }

@@ -40,7 +40,7 @@ export default async function PurchaseOrdersPage() {
                 <td>{po.poNumber}</td>
                 <td>{po.jobNumber}</td>
                 <td>{po.supplier}</td>
-                <td>{po.description ?? "—"}</td>
+                <td>{po.description ?? "—"}{po.isRemedial && <span className="status orange" style={{ marginLeft: 6 }}>Remedial</span>}</td>
                 <td>${po.amount.toLocaleString("en-NZ", { minimumFractionDigits: 2 })}</td>
                 <td>
                   <span className={`status ${po.status === "Received" ? "green" : "orange"}`}>{po.status}</span>

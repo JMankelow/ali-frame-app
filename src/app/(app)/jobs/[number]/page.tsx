@@ -76,7 +76,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
   ]);
 
   const [hoursAgg, quoteInputs, timeEntries] = await Promise.all([
-    prisma.timesheetEntry.aggregate({ where: { jobNumber: number }, _sum: { totalHours: true } }),
+    prisma.timesheetEntry.groupBy({ by: ["isRemedial"], where: { jobNumber: number }, _sum: { totalHours: true } }),
     prisma.jobQuoteInputs.findUnique({ where: { jobNumber: number } }),
     prisma.timesheetEntry.findMany({
       where: { jobNumber: number, ...(installer ? { userId: currentUser.id } : {}) },
@@ -85,7 +85,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
       take: 100,
     }),
   ]);
-  const hoursLogged = hoursAgg._sum.totalHours ?? 0;
+  const hoursLogged = hoursAgg.find((h) => !h.isRemedial)?._sum.totalHours ?? 0; // usual install labour
+  const remedialHoursLogged = hoursAgg.find((h) => h.isRemedial)?._sum.totalHours ?? 0;
 
   // Supplier contacts for this job's supplier — lets the email "To" fill itself in for supplier templates.
   const supplierContactRows = job.supplier
@@ -199,6 +200,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
             <div><label>Install allowance</label><div>{money(quoteInputs?.installAllowance ?? job.costing?.installQuoted)}</div></div>
             <div><label>Labour hours (budget)</label><div>{job.costing?.labourHoursQuoted ?? "—"}</div></div>
             <div><label>Hours logged so far</label><div>{hoursLogged.toFixed(1)}</div></div>
+            {remedialHoursLogged > 0 && <div><label>Remedial hours (separate)</label><div>{remedialHoursLogged.toFixed(1)}</div></div>}
             <div><label>Materials (budget)</label><div>{money(job.costing?.materialsQuoted)}</div></div>
             <div><label>Rubbish removal (budget)</label><div>{money(job.costing?.rubbishQuoted)}</div></div>
           </div>
@@ -509,7 +511,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
             {purchaseOrders.map((po) => (
               <tr key={po.id}>
                 <td>{po.poNumber}</td>
-                <td>{po.supplier}</td>
+                <td>{po.supplier}{po.isRemedial && <span className="status orange" style={{ marginLeft: 6 }}>Remedial</span>}</td>
                 <td>{money(po.amount)}</td>
                 <td>
                   <span className={`status ${po.status === "Received" ? "green" : "blue"}`}>{po.status}</span>
@@ -604,7 +606,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
                 jobNumber={job.number}
                 userId={currentUser.id}
                 showStaff={!installer}
-                rows={timeEntries.map((t) => ({ id: t.id, date: t.dateWorked.toLocaleDateString("en-NZ"), staffName: t.user.name, workType: t.workType, hours: t.totalHours, status: t.status }))}
+                rows={timeEntries.map((t) => ({ id: t.id, date: t.dateWorked.toLocaleDateString("en-NZ"), staffName: t.user.name, workType: t.workType, hours: t.totalHours, status: t.status, isRemedial: t.isRemedial }))}
               />
             ),
           },

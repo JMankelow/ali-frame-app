@@ -39,6 +39,7 @@ export async function createTimesheetEntry(_prevState: TimesheetFormState, formD
   const finishTime = String(formData.get("finishTime") ?? "").trim();
   const breakMinutes = parseInt(String(formData.get("breakMinutes") ?? "0"), 10) || 0;
   const notes = String(formData.get("notes") ?? "").trim();
+  const isRemedial = formData.get("isRemedial") === "on" || workType === "Remedial";
 
   if (!jobNumber) return { error: "Job number is required." };
   if (!dateWorked) return { error: "Date worked is required." };
@@ -60,11 +61,12 @@ export async function createTimesheetEntry(_prevState: TimesheetFormState, formD
       finishTime,
       breakMinutes,
       totalHours,
+      isRemedial,
       notes: notes || null,
     },
   });
 
-  await logAudit({ userId: user.id, action: "timesheet_created", entityType: "TimesheetEntry", metadata: { jobNumber, staffUserId, totalHours } });
+  await logAudit({ userId: user.id, action: "timesheet_created", entityType: "TimesheetEntry", metadata: { jobNumber, staffUserId, totalHours, isRemedial } });
   revalidatePath("/timesheets");
   revalidatePath(`/jobs/${jobNumber}`);
   return {};

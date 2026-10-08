@@ -24,7 +24,7 @@ export interface ClockState {
 }
 
 /** Start the work clock on a job. One clock per person at a time. */
-export async function startClock(jobNumber: string, workType: string): Promise<ClockState> {
+export async function startClock(jobNumber: string, workType: string, isRemedial = false): Promise<ClockState> {
   const user = await requireUser();
   const number = String(jobNumber ?? "").trim();
   if (!number) return { error: "Pick the job you're starting on." };
@@ -36,7 +36,7 @@ export async function startClock(jobNumber: string, workType: string): Promise<C
   }
   if (await prisma.timeClock.findUnique({ where: { userId: user.id } })) return { error: "Your clock is already running." };
 
-  await prisma.timeClock.create({ data: { userId: user.id, jobNumber: number, workType: WORK_TYPES.includes(workType) ? workType : "Install" } });
+  await prisma.timeClock.create({ data: { userId: user.id, jobNumber: number, workType: WORK_TYPES.includes(workType) ? workType : "Install", isRemedial: isRemedial || workType === "Remedial" } });
   await logAudit({ userId: user.id, action: "clock_started", entityType: "Job", entityId: number });
   revalidatePath("/dashboard");
   revalidatePath("/timesheets");
@@ -69,7 +69,7 @@ export async function stopClock(breakMinutesRaw: number, notesRaw: string): Prom
   }
   const totalHours = Math.round((worked / 60) * 100) / 100;
   await prisma.timesheetEntry.create({
-    data: { userId: user.id, jobNumber: clock.jobNumber, dateWorked: new Date(s.date), workType: clock.workType, startTime: s.time, finishTime: f.time, breakMinutes, totalHours, notes: note || "Recorded with the work clock" },
+    data: { userId: user.id, jobNumber: clock.jobNumber, dateWorked: new Date(s.date), workType: clock.workType, startTime: s.time, finishTime: f.time, breakMinutes, totalHours, isRemedial: clock.isRemedial, notes: note || "Recorded with the work clock" },
   });
   await logAudit({ userId: user.id, action: "clock_stopped", entityType: "Job", entityId: clock.jobNumber, metadata: { totalHours } });
   revalidatePath("/dashboard");

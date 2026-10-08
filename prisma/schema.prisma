@@ -360,6 +360,7 @@ model TimeClock {
   jobNumber String
   job       Job      @relation(fields: [jobNumber], references: [number], onDelete: Cascade)
   workType  String   @default("Install")
+  isRemedial Boolean @default(false)
   startedAt DateTime @default(now())
 }
 
@@ -374,6 +375,8 @@ model TimesheetEntry {
   startTime    String
   finishTime   String
   breakMinutes Int      @default(0)
+  // Labour done for a remedial (put-right) rather than the usual install — kept separate for tracking
+  isRemedial   Boolean  @default(false)
   totalHours   Float
   notes        String?
   status       String   @default("Submitted")
@@ -391,6 +394,8 @@ model PurchaseOrder {
   supplier    String
   description String?
   amount      Float
+  // Materials bought for a remedial rather than the usual install
+  isRemedial  Boolean   @default(false)
   status      String    @default("Ordered")
   orderedById String?
   orderedBy   User?     @relation(fields: [orderedById], references: [id], onDelete: SetNull)

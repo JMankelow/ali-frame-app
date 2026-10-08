@@ -20,7 +20,7 @@ export async function WorkClockPanel({ user, onlyIfRunning = false }: { user: { 
 
   return (
     <WorkClock
-      active={clock ? { jobNumber: clock.jobNumber, jobTitle: clock.job.title, workType: clock.workType, startedAt: clock.startedAt.toISOString() } : null}
+      active={clock ? { jobNumber: clock.jobNumber, jobTitle: clock.job.title, workType: clock.workType, isRemedial: clock.isRemedial, startedAt: clock.startedAt.toISOString() } : null}
       jobs={byNumberDesc(jobs)}
     />
   );

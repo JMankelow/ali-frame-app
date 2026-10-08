@@ -16,12 +16,14 @@ export interface JobTimeRow {
   workType: string;
   hours: number;
   status: string;
+  isRemedial?: boolean;
 }
 
 /** Log time against this job and see time already logged on it. Entries also appear on the Timesheets page. */
 export function JobTimeSection({ jobNumber, userId, rows, showStaff }: { jobNumber: string; userId: string; rows: JobTimeRow[]; showStaff: boolean }) {
   const [state, action, pending] = useActionState(createTimesheetEntry, initial);
   const total = rows.reduce((s, r) => s + r.hours, 0);
+  const remedialHours = rows.filter((r) => r.isRemedial).reduce((s, r) => s + r.hours, 0);
   const today = new Date().toISOString().slice(0, 10);
 
   return (
@@ -41,6 +43,11 @@ export function JobTimeSection({ jobNumber, userId, rows, showStaff }: { jobNumb
             <div><label>Finish</label><input type="time" name="finishTime" required /></div>
             <div><label>Break (minutes)</label><input type="number" name="breakMinutes" min={0} defaultValue={0} /></div>
             <div><label>Notes</label><input name="notes" /></div>
+            <div className="full">
+              <label style={{ display: "flex", gap: 8, alignItems: "center", fontWeight: 700, textTransform: "none", background: "#fff4e5", border: "1px solid #fed7aa", borderRadius: 10, padding: "8px 10px" }}>
+              <input type="checkbox" name="isRemedial" /> This is for <b>remedial</b> — not the usual install
+            </label>
+            </div>
           </div>
           {state.error && <div className="authError">{state.error}</div>}
           <div className="actions" style={{ marginTop: 12 }}>
@@ -51,6 +58,7 @@ export function JobTimeSection({ jobNumber, userId, rows, showStaff }: { jobNumb
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="label">Time logged on this job — {total.toFixed(2)} h{showStaff ? " (all staff)" : " (yours)"}</div>
+        {remedialHours > 0 && <div className="hint" style={{ marginTop: 4 }}>Install {(total - remedialHours).toFixed(2)} h · Remedial {remedialHours.toFixed(2)} h</div>}
         <table style={{ marginTop: 8 }}>
           <thead><tr><th>Date</th>{showStaff && <th>Staff</th>}<th>Work type</th><th>Hours</th><th>Status</th></tr></thead>
           <tbody>
@@ -58,7 +66,7 @@ export function JobTimeSection({ jobNumber, userId, rows, showStaff }: { jobNumb
               <tr key={r.id}>
                 <td>{r.date}</td>
                 {showStaff && <td>{r.staffName}</td>}
-                <td>{r.workType}</td>
+                <td>{r.workType}{r.isRemedial && <span className="status orange" style={{ marginLeft: 6 }}>Remedial</span>}</td>
                 <td>{r.hours.toFixed(2)}</td>
                 <td><span className={`status ${r.status === "Approved" ? "green" : "orange"}`}>{r.status}</span></td>
               </tr>

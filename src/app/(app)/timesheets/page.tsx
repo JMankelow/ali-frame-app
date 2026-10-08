@@ -81,7 +81,7 @@ export default async function TimesheetsPage() {
                 <td>{e.dateWorked.toLocaleDateString("en-NZ")}</td>
                 <td>{e.user.name}</td>
                 <td>{e.jobNumber}</td>
-                <td>{e.workType}</td>
+                <td>{e.workType}{e.isRemedial && <span className="status orange" style={{ marginLeft: 6 }}>Remedial</span>}</td>
                 <td>{e.totalHours.toFixed(2)}</td>
                 <td>
                   <span className={`status ${e.status === "Approved" ? "green" : "orange"}`}>{e.status}</span>
