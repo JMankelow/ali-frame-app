@@ -9,6 +9,7 @@ import { JobTabs } from "./JobTabs";
 import { ScheduledTasksSection, type ScheduledTaskRow } from "./ScheduledTasksSection";
 import { JobNotesSection, type JobFeedItem } from "./JobNotesSection";
 import { JobChecklistSection, type ChecklistItem } from "./JobChecklistSection";
+import { ScheduleUpload } from "./ScheduleUpload";
 import { PhotosSection } from "./PhotosSection";
 import { BookCheckMeasureForm } from "../../email-client/BookCheckMeasureForm";
 import { SendTemplateEmailForm } from "./SendTemplateEmailForm";
@@ -18,7 +19,7 @@ import { createQaSheet } from "../../health-safety/qa/sheetActions";
 import { cleanPack, dollars, labourLine } from "@/lib/checkMeasure";
 
 // Field staff only get these tabs — no quotes, orders, costing, supplier invoices or client email.
-const INSTALLER_TABS = ["details", "qa", "tasks", "photos", "notes", "time", "files", "sitemeasure", "checklist"];
+const INSTALLER_TABS = ["details", "qa", "schedule", "tasks", "photos", "notes", "time", "files", "checklist"];
 const INSTALLER_HIDDEN_AUDIT = /^(purchase_order|templated_email|check_measure_booking|repricing|quote)/;
 
 function money(v: number | null | undefined): string {
@@ -376,9 +377,31 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         )}
         <div className="actions" style={{ marginTop: 10 }}>
           <button type="submit" className="btn primary">Start {job.type === "COMMERCIAL" ? "Commercial" : "Residential"} QA check sheet</button>
-          <Link href="/health-safety/qa" className="btn light">QA photo reports</Link>
+          {!installer && <Link href="/health-safety/qa" className="btn light">QA photo reports</Link>}
         </div>
       </form>
+    </div>
+  );
+
+  // The job's schedule(s): downloadable by the team; the office adds them here.
+  const scheduleFiles = files.filter((f) => f.fileType === "Supplier Schedule");
+  const scheduleTab = (
+    <div className="card">
+      <div className="label">Schedule</div>
+      <div className="hint" style={{ marginTop: 4 }}>The schedule for this job — every item with its code, frame type and size. Tap Download to open or save it.</div>
+      {scheduleFiles.length === 0 ? (
+        <div className="hint" style={{ marginTop: 10 }}>No schedule has been added to this job yet{installer ? " — ask the office." : "."}</div>
+      ) : (
+        <table style={{ marginTop: 10 }}>
+          <thead><tr><th>Name</th><th>Job</th><th>Type</th><th>Added by</th><th>Date</th><th></th></tr></thead>
+          <tbody>
+            {scheduleFiles.map((f) => (
+              <FileRow key={f.id} id={f.id} name={f.fileName} jobNumber={f.jobNumber} fileType={f.fileType} uploadedByName={f.uploadedBy?.name ?? "—"} date={f.createdAt.toLocaleDateString("en-NZ")} readOnly={installer} />
+            ))}
+          </tbody>
+        </table>
+      )}
+      {!installer && <ScheduleUpload jobNumber={job.number} />}
     </div>
   );
 
@@ -585,6 +608,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
           { key: "files", label: "Files", content: filesTab },
           { key: "sitemeasure", label: "Site Measure", content: siteMeasureTab },
           { key: "qa", label: "Job QA", content: qaTab },
+          { key: "schedule", label: "Schedule", content: scheduleTab },
           {
             key: "emailclient",
             label: "Emails",

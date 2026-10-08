@@ -65,7 +65,7 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
 
       <ReviewAlerts userId={userId} />
 
-      <WorkClockPanel user={{ id: userId, isSuperUser: false, role }} />
+      <WorkClockPanel user={{ id: userId, isSuperUser: false, role }} onlyIfRunning />
 
       <div className="cards">
         <Link href="/health-safety/prestart" className="card" style={card}>
@@ -85,7 +85,7 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
         <Link href="/timesheets" className="card" style={{ ...card, background: "#0057b8", color: "#fff", border: "none", boxShadow: "0 6px 16px rgba(0,87,184,.35)" }}>
           <div className="label" style={{ color: "#fff" }}>Log time</div>
           <div className="metric" style={{ color: "#fff", fontSize: 28 }}>+ Add hours</div>
-          <div className="hint" style={{ color: "#dbeafe", marginTop: 6 }}>or use the work clock above</div>
+          <div className="hint" style={{ color: "#dbeafe", marginTop: 6 }}>start the clock or add hours</div>
         </Link>
       </div>
 

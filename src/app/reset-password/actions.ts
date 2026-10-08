@@ -6,6 +6,7 @@ import { hashPassword, validatePasswordStrength } from "@/lib/password";
 import { getPendingLoginUserId, clearPendingLogin } from "@/lib/pendingLogin";
 import { createSession } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { revokeAllTrustedDevices } from "@/lib/trustedDevice";
 
 export interface ResetPasswordState {
   error?: string;
@@ -42,6 +43,7 @@ export async function resetPassword(
     where: { id: user.id },
     data: { passwordHash, mustResetPassword: false },
   });
+  await revokeAllTrustedDevices(user.id);
 
   await logAudit({ userId: user.id, action: "password_reset_completed", entityType: "User", entityId: user.id });
 

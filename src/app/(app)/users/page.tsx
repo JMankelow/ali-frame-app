@@ -35,7 +35,7 @@ export default async function UsersPage() {
         <PermissionsMatrix
           rows={users
             .filter((u) => !u.email.endsWith(".local"))
-            .map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isActive: u.isActive, mustResetPassword: u.mustResetPassword, isSuperUser: u.isSuperUser, permissions: u.permissions }))}
+            .map((u) => ({ id: u.id, name: u.name, email: u.email, role: u.role, isActive: u.isActive, mustResetPassword: u.mustResetPassword, isSuperUser: u.isSuperUser, permissions: u.permissions, totpEnabled: !!u.totpEnabledAt }))}
           currentUserId={actor.id}
         />
       </div>

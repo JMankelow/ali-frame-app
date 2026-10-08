@@ -87,8 +87,19 @@ export async function updateUserRole(userId: string, roleInput: string) {
   revalidatePath("/users");
 }
 
+/** For someone who has lost their phone: switches their authenticator off (they sign in with emailed codes again and can set it up afresh). */
+export async function resetUserAuthenticator(userId: string) {
+  const actor = await requireSuperUser();
+  await prisma.user.update({ where: { id: userId }, data: { totpSecretEnc: null, totpEnabledAt: null, totpLastStep: null } });
+  await prisma.recoveryCode.deleteMany({ where: { userId } });
+  await prisma.trustedDevice.deleteMany({ where: { userId } });
+  await logAudit({ userId: actor.id, action: "totp_reset_by_admin", entityType: "User", entityId: userId });
+  revalidatePath("/users");
+}
+
 export async function deactivateUser(userId: string) {
   const actor = await requireSuperUser();
+  await prisma.trustedDevice.deleteMany({ where: { userId } });
   await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
   await logAudit({ userId: actor.id, action: "user_deactivated", entityType: "User", entityId: userId });
   revalidatePath("/users");

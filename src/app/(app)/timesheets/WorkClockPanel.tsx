@@ -7,7 +7,7 @@ import { byNumberDesc } from "@/lib/jobSort";
 import { WorkClock } from "./WorkClock";
 
 /** The start / stop clock for the signed-in person. Field staff can only clock on to jobs they're booked on. */
-export async function WorkClockPanel({ user }: { user: { id: string; isSuperUser: boolean; role?: string } }) {
+export async function WorkClockPanel({ user, onlyIfRunning = false }: { user: { id: string; isSuperUser: boolean; role?: string }; onlyIfRunning?: boolean }) {
   const field = isInstallerProfile(user as { isSuperUser: boolean; role?: string });
   const [clock, jobs] = await Promise.all([
     prisma.timeClock.findUnique({ where: { userId: user.id }, include: { job: { select: { title: true } } } }),
@@ -15,6 +15,8 @@ export async function WorkClockPanel({ user }: { user: { id: string; isSuperUser
       ? prisma.job.findMany({ where: { archived: false, scheduledTasks: { some: { assignees: { some: { id: user.id } }, status: { not: "Cancelled" } } } }, select: { number: true, title: true }, take: 100 })
       : prisma.job.findMany({ where: { archived: false }, select: { number: true, title: true }, orderBy: { createdAt: "desc" }, take: 400 }),
   ]);
+
+  if (onlyIfRunning && !clock) return null;
 
   return (
     <WorkClock

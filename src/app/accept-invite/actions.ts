@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, validatePasswordStrength } from "@/lib/password";
 import { findValidInvite } from "@/lib/invite";
 import { logAudit } from "@/lib/audit";
+import { revokeAllTrustedDevices } from "@/lib/trustedDevice";
 
 export interface AcceptInviteState {
   error?: string;
@@ -34,6 +35,7 @@ export async function acceptInvite(_prev: AcceptInviteState, formData: FormData)
   if (used.count !== 1) return { error: "This link has already been used." };
 
   await prisma.user.update({ where: { id: invite.userId }, data: { passwordHash, mustResetPassword: false } });
+  await revokeAllTrustedDevices(invite.userId);
   await logAudit({ userId: invite.userId, action: "invite_accepted", entityType: "User", entityId: invite.userId });
 
   redirect("/login");

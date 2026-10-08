@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { deactivateUser, reactivateUser, setUserPermissions, setUserSuperUser, updateUserRole } from "./actions";
+import { deactivateUser, reactivateUser, resetUserAuthenticator, setUserPermissions, setUserSuperUser, updateUserRole } from "./actions";
 import { InviteButton } from "./InviteButtons";
 import { INSTALLER_ROLES, INSTALLER_SECTIONS, SECTIONS } from "@/lib/permissions";
 import { ROLE_OPTIONS, ROLE_LABELS } from "@/lib/roles";
@@ -15,6 +15,7 @@ export interface PermissionRow {
   mustResetPassword: boolean;
   isSuperUser: boolean;
   permissions: string[];
+  totpEnabled: boolean;
 }
 
 const isFieldRole = (role: string) => INSTALLER_ROLES.includes(role);
@@ -113,7 +114,7 @@ function UserRow({ row, isSelf }: { row: PermissionRow; isSelf: boolean }) {
           {isSelf && <span className="hint"> (you)</span>}
         </div>
         <div className="hint">
-          {row.email} · <span style={{ color: row.mustResetPassword ? "#b45309" : "#1f8a4c", fontWeight: 700 }}>{row.mustResetPassword ? "not signed in yet" : "signed in"}</span>
+          {row.email} · <span style={{ color: row.mustResetPassword ? "#b45309" : "#1f8a4c", fontWeight: 700 }}>{row.mustResetPassword ? "not signed in yet" : "signed in"}</span>{row.totpEnabled && " · 🔐 app"}
         </div>
       </td>
       <td>
@@ -178,6 +179,11 @@ function UserRow({ row, isSelf }: { row: PermissionRow; isSelf: boolean }) {
       <td>
         <div style={{ display: "flex", gap: 6, alignItems: "flex-start", flexWrap: "nowrap" }}>
           {row.isActive && <InviteButton userId={row.id} firstLoginDone={!row.mustResetPassword} small />}
+          {row.isActive && row.totpEnabled && !isSelf && (
+            <button type="button" className="btn light" disabled={pending} title="Lost their phone? Switches their authenticator app off" style={small} onClick={() => { if (window.confirm(`Reset ${row.name}'s authenticator app? They'll go back to emailed codes.`)) startTransition(() => resetUserAuthenticator(row.id)); }}>
+              Reset app
+            </button>
+          )}
           {row.isActive ? (
             <button type="button" className="btn light" disabled={pending || isSelf} onClick={() => startTransition(() => deactivateUser(row.id))} style={{ ...small, color: "#b91c1c" }}>
               Deactivate

@@ -59,6 +59,12 @@ model User {
   notesAssigned             Note[]                @relation("NoteAssignee")
   timesheetEntries          TimesheetEntry[]
   timeClock                 TimeClock?
+  // Authenticator-app (TOTP) sign-in. The key is stored encrypted; totpLastStep stops a code being used twice.
+  totpSecretEnc             String?
+  totpEnabledAt             DateTime?
+  totpLastStep              Int?
+  trustedDevices            TrustedDevice[]
+  recoveryCodes             RecoveryCode[]
   purchaseOrders            PurchaseOrder[]
   remedialsRaised           RemedialItem[]        @relation("RemedialRaisedBy")
   remedialsAssigned         RemedialItem[]        @relation("RemedialAssignedTo")
@@ -305,6 +311,31 @@ model Note {
 
   @@index([status, createdAt])
   @@index([jobNumber, createdAt])
+}
+
+// A browser the person chose to "remember" for 30 days — it skips the sign-in code (never the password).
+model TrustedDevice {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String   @unique
+  label      String   @default("Device")
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  expiresAt  DateTime
+
+  @@index([userId])
+}
+
+// One-time codes for getting in if the authenticator app is lost. Stored hashed.
+model RecoveryCode {
+  id       String    @id @default(cuid())
+  userId   String
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash String
+  usedAt   DateTime?
+
+  @@index([userId])
 }
 
 // A running work clock — one per person. Stopping it turns it into a TimesheetEntry.

@@ -6,7 +6,6 @@ import { requireUser } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { TabStrip } from "@/components/TabStrip";
 import { DocContent } from "@/components/DocContent";
-import { SafetyIncidentForm } from "./SafetyIncidentForm";
 import { PdfButton } from "./PdfButton";
 import { OpenSsspForm } from "./OpenSsspForm";
 import { resolveSafetyIncident } from "./actions";
@@ -198,7 +197,12 @@ export default async function HealthSafetyPage() {
   // ---------------- Incidents ----------------
   const incidentsTab = (
     <div>
+      <div className="actions" style={{ marginBottom: 12 }}>
+        <Link href="/health-safety/incident/new" className="btn primary">Report an incident, near miss or hazard</Link>
+        <Link href="/health-safety/incident" className="btn light">All incident reports &amp; PDFs →</Link>
+      </div>
       <div className="card">
+        <div className="label">Open incidents, near misses &amp; hazards</div>
         <table>
           <thead><tr><th>Type</th><th>Severity</th><th>Job</th><th>Description</th><th>Reported By</th><th>Date</th><th></th></tr></thead>
           <tbody>
@@ -227,7 +231,6 @@ export default async function HealthSafetyPage() {
       <div className="hint" style={{ marginTop: 8 }}>
         Notifiable events under the Health and Safety at Work Act 2015: call 111 if needed, notify WorkSafe NZ as soon as possible, and preserve the scene.
       </div>
-      <SafetyIncidentForm jobs={jobs} />
     </div>
   );
 
@@ -429,7 +432,6 @@ export default async function HealthSafetyPage() {
         </div>
         <div className="actions">
           <Link href="/health-safety/incident/new" className="btn primary">Report an accident / incident</Link>
-          <Link href="/health-safety/incident" className="btn light">Incident reports</Link>
           <Link href="/health-safety/qa" className="btn light">QA Reporting</Link>
         </div>
       </div>
@@ -440,8 +442,8 @@ export default async function HealthSafetyPage() {
           { key: "jsa", label: "Task Analysis (JSA)", content: jsaTab },
           { key: "sssp", label: "SSSP", content: ssspTab },
           { key: "incidents", label: `Incidents (${incidents.length})`, content: incidentsTab },
-          { key: "workers", label: "Training & Competency", content: workersTab },
-          { key: "inductions", label: "Inductions", content: inductionsTab },
+          // Training records and inductions are office-managed — not shown to field staff.
+          ...(canManage ? [{ key: "workers", label: "Training & Competency", content: workersTab }, { key: "inductions", label: "Inductions", content: inductionsTab }] : []),
           { key: "risks", label: "Risk Register", content: riskTab },
           { key: "documents", label: "Documents", content: docsTab },
         ]}

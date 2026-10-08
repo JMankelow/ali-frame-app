@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { TimesheetForm } from "./TimesheetForm";
 import { approveTimesheetEntry } from "./actions";
 import { WorkClockPanel } from "./WorkClockPanel";
+import { LogTimeTabs } from "./LogTimeTabs";
 import { isInstallerProfile } from "@/lib/permissions";
 import { byNumberDesc } from "@/lib/jobSort";
 
@@ -43,7 +44,10 @@ export default async function TimesheetsPage() {
         </div>
       </div>
 
-      <WorkClockPanel user={user} />
+      <LogTimeTabs
+        clock={<WorkClockPanel user={user} />}
+        form={<TimesheetForm jobs={byNumberDesc(jobs)} staff={staff} currentUserId={user.id} />}
+      />
 
       <div className="cards">
         <div className="card">
@@ -96,7 +100,7 @@ export default async function TimesheetsPage() {
             {entries.length === 0 && (
               <tr>
                 <td colSpan={7} className="hint">
-                  No timesheet entries yet — add the first one below.
+                  No timesheet entries yet — start the clock or add hours above.
                 </td>
               </tr>
             )}
@@ -104,7 +108,6 @@ export default async function TimesheetsPage() {
         </table>
       </div>
 
-      <TimesheetForm jobs={byNumberDesc(jobs)} staff={staff} currentUserId={user.id} />
     </div>
   );
 }

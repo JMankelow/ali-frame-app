@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getSessionUser } from "@/lib/session";
@@ -49,9 +50,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       visibleSections={visibleSections}
       openTaskCount={openTaskCount}
       userBadge={
-        <span className="userBadge">
+        <Link href="/account" className="userBadge" title="My sign-in & security" style={{ textDecoration: "none" }}>
           {user.name} — {ROLE_LABELS[user.role] ?? user.role}
-        </span>
+        </Link>
       }
       signOutForm={
         <form action={logout}>

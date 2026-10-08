@@ -9,6 +9,7 @@ import { createPendingLogin, clearPendingLogin } from "@/lib/pendingLogin";
 import { issueTwoFactorCode } from "@/lib/twoFactor";
 import { createSession } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { isTrustedDevice } from "@/lib/trustedDevice";
 
 // Temporary escape hatch, set via a Render env var only — leaves password
 // hashing, rate limiting and the forced first-login password reset fully
@@ -65,6 +66,16 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
   await createPendingLogin(user.id);
   await logAudit({ userId: user.id, action: "login_password_verified", entityType: "User", entityId: user.id });
 
+  // A device this person chose to remember (30 days) skips the code step — the password above was still required.
+  if (!TWO_FACTOR_DISABLED && (await isTrustedDevice(user.id))) {
+    await logAudit({ userId: user.id, action: "login_2fa_skipped_trusted_device", entityType: "User", entityId: user.id });
+    if (user.mustResetPassword) redirect("/reset-password");
+    await clearPendingLogin();
+    await createSession(user.id);
+    await logAudit({ userId: user.id, action: "login_success", entityType: "User", entityId: user.id });
+    redirect("/dashboard");
+  }
+
   if (TWO_FACTOR_DISABLED) {
     await logAudit({ userId: user.id, action: "login_2fa_skipped_disabled", entityType: "User", entityId: user.id });
     if (user.mustResetPassword) {
@@ -76,6 +87,7 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     redirect("/dashboard");
   }
 
-  await issueTwoFactorCode(user.id, user.email);
+  // Authenticator app set up → the code comes from the app, so no email is sent.
+  if (!user.totpEnabledAt) await issueTwoFactorCode(user.id, user.email);
   redirect("/login/verify");
 }

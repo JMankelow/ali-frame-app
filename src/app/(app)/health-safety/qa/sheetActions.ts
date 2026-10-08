@@ -213,6 +213,38 @@ async function cleanCommercial(jobNumber: string, raw: Record<string, unknown>, 
   return out;
 }
 
+/**
+ * QA photos are filed on the job's Photos tab the moment they're uploaded. Once a photo has been labelled, its file name there
+ * becomes the label (e.g. "Final completion — Lounge slider.jpg") so the Photos tab reads properly instead of IMG_4821.jpg.
+ */
+async function nameJobPhotos(jobNumber: string, kind: string, data: ResidentialData | CommercialData) {
+  const wanted: { id: string; name: string }[] = [];
+  if (kind === "RESIDENTIAL") {
+    for (const it of (data as ResidentialData).items) {
+      for (const id of it.photoFileIds) {
+        const label = it.photoMeta?.[id]?.label?.trim();
+        if (label) wanted.push({ id, name: `Final completion — ${label}` });
+      }
+    }
+  } else {
+    for (const it of (data as CommercialData).items) {
+      for (const sec of COM_SECTIONS) {
+        for (const id of it.qa.photos[sec.id] ?? []) {
+          const label = it.qa.photoMeta?.[id]?.label?.trim();
+          if (label) wanted.push({ id, name: `${it.code || "Item " + it.n} ${sec.title} — ${label}` });
+        }
+      }
+    }
+  }
+  for (const w of wanted) {
+    const file = await prisma.fileAsset.findFirst({ where: { id: w.id, jobNumber }, select: { fileName: true } });
+    if (!file) continue;
+    const ext = file.fileName.match(/\.[A-Za-z0-9]{2,5}$/)?.[0] ?? "";
+    const next = (w.name.replace(/[\\/:*?"<>|]/g, "-").slice(0, 110) + ext).trim();
+    if (next !== file.fileName) await prisma.fileAsset.update({ where: { id: w.id }, data: { fileName: next } });
+  }
+}
+
 /** Saves the sheet. "complete" finishes it once everything required is filled in. */
 export async function saveQaSheet(sheetId: string, _prev: SheetState, formData: FormData): Promise<SheetState> {
   const user = await requireUser();
@@ -243,6 +275,8 @@ export async function saveQaSheet(sheetId: string, _prev: SheetState, formData: 
   if (complete && problems.length) return { error: `${problems.length} thing${problems.length === 1 ? " is" : "s are"} still missing before this can be completed.`, problems: problems.slice(0, 12) };
 
   await prisma.qaCheckSheet.update({ where: { id: sheetId }, data: { data: data as never, status: complete ? "Complete" : "Draft", completedAt: complete ? new Date() : null } });
+  await nameJobPhotos(sheet.jobNumber, sheet.kind, data).catch((e) => console.error("[qa] could not rename photos", e));
+  revalidatePath(`/jobs/${sheet.jobNumber}`);
   await logAudit({ userId: user.id, action: complete ? "qa_sheet_completed" : "qa_sheet_saved", entityType: "QaCheckSheet", entityId: sheetId, metadata: { kind: sheet.kind } });
   revalidatePath(`/health-safety/qa/sheet/${sheetId}`);
   revalidatePath("/health-safety/qa");
