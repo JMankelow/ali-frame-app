@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
 import { installEndDate } from "@/lib/installDates";
+import { ensureQaSheet } from "@/lib/qaAuto";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
@@ -229,6 +230,10 @@ export async function updateJobDetails(number: string, _prevState: JobEditState,
     for (const t of installs) await prisma.jobScheduledTask.update({ where: { id: t.id }, data: { endDate: installEndDate(t.scheduledDate, installDays) } });
   }
 
+  if (["Quote Accepted", "Joinery Ordered", "Installation Date Confirmed"].includes(status) && (status !== job.status || type !== job.type)) {
+    await ensureQaSheet(number, user.id).catch((e) => console.error("[qa] auto-create failed", e));
+  }
+
   if (status === "Installation Date Confirmed" && job.status !== "Installation Date Confirmed") {
     const inst = await prisma.jobScheduledTask.findFirst({ where: { jobNumber: number, type: "Installation", status: { not: "Cancelled" } }, orderBy: { scheduledDate: "asc" }, include: { assignees: { select: { name: true } } } });
     await notifySalesRepBookedIn(number, user, inst ? { start: inst.scheduledDate, end: inst.endDate, crew: inst.assignees.map((a) => a.name) } : undefined);
@@ -347,6 +352,7 @@ export async function createScheduledTask(
     entityId: jobNumber,
     metadata: { type, scheduledDate: task.scheduledDate, assignees: task.assignees.map((a) => a.name) },
   });
+  if (type === "Installation") await ensureQaSheet(jobNumber, user.id).catch((e) => console.error("[qa] auto-create failed", e));
   if (type === "Installation") await notifySalesRepBookedIn(jobNumber, user, { start: task.scheduledDate, end: task.endDate, crew: task.assignees.map((a) => a.name) });
   revalidatePath(`/jobs/${jobNumber}`);
   revalidatePath("/calendar");
