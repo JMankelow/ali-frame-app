@@ -85,7 +85,7 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
           <span className={`status ${preStartToday > 0 ? "green" : "orange"}`}>{preStartToday > 0 ? "Done" : "Not done yet"}</span>
           <div className="hint" style={{ marginTop: 6 }}>Health &amp; Safety → Daily Toolbox</div>
         </Link>
-        <Link href="/crew" className="card" style={card}>
+        <Link href="/jobs" className="card" style={card}>
           <div className="label">My jobs</div>
           <div className="metric">{jobs}</div>
         </Link>

@@ -204,7 +204,6 @@ export const NAV_TREE: NavGroup[] = [
       { label: "Residential", href: "/jobs?type=Residential" },
       { label: "Commercial", href: "/jobs?type=Commercial" },
       { label: "Timesheets", href: "/timesheets" },
-      { label: "My Jobs (Mobile)", href: "/crew" },
       { label: "My Assets", href: "/assets" },
       { label: "My Vehicle", href: "/vehicles" },
       { label: "Health & Safety", href: "/health-safety" },
