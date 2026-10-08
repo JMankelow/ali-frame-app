@@ -1158,6 +1158,18 @@ model QaReportPhoto {
 }
 
 // Screenshots/images attached to a Note (so it's clear what needs changing). Bytes live in R2 under notes/.
+// Backup home for note attachments when file storage (R2) is unreachable: the bytes live here, kept apart from NoteAttachment
+// so listing notes never loads file contents. A NoteAttachment with storageKey "db:<id>" points at one of these.
+model NoteFileBlob {
+  id           String   @id @default(cuid())
+  data         Bytes
+  mimeType     String
+  fileName     String
+  sizeBytes    Int
+  uploadedById String?
+  createdAt    DateTime @default(now())
+}
+
 model NoteAttachment {
   id         String   @id @default(cuid())
   noteId     String

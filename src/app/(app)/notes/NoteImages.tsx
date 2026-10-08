@@ -10,6 +10,7 @@ export async function NoteImages({ attachments }: { attachments: { id: string; s
   if (attachments.length === 0) return null;
   const urls = await Promise.all(
     attachments.map(async (a) => {
+      if (a.storageKey.startsWith("db:")) return `/api/notes/file/${a.id}`; // kept in the database
       try {
         return await getDownloadUrl(a.storageKey, a.fileName);
       } catch {

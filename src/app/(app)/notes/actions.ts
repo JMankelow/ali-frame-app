@@ -53,7 +53,14 @@ export async function createNote(_prevState: NoteFormState, formData: FormData):
       attachments = raw
         .slice(0, 10)
         .map((a) => ({ storageKey: String(a?.storageKey ?? ""), fileName: String(a?.fileName ?? "photo.jpg").slice(0, 120), mimeType: String(a?.mimeType ?? ""), sizeBytes: Number(a?.sizeBytes) || 0 }))
-        .filter((a) => a.storageKey.startsWith("notes/") && FILE_TYPES.includes(a.mimeType));
+        .filter((a) => (a.storageKey.startsWith("notes/") || /^db:[a-z0-9]+$/i.test(a.storageKey)) && FILE_TYPES.includes(a.mimeType));
+      // Files kept in the database (backup route): make sure each one really exists and isn't already on another note.
+      const dbKeys = attachments.filter((a) => a.storageKey.startsWith("db:")).map((a) => a.storageKey.slice(3));
+      if (dbKeys.length) {
+        const ok = new Set((await prisma.noteFileBlob.findMany({ where: { id: { in: dbKeys } }, select: { id: true } })).map((b) => b.id));
+        const used = new Set((await prisma.noteAttachment.findMany({ where: { storageKey: { in: dbKeys.map((k) => "db:" + k) } }, select: { storageKey: true } })).map((a) => a.storageKey));
+        attachments = attachments.filter((a) => !a.storageKey.startsWith("db:") || (ok.has(a.storageKey.slice(3)) && !used.has(a.storageKey)));
+      }
     }
   } catch {
     /* ignore malformed attachment list */

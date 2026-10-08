@@ -41,15 +41,36 @@ export function NoteForm({ users }: { users: { id: string; name: string }[] }) {
     for (const file of list) {
       const mime = typeOf(file);
       const name = file.name && file.name !== "image.png" ? file.name : `screenshot-${Date.now()}.png`;
-      const { error: reqError, storageKey, uploadUrl } = await requestNoteImageUpload(name, mime, file.size);
-      if (reqError || !storageKey || !uploadUrl) {
-        setError(reqError ?? "Couldn't attach that file.");
-        continue;
+      // Normal route: straight to file storage. If storage isn't reachable, keep the file in the app's database instead.
+      let storageKey = "";
+      try {
+        const r = await requestNoteImageUpload(name, mime, file.size);
+        if (r.storageKey && r.uploadUrl) {
+          const put = await fetch(r.uploadUrl, { method: "PUT", headers: { "Content-Type": mime }, body: file });
+          if (put.ok) storageKey = r.storageKey;
+        } else if (r.error && /type can't|over 15 MB/i.test(r.error)) {
+          setError(r.error);
+          continue;
+        }
+      } catch {
+        /* fall through to the backup route */
       }
-      const put = await fetch(uploadUrl, { method: "PUT", headers: { "Content-Type": mime }, body: file });
-      if (!put.ok) {
-        setError(`Upload failed for ${name}.`);
-        continue;
+      if (!storageKey) {
+        try {
+          const fd = new FormData();
+          fd.set("file", file, name);
+          fd.set("mimeType", mime);
+          const res = await fetch("/api/notes/upload", { method: "POST", body: fd });
+          const j = await res.json().catch(() => ({}));
+          if (!res.ok || !j.blobId) {
+            setError(j.error ?? `Couldn't attach ${name}.`);
+            continue;
+          }
+          storageKey = `db:${j.blobId}`;
+        } catch {
+          setError(`Couldn't attach ${name}.`);
+          continue;
+        }
       }
       setShots((prev) => [...prev, { storageKey, fileName: name, mimeType: mime, sizeBytes: file.size, preview: canPreview(mime) ? URL.createObjectURL(file) : "" }]);
     }
