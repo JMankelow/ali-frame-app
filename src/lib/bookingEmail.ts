@@ -123,3 +123,44 @@ export async function emailBookingToCrew(taskId: string, bookedBy: { id: string;
   }
   return { sent, failed };
 }
+
+/** Tells everyone allocated to a booking that it has been cancelled (same look as the booked email, red stripe). */
+export async function emailBookingCancelled(taskId: string, by: { id: string; name: string; email: string }): Promise<void> {
+  try {
+    const t = await prisma.jobScheduledTask.findUnique({
+      where: { id: taskId },
+      include: { assignees: { select: { name: true, email: true, isActive: true } }, job: { select: { number: true, title: true, address: true, client: { select: { name: true } } } } },
+    });
+    if (!t) return;
+    const people = t.assignees.filter((a) => a.isActive && a.email && !a.email.endsWith(".local"));
+    if (people.length === 0) return;
+    const client = t.job.client?.name ?? t.job.title;
+    const when = whenText(t);
+    const subject = `CANCELLED: ${t.type} — ${t.job.number} ${client} (${t.scheduledDate.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })})`;
+    for (const p of people) {
+      const first = p.name.split(/\s+/)[0];
+      const html = `<!doctype html><html><body style="margin:0;padding:0;background:#f4f7fb">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7fb"><tr><td align="center" style="padding:24px 12px">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:14px;overflow:hidden;font-family:'Segoe UI',Calibri,Arial,Helvetica,sans-serif">
+  <tr><td style="background:#000000;padding:20px 28px"><img src="${origin()}/aliframe-logo.png" alt="Ali-Frame" width="190" style="display:block;border:0;height:auto"></td></tr>
+  <tr><td style="background:#c62828;height:6px;line-height:6px;font-size:0">&nbsp;</td></tr>
+  <tr><td style="padding:26px 28px 8px">
+    <div style="font-size:13px;color:#64748b">Hi ${esc(first)},</div>
+    <div style="font-size:22px;font-weight:600;color:#c62828;margin:6px 0 4px">This booking has been cancelled</div>
+    <div style="font-size:14px;color:#475467">${esc(by.name)} has cancelled it — you don't need to attend.</div>
+  </td></tr>
+  <tr><td style="padding:12px 28px 24px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-left:6px solid #c62828;border-radius:10px"><tr><td style="padding:14px 18px">
+    <div style="font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:#64748b;font-weight:600">${esc(t.type)}</div>
+    <div style="font-size:17px;font-weight:600;color:#0f172a;margin-top:6px;text-decoration:line-through">${esc(when.line)}</div>
+    <div style="font-size:14px;color:#475467;margin-top:2px">${esc(when.sub)}</div>
+    <div style="font-size:15px;color:#111827;margin-top:10px"><strong>${esc(t.job.number)}</strong> — ${esc(client)}${t.job.address ? `<br><span style="color:#475467">${esc(t.job.address)}</span>` : ""}</div>
+  </td></tr></table></td></tr>
+  <tr><td style="background:#000000;padding:16px 28px;font-size:12px;color:#8ba3c7">Ali-Frame Windows &amp; Doors · 34A Allens Road, East Tamaki · 0800 254 372 · <a href="https://www.aliframe.co.nz" style="color:#00aeef;text-decoration:none">aliframe.co.nz</a></td></tr>
+</table></td></tr></table></body></html>`;
+      const text = `Hi ${first},\n\n${by.name} has CANCELLED this booking — you don't need to attend.\n\n${t.type}\n${when.line} — ${when.sub}\nJob ${t.job.number} — ${client}${t.job.address ? `\n${t.job.address}` : ""}\n\nAli-Frame Windows & Doors`;
+      await sendHtmlEmail({ to: p.email, subject, html, text, replyTo: by.email }).catch((e) => console.error("[booking-email] cancel email failed", p.email, e));
+    }
+  } catch (e) {
+    console.error("[booking-email] cancel failed", e);
+  }
+}

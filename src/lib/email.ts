@@ -41,9 +41,8 @@ function brandedHtml(text: string, signer?: Signer): string {
   const origin = (process.env.APP_URL || "https://ali-frame-app.onrender.com").replace(/\/$/, "");
   let message = text.trimEnd();
   if (signer) {
-    const first = signer.name.split(/\s+/)[0].toLowerCase();
-    const m = message.match(/^([\s\S]*?(?:kind regards|regards|thanks|cheers),?)\s*\n\s*([^\n]+)\s*$/i);
-    if (m && m[2].toLowerCase().includes(first)) message = m[1];
+    // The signature block below says who it's from, so a typed "Kind regards, <name>" at the end is dropped entirely.
+    message = message.replace(/\n*\s*(?:kind regards|best regards|warm regards|regards|many thanks|thanks|cheers)[,!.]?[ \t]*(?:\n[ \t]*[^\n]{1,60})?\s*$/i, "").trimEnd();
   }
   const body = escapeHtml(message)
     .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#0057b8">$1</a>')

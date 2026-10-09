@@ -67,6 +67,7 @@ export function SendTemplateEmailForm({
   const [recipient, setRecipient] = useState("");
   const [audience, setAudience] = useState<"client" | "supplier" | "">("");
   const [attached, setAttached] = useState<string[]>([]);
+  const [showAttach, setShowAttach] = useState(false);
   const [state, formAction, pending] = useActionState(sendTemplatedEmail, initialState);
 
   const values = useMemo(
@@ -158,6 +159,10 @@ export function SendTemplateEmailForm({
             <textarea name="body" rows={10} value={body} onChange={(e) => setBody(e.target.value)} required />
           </div>
           <div className="full">
+            {!(showAttach || /attached/i.test(body) || attached.length > 0) ? (
+              <button type="button" className="btn light" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setShowAttach(true)}>+ Attach files</button>
+            ) : (
+              <>
             <label>Attachments (files on this job)</label>
             {jobFiles.length === 0 ? (
               <div className="hint">No files on this job yet — upload on the Files tab first.</div>
@@ -179,6 +184,8 @@ export function SendTemplateEmailForm({
               <div className="hint" style={{ color: "#b45309", marginTop: 4 }}>
                 This email says something is attached, but nothing is ticked.
               </div>
+            )}
+              </>
             )}
           </div>
         </div>

@@ -7,7 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { installEndDate } from "@/lib/installDates";
 import { ensureQaSheet } from "@/lib/qaAuto";
 import { crewOnJob, notifyUsers } from "@/lib/notify";
-import { emailBookingToCrew } from "@/lib/bookingEmail";
+import { emailBookingToCrew, emailBookingCancelled } from "@/lib/bookingEmail";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
@@ -437,6 +437,35 @@ export async function updateScheduledTask(
   revalidatePath(`/jobs/${existing.jobNumber}`);
   revalidatePath("/calendar");
   return {};
+}
+
+/** Cancels a booking: it comes off the calendar (and stays in the list, greyed out, so there's a record) and the crew are told. */
+export async function cancelScheduledTask(id: string) {
+  const user = await requireNotInstaller();
+  const t = await prisma.jobScheduledTask.findUnique({ where: { id }, select: { jobNumber: true, type: true, status: true } });
+  if (!t || t.status === "Cancelled") return;
+  await prisma.jobScheduledTask.update({ where: { id }, data: { status: "Cancelled" } });
+  await logAudit({ userId: user.id, action: "scheduled_task_cancelled", entityType: "Job", entityId: t.jobNumber, metadata: { type: t.type } });
+  await emailBookingCancelled(id, user);
+  try {
+    await notifyUsers(await crewOnJob(t.jobNumber, user.id), `${t.type} on job ${t.jobNumber} was cancelled by ${user.name}.`, `/jobs/${t.jobNumber}`);
+  } catch (e) {
+    console.error("[jobs] cancel alert failed", e);
+  }
+  revalidatePath(`/jobs/${t.jobNumber}`);
+  revalidatePath("/calendar");
+}
+
+/** Puts a cancelled booking back on the calendar and tells the crew again. */
+export async function restoreScheduledTask(id: string) {
+  const user = await requireNotInstaller();
+  const t = await prisma.jobScheduledTask.findUnique({ where: { id }, select: { jobNumber: true, type: true, status: true } });
+  if (!t || t.status !== "Cancelled") return;
+  await prisma.jobScheduledTask.update({ where: { id }, data: { status: "Booked in" } });
+  await logAudit({ userId: user.id, action: "scheduled_task_restored", entityType: "Job", entityId: t.jobNumber, metadata: { type: t.type } });
+  await emailBookingToCrew(id, user);
+  revalidatePath(`/jobs/${t.jobNumber}`);
+  revalidatePath("/calendar");
 }
 
 export async function archiveJob(number: string) {

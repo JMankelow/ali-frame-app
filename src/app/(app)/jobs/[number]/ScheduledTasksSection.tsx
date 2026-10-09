@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import { useCloseOnSuccess } from "@/lib/useCloseOnSuccess";
 import { installEndDate } from "@/lib/installDates";
-import { createScheduledTask, updateScheduledTask, type ScheduledTaskState } from "../actions";
+import { cancelScheduledTask, createScheduledTask, restoreScheduledTask, updateScheduledTask, type ScheduledTaskState } from "../actions";
 import { JOB_BOOKING_STATUSES } from "@/lib/jobStatus";
 import { TeamPicker } from "@/components/TeamPicker";
 import { taskStatusHex, textOn } from "@/lib/statusColors";
@@ -94,11 +94,13 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
   const action = updateScheduledTask.bind(null, task.id);
   const [state, formAction, pending] = useActionState(action, initialState);
   useCloseOnSuccess(pending, state.error, () => setEditing(false));
+  const [busy, startBusy] = useTransition();
+  const cancelled = task.status === "Cancelled";
 
   if (!editing) {
     return (
-      <tr>
-        <td>{task.type}</td>
+      <tr style={cancelled ? { opacity: 0.55 } : undefined}>
+        <td style={cancelled ? { textDecoration: "line-through" } : undefined}>{task.type}</td>
         <td>{new Date(task.scheduledDate).toLocaleDateString("en-NZ")}{task.startTime ? ` ${task.startTime}${task.endTime ? `–${task.endTime}` : ""}` : ""}</td>
         <td>{task.endDate ? new Date(task.endDate).toLocaleDateString("en-NZ") : "—"}</td>
         <td>{task.assigneeNames.join(", ") || "—"}</td>
@@ -108,9 +110,24 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
         <td>{task.notes ?? "—"}</td>
         <td>
           {!readOnly && (
-            <button type="button" className="btn light" onClick={() => setEditing(true)}>
-              Edit
-            </button>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {cancelled ? (
+                <button type="button" className="btn light" disabled={busy} onClick={() => startBusy(() => restoreScheduledTask(task.id))}>Restore</button>
+              ) : (
+                <>
+                  <button type="button" className="btn light" onClick={() => setEditing(true)}>Edit</button>
+                  <button
+                    type="button"
+                    className="btn light"
+                    style={{ color: "#b91c1c" }}
+                    disabled={busy}
+                    onClick={() => { if (window.confirm(`Cancel this ${task.type} booking? It comes off the calendar and the crew are told.`)) startBusy(() => cancelScheduledTask(task.id)); }}
+                  >
+                    Cancel booking
+                  </button>
+                </>
+              )}
+            </div>
           )}
         </td>
       </tr>
@@ -145,6 +162,15 @@ function TaskRow({ task, staff, readOnly }: { task: ScheduledTaskRow; staff: { i
           </button>
           <button type="button" className="btn light" onClick={() => setEditing(false)}>
             Done
+          </button>
+          <button
+            type="button"
+            className="btn light"
+            style={{ color: "#b91c1c" }}
+            disabled={busy}
+            onClick={() => { if (window.confirm(`Cancel this ${task.type} booking? It comes off the calendar and the crew are told.`)) startBusy(() => cancelScheduledTask(task.id)); }}
+          >
+            Cancel booking
           </button>
         </form>
       </td>
