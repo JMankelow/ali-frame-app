@@ -44,7 +44,7 @@ export default async function EstimatesPage() {
             {estimates.map((e) => (
               <tr key={e.id}>
                 <td>
-                  <Link href={`/estimates/${e.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none", display: "block" }}>
+                  <Link href={`/estimates/${e.id}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none", display: "block" }}>
                     {e.clientName}
                   </Link>
                   <div className="hint"><AddressLink address={e.address} /></div>

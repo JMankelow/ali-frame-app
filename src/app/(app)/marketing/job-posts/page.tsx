@@ -33,7 +33,7 @@ export default async function JobPostsPage() {
           <tbody>
             {jobs.map((j) => (
               <tr key={j.number}>
-                <td><Link href={`/marketing/job-posts/${j.number}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{j.number} — {j.title}</Link></td>
+                <td><Link href={`/marketing/job-posts/${j.number}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{j.number} — {j.title}</Link></td>
                 <td><span className="status blue">{j.type === "COMMERCIAL" ? "Commercial" : "Residential"}</span></td>
                 <td>{j.supplier ?? "—"}</td>
                 <td style={{ textAlign: "right" }}>{j._count.files}</td>

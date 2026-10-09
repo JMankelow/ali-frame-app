@@ -112,7 +112,7 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
       <div className="card" style={{ marginTop: 16 }}>
         <div className="topbar" style={{ marginBottom: 8 }}>
           <div className="label">My calendar — next two weeks</div>
-          <Link href="/calendar" className="hint" style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>Open full calendar →</Link>
+          <Link href="/calendar" className="hint" style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>Open full calendar →</Link>
         </div>
         {bookings.length === 0 && <div className="hint" style={{ marginBottom: 8 }}>Nothing booked for you in the next two weeks.</div>}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))", gap: 8 }}>
@@ -123,7 +123,7 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
             if (weekend && list.length === 0) return null;
             return (
               <div key={dayKey(d)} style={{ border: `1.5px solid ${isToday ? "#0057b8" : "var(--line)"}`, borderRadius: 10, padding: 8, background: isToday ? "#eef6ff" : "#fff", minHeight: 70 }}>
-                <div style={{ fontWeight: 800, fontSize: 13 }}>
+                <div style={{ fontWeight: 600, fontSize: 13 }}>
                   {d.toLocaleDateString("en-NZ", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}
                   {isToday && <span className="status blue" style={{ marginLeft: 6 }}>Today</span>}
                 </div>
@@ -133,7 +133,7 @@ export async function InstallerDashboard({ userId, name, role }: { userId: strin
                     <div style={{ fontSize: 11, fontWeight: 700, color: "#475467" }}>
                       {b.startTime ? `${b.startTime}${b.endTime ? `–${b.endTime}` : ""} · ` : ""}{b.type}
                     </div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: "var(--blueDark)" }}>{b.job.number} — {b.job.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--blueDark)" }}>{b.job.number} — {b.job.title}</div>
                     {b.job.address && <div className="hint" style={{ fontSize: 11 }}>{b.job.address}</div>}
                   </Link>
                 ))}

@@ -47,7 +47,7 @@ export function FileRow({
     <tr>
       <td>{name}</td>
       <td>
-        <Link href={`/jobs/${jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+        <Link href={`/jobs/${jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
           {jobNumber}
         </Link>
       </td>

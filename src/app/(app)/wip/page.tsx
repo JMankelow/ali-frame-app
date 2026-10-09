@@ -153,7 +153,7 @@ export default async function WipPage({ searchParams }: { searchParams: Promise<
             {wip.map((j) => (
               <tr key={j.number}>
                 <td>
-                  <Link href={`/jobs/${j.number}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                  <Link href={`/jobs/${j.number}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                     {j.number}
                   </Link>
                 </td>

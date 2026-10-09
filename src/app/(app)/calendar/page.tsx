@@ -577,7 +577,7 @@ export default async function CalendarPage({
                   minWidth: 0,
                 }}
               >
-                <div style={{ fontWeight: 800, fontSize: 12, marginBottom: 3 }}>{d.getDate()}</div>
+                <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 3 }}>{d.getDate()}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {list.slice(0, 5).map((e) => pill(e, { fontSize: 11, padding: "1px 5px" }))}
                   {list.length > 5 && (
@@ -600,7 +600,7 @@ export default async function CalendarPage({
             const isToday = dayStr(d) === todayStr;
             return (
               <div key={d.getTime()} className="card" style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06)", borderLeft: `6px solid ${isToday ? "#0057b8" : "#b9dff5"}` }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: isToday ? "#0057b8" : undefined }}>
+                <div style={{ fontWeight: 600, fontSize: 15, color: isToday ? "#0057b8" : undefined }}>
                   {d.toLocaleDateString("en-NZ", { weekday: "long", day: "numeric", month: "long" })}
                   {isToday && <span className="status blue" style={{ marginLeft: 8 }}>Today</span>}
                 </div>

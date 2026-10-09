@@ -133,7 +133,7 @@ export function PrepareForm({ jobs }: { jobs: JobPickerOption[] }) {
                   <td style={{ textAlign: "right" }}>{formatMoney(l.amount)}</td>
                 </tr>
               ))}
-              <tr style={{ fontWeight: 800, borderTop: "2px solid #0057b8" }}>
+              <tr style={{ fontWeight: 600, borderTop: "2px solid #0057b8" }}>
                 <td>Total</td>
                 <td style={{ textAlign: "right" }}>{formatMoney(genState.total)}</td>
               </tr>

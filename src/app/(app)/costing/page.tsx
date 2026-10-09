@@ -77,7 +77,7 @@ export default async function CostingPage() {
             {sorted.map((r) => (
               <tr key={r.job.number}>
                 <td>
-                  <Link href={`/jobs/${r.job.number}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                  <Link href={`/jobs/${r.job.number}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                     {r.job.number}
                   </Link>
                 </td>

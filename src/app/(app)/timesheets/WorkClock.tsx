@@ -56,9 +56,9 @@ export function WorkClock({
       {active ? (
         <>
           <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", marginTop: 6 }}>
-            <div style={{ fontSize: 34, fontWeight: 900, fontVariantNumeric: "tabular-nums", color: "#1f8a4c" }}>{clockText}</div>
+            <div style={{ fontSize: 34, fontWeight: 700, fontVariantNumeric: "tabular-nums", color: "#1f8a4c" }}>{clockText}</div>
             <div>
-              <div style={{ fontWeight: 800 }}>{active.jobNumber} — {active.jobTitle}</div>
+              <div style={{ fontWeight: 600 }}>{active.jobNumber} — {active.jobTitle}</div>
               <div className="hint">{active.workType}{active.isRemedial ? " · REMEDIAL" : ""} · started {new Date(active.startedAt).toLocaleTimeString("en-NZ", { hour: "2-digit", minute: "2-digit", timeZone: "Pacific/Auckland" })}</div>
             </div>
           </div>

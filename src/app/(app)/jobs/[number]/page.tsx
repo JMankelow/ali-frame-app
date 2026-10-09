@@ -186,7 +186,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
 
       {job.description && (
         <details className="card" style={{ marginTop: 16 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 800 }}>Enquiry / job notes</summary>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Enquiry / job notes</summary>
           <div style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{job.description}</div>
         </details>
       )}
@@ -327,7 +327,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
     <div className="card" style={{ marginTop: 16 }}>
       <div className="label">What's involved in this install</div>
       {scopeRows.some(([, v]) => v) ? (
-        <div style={{ marginTop: 8, fontWeight: 800, lineHeight: 1.7 }}>
+        <div style={{ marginTop: 8, fontWeight: 600, lineHeight: 1.7 }}>
           {scopeRows.filter(([, v]) => v).map(([k, v]) => (
             <div key={k}>&#9656; {k} - {v}</div>
           ))}
@@ -355,7 +355,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
               const n = (q.data as { items?: unknown[] } | null)?.items?.length ?? 0;
               return (
                 <tr key={q.id}>
-                  <td><Link href={`/health-safety/qa/sheet/${q.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{q.kind === "COMMERCIAL" ? "Commercial QA check sheet" : "Residential QA check sheet"}</Link></td>
+                  <td><Link href={`/health-safety/qa/sheet/${q.id}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{q.kind === "COMMERCIAL" ? "Commercial QA check sheet" : "Residential QA check sheet"}</Link></td>
                   <td>{n}</td>
                   <td><span className={`status ${q.status === "Complete" ? "green" : "orange"}`}>{q.status}</span></td>
                   <td>{q.updatedAt.toLocaleDateString("en-NZ")}</td>
@@ -554,7 +554,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
               Find in SharePoint ↗
             </a>
           )}
-          <Link href={`/jobs/${job.number}/notify-remedial`} className="btn" style={{ background: "#c62828", color: "#fff", border: "none", fontWeight: 800 }}>
+          <Link href={`/jobs/${job.number}/notify-remedial`} className="btn" style={{ background: "#c62828", color: "#fff", border: "none", fontWeight: 600 }}>
             ⚠ Notify remedial
           </Link>
           <Link href="/jobs" className="btn light">

@@ -66,7 +66,7 @@ export default async function QuotesPage() {
                 <tr key={q.id}>
                   <td>
                     {q.jobNumber ? (
-                      <Link href={`/jobs/${q.jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                      <Link href={`/jobs/${q.jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                         {q.quoteNumber}
                       </Link>
                     ) : (
@@ -84,7 +84,7 @@ export default async function QuotesPage() {
                   </td>
                   <td>
                     {q.jobNumber ? (
-                      <Link href={`/jobs/${q.jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                      <Link href={`/jobs/${q.jobNumber}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                         {q.jobNumber}
                       </Link>
                     ) : (

@@ -58,7 +58,7 @@ function GroupCard({ group, people }: { group: Group; people: Person[] }) {
     <div className="card" style={{ marginTop: 12 }}>
       <div className="topbar" style={{ marginBottom: 6 }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 17 }}>{group.name}</div>
+          <div style={{ fontWeight: 600, fontSize: 17 }}>{group.name}</div>
           <div className="hint">{group.members.length} {group.members.length === 1 ? "person" : "people"}</div>
         </div>
         {!editing && (

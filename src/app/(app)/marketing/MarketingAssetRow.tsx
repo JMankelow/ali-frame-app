@@ -43,7 +43,7 @@ export function MarketingAssetRow({
   return (
     <tr>
       <td>
-        <div style={{ fontWeight: 800 }}>{title}</div>
+        <div style={{ fontWeight: 600 }}>{title}</div>
         {description && <div className="hint">{description}</div>}
       </td>
       <td>{uploadedByName}</td>

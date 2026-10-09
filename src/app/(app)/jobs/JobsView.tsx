@@ -83,7 +83,7 @@ export function JobsView({ jobs: allJobs, showArchived, canManage = true }: { jo
             {jobs.map((job) => (
               <tr key={job.number}>
                 <td>
-                  <Link href={`/jobs/${job.number}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                  <Link href={`/jobs/${job.number}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                     {job.number}
                   </Link>
                 </td>
@@ -110,7 +110,7 @@ export function JobsView({ jobs: allJobs, showArchived, canManage = true }: { jo
         <div className="cards" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
           {jobs.map((job) => (
             <div key={job.number} className="card jobCard">
-              <Link href={`/jobs/${job.number}`} style={{ fontWeight: 900, marginBottom: 8, display: "block", color: "inherit", textDecoration: "none" }}>
+              <Link href={`/jobs/${job.number}`} style={{ fontWeight: 700, marginBottom: 8, display: "block", color: "inherit", textDecoration: "none" }}>
                 {job.number} — {job.clientName ?? job.title}
               </Link>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 10 }}>

@@ -30,7 +30,7 @@ export default async function CrewPage() {
 
       {jobs.map((j) => (
         <Link key={j.number} href={`/jobs/${j.number}`} className="card" style={{ display: "block", marginTop: 12, textDecoration: "none", color: "inherit" }}>
-          <div style={{ fontWeight: 900, marginBottom: 6 }}>
+          <div style={{ fontWeight: 700, marginBottom: 6 }}>
             {j.number} — {j.title}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>

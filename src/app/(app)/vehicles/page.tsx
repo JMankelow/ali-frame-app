@@ -64,7 +64,7 @@ export default async function VehiclesPage() {
               return (
                 <tr key={v.id}>
                   <td>
-                    <Link href={`/vehicles/${encodeURIComponent(v.name)}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                    <Link href={`/vehicles/${encodeURIComponent(v.name)}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                       {v.name}
                     </Link>
                   </td>
@@ -101,7 +101,7 @@ export default async function VehiclesPage() {
               {openIssues.map((i) => (
                 <tr key={i.id}>
                   <td>
-                    <Link href={`/vehicles/${encodeURIComponent(i.vehicleName)}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                    <Link href={`/vehicles/${encodeURIComponent(i.vehicleName)}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                       {i.vehicleName}
                     </Link>
                   </td>

@@ -155,7 +155,7 @@ export function VehicleCard({
 
       {issues.length > 0 && (
         <div style={{ marginTop: 12, borderTop: "1px solid var(--line)", paddingTop: 12 }}>
-          <div className="hint" style={{ fontWeight: 800, marginBottom: 6 }}>
+          <div className="hint" style={{ fontWeight: 600, marginBottom: 6 }}>
             Open Issues / Requests
           </div>
           <table>

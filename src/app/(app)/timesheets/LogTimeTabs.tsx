@@ -13,7 +13,7 @@ export function LogTimeTabs({ clock, form, startOn = "clock" }: { clock: ReactNo
       type="button"
       onClick={() => setTab(key)}
       style={{
-        flex: 1, padding: "12px 10px", fontWeight: 800, fontSize: 15, cursor: "pointer", borderRadius: 10,
+        flex: 1, padding: "12px 10px", fontWeight: 600, fontSize: 15, cursor: "pointer", borderRadius: 10,
         border: `2px solid ${tab === key ? "#0057b8" : "#b9dff5"}`, background: tab === key ? "#0057b8" : "#e6f4fd", color: tab === key ? "#fff" : "#0b2a4a",
       }}
     >

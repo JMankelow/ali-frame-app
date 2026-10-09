@@ -109,7 +109,7 @@ function UserRow({ row, isSelf }: { row: PermissionRow; isSelf: boolean }) {
   return (
     <tr style={row.isActive ? undefined : { opacity: 0.6 }}>
       <td>
-        <div style={{ fontWeight: 800 }}>
+        <div style={{ fontWeight: 600 }}>
           {row.name}
           {isSelf && <span className="hint"> (you)</span>}
         </div>

@@ -176,9 +176,9 @@ export function QuoteWordingTool() {
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="label">Quote Wording Preview (copy this into NextMinute)</div>
-        <div style={{ fontWeight: 900, marginTop: 8 }}>{(customer.trim() || "Customer") + " - Quote Wording"}</div>
+        <div style={{ fontWeight: 700, marginTop: 8 }}>{(customer.trim() || "Customer") + " - Quote Wording"}</div>
         <div className="hint">{address}</div>
-        <div style={{ fontWeight: 900, color: "#dc2626", marginTop: 14, fontSize: 16 }}>{formatTotal(totalNumber)}</div>
+        <div style={{ fontWeight: 700, color: "#dc2626", marginTop: 14, fontSize: 16 }}>{formatTotal(totalNumber)}</div>
         <div style={{ marginTop: 14, fontWeight: 700 }}>{scopeType}</div>
         <div style={{ marginTop: 2 }}>
           {items.map((line, i) => (

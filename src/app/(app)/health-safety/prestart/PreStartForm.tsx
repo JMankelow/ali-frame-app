@@ -12,9 +12,9 @@ interface Hazard { hazard: string; risk: string; control: string }
 interface Crew { name: string; userId?: string }
 
 const initial: PreStartState = {};
-const box = { border: "1px solid #cbd5e1", background: "#fff", padding: "10px 16px", fontWeight: 800, fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase" as const, cursor: "pointer" };
+const box = { border: "1px solid #cbd5e1", background: "#fff", padding: "10px 16px", fontWeight: 600, fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase" as const, cursor: "pointer" };
 const chip = (on: boolean) => ({ border: `1px solid ${on ? "#111827" : "#cbd5e1"}`, background: on ? "#111827" : "#fff", color: on ? "#fff" : "#111827", padding: "9px 14px", fontSize: 14, cursor: "pointer" });
-const heading = { fontWeight: 900, fontSize: 13, letterSpacing: ".06em", textTransform: "uppercase" as const, marginBottom: 12 };
+const heading = { fontWeight: 700, fontSize: 13, letterSpacing: ".06em", textTransform: "uppercase" as const, marginBottom: 12 };
 
 export function PreStartForm({
   jobs,
@@ -134,7 +134,7 @@ export function PreStartForm({
             <div style={{ flex: "1 1 280px" }}>
               <div style={{ fontWeight: 600, fontSize: 16 }}>
                 {item.label}
-                {item.critical && <span style={{ color: "#b91c1c", fontSize: 11, fontWeight: 800, letterSpacing: ".06em", marginLeft: 8 }}>CRITICAL</span>}
+                {item.critical && <span style={{ color: "#b91c1c", fontSize: 11, fontWeight: 600, letterSpacing: ".06em", marginLeft: 8 }}>CRITICAL</span>}
               </div>
               <div className="hint">{item.hint}</div>
             </div>

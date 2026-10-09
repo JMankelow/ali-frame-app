@@ -7,7 +7,7 @@ export function AckForm({ reviewId, name, defaultComments }: { reviewId: string;
   const [state, action, pending] = useActionState(acknowledgeOutcome.bind(null, reviewId), {} as ReviewFormState);
   return (
     <form action={action} className="noprint" style={{ marginTop: 16, border: "1px solid #b8d7ea", padding: 14 }}>
-      <div style={{ fontWeight: 800, marginBottom: 6 }}>Acknowledge this outcome</div>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>Acknowledge this outcome</div>
       <div className="hint" style={{ marginBottom: 8 }}>
         Signing acknowledges that the discussion took place and the outcome and actions were recorded. It doesn&apos;t necessarily mean you agree with every rating or comment — add yours below.
       </div>

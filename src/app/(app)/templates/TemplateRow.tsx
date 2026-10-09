@@ -17,7 +17,7 @@ export function TemplateRow({ id, name, subject, body }: { id: string; name: str
     <div className="card" style={{ marginTop: 12 }}>
       <div className="topbar" style={{ marginBottom: editing ? 8 : 0 }}>
         <div>
-          <div style={{ fontWeight: 800 }}>{name}</div>
+          <div style={{ fontWeight: 600 }}>{name}</div>
           <div className="hint">{subject}</div>
         </div>
         <div className="actions">

@@ -91,7 +91,7 @@ function FieldView({ f, s, a, set, bad, setRef }: { f: IncField; s: IncSection; 
     return (
       <div ref={setRef} role="status" style={{ marginTop: 12, padding: "10px 12px", borderRadius: 8, background: "#fff4e0", borderLeft: "4px solid #f0a020", color: "#6b4100" }}>
         {parts[0]}
-        {parts.length > 1 && <a href="tel:0800030040" style={{ fontWeight: 800, color: "inherit" }}>0800 030 040</a>}
+        {parts.length > 1 && <a href="tel:0800030040" style={{ fontWeight: 600, color: "inherit" }}>0800 030 040</a>}
         {parts[1]}
       </div>
     );
@@ -231,7 +231,7 @@ function BodyMap({ value, onChange }: { value: string[]; onChange: (v: string[])
         {value.map((id) => (
           <span key={id} className="status blue" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
             {regionLabel(id)}
-            <button type="button" aria-label={`Remove ${regionLabel(id)}`} onClick={() => toggle(id)} style={{ border: 0, background: "transparent", color: "inherit", cursor: "pointer", fontWeight: 800 }}>×</button>
+            <button type="button" aria-label={`Remove ${regionLabel(id)}`} onClick={() => toggle(id)} style={{ border: 0, background: "transparent", color: "inherit", cursor: "pointer", fontWeight: 600 }}>×</button>
           </span>
         ))}
       </div>

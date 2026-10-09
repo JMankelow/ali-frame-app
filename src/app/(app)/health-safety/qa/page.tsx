@@ -54,7 +54,7 @@ export default async function QaReportsPage({ searchParams }: { searchParams: Pr
             {sheets.map((x) => (
               <tr key={x.id}>
                 <td>{x.updatedAt.toLocaleDateString("en-NZ")}</td>
-                <td><Link href={`/health-safety/qa/sheet/${x.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{x.kind === "RESIDENTIAL" ? "Residential QA check sheet" : "Commercial QA check sheet"}</Link>
+                <td><Link href={`/health-safety/qa/sheet/${x.id}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{x.kind === "RESIDENTIAL" ? "Residential QA check sheet" : "Commercial QA check sheet"}</Link>
                   <div className="hint">{(() => { const n = (x.data as { items?: unknown[] } | null)?.items?.length ?? 0; return `${n} item${n === 1 ? "" : "s"}`; })()}</div></td>
                 <td>{x.jobNumber} — {x.job.title}</td>
                 <td>{x.createdBy.name}</td>
@@ -77,7 +77,7 @@ export default async function QaReportsPage({ searchParams }: { searchParams: Pr
               <tr key={r.id}>
                 <td>{r.reportDate.toLocaleDateString("en-NZ")}</td>
                 <td>{r.jobNumber} — {r.job.title}</td>
-                <td><Link href={`/health-safety/qa/${r.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{r.title}</Link></td>
+                <td><Link href={`/health-safety/qa/${r.id}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{r.title}</Link></td>
                 <td style={{ textAlign: "right" }}>{r._count.photos}</td>
                 <td>{r.createdBy.name}</td>
                 <td><span className={`status ${r.status === "Final" ? "green" : "orange"}`}>{r.status}</span></td>

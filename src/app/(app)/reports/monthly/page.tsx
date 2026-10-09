@@ -31,7 +31,7 @@ function ReportTable({ title, report, error }: { title: string; report: ParsedRe
           </thead>
           <tbody>
             {report.rows.map((r, i) => (
-              <tr key={i} style={r.isSummary ? { fontWeight: 800 } : undefined}>
+              <tr key={i} style={r.isSummary ? { fontWeight: 600 } : undefined}>
                 <td style={{ whiteSpace: "pre" }}>{r.label}</td>
                 {r.values.map((v, j) => (
                   <td key={j}>{v}</td>
@@ -135,7 +135,7 @@ export default async function MonthlyManagementReportPage() {
             {wipJobs.map((j) => (
               <tr key={j.number}>
                 <td>
-                  <Link href={`/jobs/${j.number}`} style={{ color: "var(--blueDark)", fontWeight: 800, textDecoration: "none" }}>
+                  <Link href={`/jobs/${j.number}`} style={{ color: "var(--blueDark)", fontWeight: 600, textDecoration: "none" }}>
                     {j.number}
                   </Link>
                 </td>

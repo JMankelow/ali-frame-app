@@ -49,7 +49,7 @@ export function NotifyRemedialForm({ jobNumber, today }: { jobNumber: string; to
     return (
       <div className="card" style={{ borderLeft: "6px solid #1f8a4c" }}>
         <div className="status green" style={{ display: "inline-block" }}>Sent</div>
-        <div style={{ marginTop: 8, fontWeight: 800 }}>Tanya and Tristam have been alerted.</div>
+        <div style={{ marginTop: 8, fontWeight: 600 }}>Tanya and Tristam have been alerted.</div>
         <div className="hint" style={{ marginTop: 4 }}>
           {done.emailed ? "They've been emailed and it's on their task lists." : "It's on their task lists (the email couldn't be sent — please also tell them directly)."}{" "}
           {done.added > 0 && `${done.added} photo${done.added === 1 ? "" : "s"} added to the job. `}

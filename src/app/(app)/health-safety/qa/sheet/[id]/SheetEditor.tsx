@@ -396,7 +396,7 @@ function Commercial({ p, d, setD, urls, addUrls, locked }: { p: Props; d: Commer
 
       {COM_SECTIONS.map((s) => (
         <details key={s.id} className="card" style={{ marginTop: 12 }} open>
-          <summary style={{ cursor: "pointer", fontWeight: 800 }}>{s.title}</summary>
+          <summary style={{ cursor: "pointer", fontWeight: 600 }}>{s.title}</summary>
           {s.checks.map((c, i) => {
             const k = checkKey(s.id, i);
             const x = it.qa.checks[k] ?? { r: "" as Result, note: "", by: "", at: "" };

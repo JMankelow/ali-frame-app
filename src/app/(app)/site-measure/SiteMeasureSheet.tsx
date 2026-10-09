@@ -459,7 +459,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
               <button
                 type="button"
                 className="btn light"
-                style={tool === "line" ? { outline: `2px solid ${color}`, fontWeight: 900 } : undefined}
+                style={tool === "line" ? { outline: `2px solid ${color}`, fontWeight: 700 } : undefined}
                 onClick={() => setTool("line")}
                 title="Drag to draw a straight line"
               >
@@ -468,7 +468,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
               <button
                 type="button"
                 className="btn light"
-                style={tool === "curve" ? { outline: `2px solid ${color}`, fontWeight: 900 } : undefined}
+                style={tool === "curve" ? { outline: `2px solid ${color}`, fontWeight: 700 } : undefined}
                 onClick={() => setTool("curve")}
                 title="Draw a curly / freehand line"
               >
@@ -477,7 +477,7 @@ export function SiteMeasureSheet({ jobs, suppliers, templates }: { jobs: JobOpti
               <button
                 type="button"
                 className="btn light"
-                style={tool === "text" ? { outline: `2px solid ${color}`, fontWeight: 900 } : undefined}
+                style={tool === "text" ? { outline: `2px solid ${color}`, fontWeight: 700 } : undefined}
                 onClick={() => setTool(tool === "text" ? "line" : "text")}
                 title="Tap this, then tap the sketch where the text should go"
               >

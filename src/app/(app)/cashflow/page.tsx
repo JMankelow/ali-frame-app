@@ -367,7 +367,7 @@ function PipelineTable({ pipeline }: { pipeline: { header: string[]; rows: (stri
             })}
           </tr>
         ))}
-        <tr style={{ fontWeight: 800 }}>
+        <tr style={{ fontWeight: 600 }}>
           {cols.map((c) => (
             <td key={c.w} style={{ textAlign: "right" }}>
               {["Deposit $", "50% $", "10% $"].includes(c.w) ? fmt0(sum(c.w)) : c.w === "Status" ? "Still to collect" : c.w === "Client" ? fmt0(sum("Deposit $") + sum("50% $") + sum("10% $")) : ""}
@@ -420,7 +420,7 @@ async function XeroBank() {
             </thead>
             <tbody>
               {report.rows.map((r, i) => (
-                <tr key={i} style={r.isSummary ? { fontWeight: 800 } : undefined}>
+                <tr key={i} style={r.isSummary ? { fontWeight: 600 } : undefined}>
                   <td style={{ whiteSpace: "pre" }}>{r.label}</td>
                   {r.values.map((v, j) => (
                     <td key={j}>{v}</td>

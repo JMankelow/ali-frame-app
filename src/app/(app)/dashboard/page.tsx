@@ -252,7 +252,7 @@ export default async function DashboardPage() {
               {upcomingInstalls.map((t) => (
                 <tr key={t.id}>
                   <td style={{ whiteSpace: "nowrap" }}>{day(t.scheduledDate)}</td>
-                  <td><Link href={`/jobs/${t.job.number}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{t.job.number} — {t.job.title}</Link><div className="hint">{t.job.address ?? ""}</div></td>
+                  <td><Link href={`/jobs/${t.job.number}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{t.job.number} — {t.job.title}</Link><div className="hint">{t.job.address ?? ""}</div></td>
                   <td className="hint">{t.assignees.map((a) => a.name).join(", ") || "Unassigned"}</td>
                 </tr>
               ))}
@@ -280,7 +280,7 @@ export default async function DashboardPage() {
             <tbody>
               {vehiclesDue.map((v) => (
                 <tr key={v.name}>
-                  <td style={{ fontWeight: 800 }}>{v.name}</td>
+                  <td style={{ fontWeight: 600 }}>{v.name}</td>
                   <td className="hint">WOF {day(v.wofDueDate)}{v.wofDueDate && v.wofDueDate < now ? " (overdue)" : ""}</td>
                   <td className="hint">Rego {day(v.regoDueDate)}{v.regoDueDate && v.regoDueDate < now ? " (overdue)" : ""}</td>
                 </tr>
@@ -298,7 +298,7 @@ export default async function DashboardPage() {
               <tbody>
                 {budgetRows.map((r) => (
                   <tr key={r.number}>
-                    <td><Link href={`/jobs/${r.number}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{r.number}</Link></td>
+                    <td><Link href={`/jobs/${r.number}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{r.number}</Link></td>
                     <td className="hint">{r.hours ? `${r.hours.a}h of ${r.hours.q}h` : "—"}</td>
                     <td>{r.under == null ? <span className="status grey">No figures</span> : <span className={`status ${r.under ? "green" : "red"}`}>{r.under ? "Under" : "Over"}</span>}</td>
                   </tr>

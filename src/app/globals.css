@@ -23,7 +23,7 @@ a{color:inherit}
 .authLogoBox{display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:16px;padding:12px;margin-bottom:16px;background:#f8fafc}
 .authLogoBox img{max-width:280px;width:100%;height:auto}
 .authGrid{display:grid;gap:12px;margin-top:16px}
-.authGrid label{font-size:12px;color:#64748b;font-weight:900;text-transform:uppercase}
+.authGrid label{font-size:12px;color:#64748b;font-weight:700;text-transform:uppercase}
 .authGrid input,.authGrid select{width:100%}
 .authGrid input:focus,.authGrid select:focus{outline:2px solid var(--blue);outline-offset:1px;border-color:var(--blue)}
 .authNote{background:#eaf6fd;border-left:4px solid var(--blue);border-radius:14px;padding:12px;margin-top:12px;font-size:12px;color:#0f356b}
@@ -33,20 +33,20 @@ a{color:inherit}
 /* Top utility bar (brand blue) — logo, sync/integration buttons, tasks bell, user + sign out */
 .topUtilityBar{background:var(--blue);color:#fff;display:flex;align-items:center;gap:10px;height:48px;padding:0 16px;position:sticky;top:0;z-index:20;box-sizing:border-box}
 .topUtilityBar .btn.light{padding:8px 12px;font-size:13px}
-.syncBtn{background:rgba(255,255,255,.16);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800;text-decoration:none;white-space:nowrap}
+.syncBtn{background:rgba(255,255,255,.16);color:#fff;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap}
 .syncBtn:hover{background:rgba(255,255,255,.28)}
-.taskBadge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:900;min-width:16px;height:16px;display:grid;place-items:center;padding:0 3px}
+.taskBadge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:999px;font-size:10px;font-weight:700;min-width:16px;height:16px;display:grid;place-items:center;padding:0 3px}
 .topUtilityUser .userBadge{background:rgba(255,255,255,.9)}
 /* Section tab row (black), below the blue utility bar */
 .topTabs{background:var(--nav);display:flex;gap:2px;height:44px;padding:0 16px;overflow-x:auto;position:sticky;top:48px;z-index:19;box-sizing:border-box}
-.topTab{background:transparent;border:0;color:#8ba3c7;font-size:13px;font-weight:800;padding:12px 16px;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent}
+.topTab{background:transparent;border:0;color:#8ba3c7;font-size:13px;font-weight:600;padding:12px 16px;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent}
 .topTab:hover{color:#fff}
 .topTab.active{color:#fff;border-bottom-color:var(--blue)}
-.navSectionLabel{color:#8ba3c7;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 4px;margin-top:8px;border-top:1px solid rgba(255,255,255,.12)}
+.navSectionLabel{color:#8ba3c7;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:10px 12px 4px;margin-top:8px;border-top:1px solid rgba(255,255,255,.12)}
 .app{display:grid;grid-template-columns:300px 1fr;min-height:100vh}
 aside{background:var(--nav);color:#fff;padding:22px 16px;position:sticky;top:92px;height:calc(100vh - 92px);overflow-y:auto}
 .brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}
-.side-logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#111);display:grid;place-items:center;font-weight:900}
+.side-logo{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--blue),#111);display:grid;place-items:center;font-weight:700}
 .brand h1{font-size:16px;line-height:1.1;margin:0}
 .brand span{display:block;font-size:12px;color:#b7c4d8;font-weight:500;margin-top:4px}
 .nav a,.nav button{width:100%;border:0;background:transparent;color:#dbe7ff;text-align:left;padding:12px;border-radius:10px;margin:3px 0;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;text-decoration:none}
@@ -54,12 +54,12 @@ aside{background:var(--nav);color:#fff;padding:22px 16px;position:sticky;top:92p
 .nav a.active,.nav a:hover,.nav button:hover{background:#13213c;color:#fff}
 .nav a:link,.nav a:visited{color:#dbe7ff}
 .navUnsorted{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
-.navUnsorted-label{color:#8ba3c7;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;padding:0 12px;margin-bottom:6px}
-.userBadge{background:#e7f0ff;color:#00499d;border-radius:999px;padding:9px 12px;font-size:12px;font-weight:900;white-space:nowrap}
+.navUnsorted-label{color:#8ba3c7;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:0 12px;margin-bottom:6px}
+.userBadge{background:#e7f0ff;color:#00499d;border-radius:999px;padding:9px 12px;font-size:12px;font-weight:700;white-space:nowrap}
 
 /* Sidebar nav groups (collapsible sections, ported from the prototype) */
 .navGroup{margin:3px 0}
-.navGroup summary{position:relative;display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;padding:12px 32px 12px 12px;border-radius:10px;font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:#8ba3c7}
+.navGroup summary{position:relative;display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;padding:12px 32px 12px 12px;border-radius:10px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#8ba3c7}
 .navGroup summary>span{flex:1;min-width:0}
 .navGroup summary::marker,.navGroup summary::-webkit-details-marker{display:none}
 .navGroup summary:hover{background:#13213c;color:#fff}
@@ -71,7 +71,7 @@ aside{background:var(--nav);color:#fff;padding:22px 16px;position:sticky;top:92p
 .navSubGroup.navFlat{margin-left:0}
 .navSubGroup.navFlat summary{padding-left:16px}
 .navSubGroup.navFlat a,.navSubGroup.navFlat button{padding-left:32px}
-.navSubGroup summary{font-size:12px;padding:9px 12px;color:#8ba3c7;text-transform:none;letter-spacing:0;font-weight:800}
+.navSubGroup summary{font-size:12px;padding:9px 12px;color:#8ba3c7;text-transform:none;letter-spacing:0;font-weight:600}
 .navSubGroup a,.navSubGroup button{padding-left:16px;font-size:13px}
 .nav .pinToggle{width:auto;flex:0 0 auto;opacity:.35;font-size:12px;background:none;border:0;padding:0;color:inherit;cursor:pointer}
 .pinToggle:hover{opacity:.8}
@@ -81,17 +81,18 @@ aside{background:var(--nav);color:#fff;padding:22px 16px;position:sticky;top:92p
 .brandbar{background:var(--nav);border-radius:16px;padding:14px 22px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:16px}
 .brandbar img{height:34px;width:auto;display:block}
 .brandbar-pins{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.pinnedItem{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:800;text-decoration:none}
+.pinnedItem{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600;text-decoration:none}
 .pinnedItem-remove{cursor:pointer;opacity:.6;font-size:12px;background:none;border:0;color:inherit;padding:0}
 .pinnedItem-remove:hover{opacity:1}
 
 main{padding:24px}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:20px;flex-wrap:wrap}
-h2{margin:0;font-size:24px;color:#0f172a}
+h2{margin:0;font-size:24px;color:#0f172a;font-weight:600}
+th{font-weight:600}
 .subtitle{color:#64748b;font-size:13px;margin-top:4px}
 
 .actions{display:flex;gap:10px;flex-wrap:wrap}
-.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;cursor:pointer;font-size:14px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer;font-size:14px}
 .btn.primary{background:var(--blueDark);color:#fff}
 .btn.dark{background:#111827;color:#fff}
 .btn.light{background:#fff;color:#111827;border:1px solid var(--line)}
@@ -99,15 +100,15 @@ h2{margin:0;font-size:24px;color:#0f172a}
 
 .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 8px 20px rgba(15,23,42,.04)}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:16px}
-.label{font-size:12px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.04em}
-.metric{font-size:30px;font-weight:900;margin:5px 0;color:#0f172a}
+.label{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.metric{font-size:30px;font-weight:600;margin:5px 0;color:#0f172a}
 .hint{font-size:12px;color:#64748b}
 
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--line);padding:10px}
 td{border-bottom:1px solid #eef2f7;padding:11px 10px;vertical-align:middle}
 
-.status{border-radius:999px;padding:4px 9px;font-size:12px;font-weight:900;display:inline-block}
+.status{border-radius:999px;padding:4px 9px;font-size:12px;font-weight:700;display:inline-block}
 .status.green{background:#dcfce7;color:#166534}
 .status.orange{background:#ffedd5;color:#9a3412}
 .status.purple{background:#ede9fe;color:#5b21b6}
@@ -126,7 +127,7 @@ select,input,textarea{border:1px solid var(--line);border-radius:10px;background
 .jobPickerEmpty{padding:10px 12px;font-size:13px;color:#64748b}
 textarea{min-height:82px}
 .form{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.form label{display:block;font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em}
+.form label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.03em}
 .form>div{display:flex;flex-direction:column}
 .form input,.form select,.form textarea{width:100%}
 .form .full{grid-column:1/-1}

@@ -17,7 +17,7 @@ export async function ReviewAlerts({ userId }: { userId: string }) {
   const box = { border: "2px solid #0057b8", background: "#eaf4fb", padding: 14, marginBottom: 16, borderRadius: 8 } as const;
   return (
     <div style={box}>
-      <div style={{ fontWeight: 900, color: "#0057b8", marginBottom: 6 }}>Your assessments</div>
+      <div style={{ fontWeight: 700, color: "#0057b8", marginBottom: 6 }}>Your assessments</div>
       {mySelf.map((r) => (
         <div key={r.id} style={{ marginBottom: 6 }}>
           Your self assessment is ready{r.selfDueDate ? ` — due ${r.selfDueDate.toLocaleDateString("en-NZ", { day: "numeric", month: "long" })}` : ""}.{" "}

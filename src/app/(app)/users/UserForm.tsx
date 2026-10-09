@@ -51,7 +51,7 @@ export function UserForm() {
           Account created for <strong>{state.createdEmail}</strong>. One-time temporary
           password (give this to them directly — it is not shown again and not emailed):
           <br />
-          <code style={{ fontSize: 15, fontWeight: 800 }}>{state.createdTempPassword}</code>
+          <code style={{ fontSize: 15, fontWeight: 600 }}>{state.createdTempPassword}</code>
           <br />
           They&apos;ll be forced to set their own password on first sign-in, then verify by
           email code same as everyone else.

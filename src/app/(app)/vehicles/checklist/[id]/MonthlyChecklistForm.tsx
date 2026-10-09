@@ -10,8 +10,8 @@ import { MONTHLY_QUESTIONS, isFailure, type ChecklistAnswer, type ChecklistQuest
 const initialState: MonthlyChecklistState = {};
 const SECTIONS = ["Interior of vehicle", "Exterior of vehicle", "Sign off"] as const;
 
-const box = { border: "1px solid #cbd5e1", background: "#fff", padding: "10px 16px", fontWeight: 800, fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase" as const, cursor: "pointer" };
-const heading = { fontWeight: 900, fontSize: 13, letterSpacing: ".06em", textTransform: "uppercase" as const, marginBottom: 12 };
+const box = { border: "1px solid #cbd5e1", background: "#fff", padding: "10px 16px", fontWeight: 600, fontSize: 12, letterSpacing: ".08em", textTransform: "uppercase" as const, cursor: "pointer" };
+const heading = { fontWeight: 700, fontSize: 13, letterSpacing: ".06em", textTransform: "uppercase" as const, marginBottom: 12 };
 
 export function MonthlyChecklistForm({
   checklistId,
@@ -125,7 +125,7 @@ export function MonthlyChecklistForm({
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                   <div style={{ flex: "1 1 300px", fontWeight: 600, fontSize: 16 }}>
                     {q.text}
-                    {q.critical && <span style={{ color: "#b91c1c", fontSize: 11, fontWeight: 800, letterSpacing: ".06em", marginLeft: 8 }}>CRITICAL</span>}
+                    {q.critical && <span style={{ color: "#b91c1c", fontSize: 11, fontWeight: 600, letterSpacing: ".06em", marginLeft: 8 }}>CRITICAL</span>}
                   </div>
                   {segmented(q)}
                 </div>

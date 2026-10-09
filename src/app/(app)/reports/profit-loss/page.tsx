@@ -145,7 +145,7 @@ export default async function ProfitAndLossPage({
             </thead>
             <tbody>
               {report.rows.map((r, i) => (
-                <tr key={i} style={r.isSummary ? { fontWeight: 800 } : undefined}>
+                <tr key={i} style={r.isSummary ? { fontWeight: 600 } : undefined}>
                   <td style={{ whiteSpace: "pre" }}>{r.label}</td>
                   {r.values.map((v, j) => (
                     <td key={j}>{v}</td>

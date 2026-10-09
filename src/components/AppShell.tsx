@@ -67,10 +67,10 @@ export function AppShell({
         <div className="side-logo" style={{ width: 34, height: 34 }}>
           <img src="/icon.svg" alt="Ali-Frame" style={{ width: "100%", height: "100%", borderRadius: 8 }} />
         </div>
-        <Link href="/notes" className="syncBtn hideOnMobile" style={{ fontWeight: 900 }}>
+        <Link href="/notes" className="syncBtn hideOnMobile" style={{ fontWeight: 700 }}>
           📝 Update Notes
         </Link>
-        <Link href="/communications" className="syncBtn hideOnMobile" style={{ fontWeight: 900 }}>
+        <Link href="/communications" className="syncBtn hideOnMobile" style={{ fontWeight: 700 }}>
           💬 Communications Hub
         </Link>
         <div style={{ flex: 1 }} />

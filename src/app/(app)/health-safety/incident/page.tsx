@@ -34,7 +34,7 @@ export default async function IncidentReportsPage() {
           <tbody>
             {reports.map((r) => (
               <tr key={r.id}>
-                <td><Link href={`/health-safety/incident/${r.id}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{r.reference}</Link></td>
+                <td><Link href={`/health-safety/incident/${r.id}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{r.reference}</Link></td>
                 <td>{r.accidentDate.toLocaleDateString("en-NZ")}</td>
                 <td>{r.personName}</td>
                 <td>{r.siteName}</td>

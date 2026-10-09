@@ -134,7 +134,7 @@ export default async function LeadSourcesPage({ searchParams }: { searchParams: 
             <tbody>
               {detail.map((j) => (
                 <tr key={j.number}>
-                  <td><Link href={`/jobs/${j.number}`} style={{ fontWeight: 800, color: "var(--blueDark)", textDecoration: "none" }}>{j.number} — {j.title}</Link></td>
+                  <td><Link href={`/jobs/${j.number}`} style={{ fontWeight: 600, color: "var(--blueDark)", textDecoration: "none" }}>{j.number} — {j.title}</Link></td>
                   <td><span className="status blue">{j.type === "COMMERCIAL" ? "Commercial" : "Residential"}</span></td>
                   <td>{j.status}</td>
                   <td className="hint">{j.createdAt.toLocaleDateString("en-NZ")}</td>
