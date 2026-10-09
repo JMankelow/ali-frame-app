@@ -131,6 +131,23 @@ export async function createJob(_prevState: JobFormState, formData: FormData): P
   return {};
 }
 
+export interface JobBriefState {
+  error?: string;
+  saved?: string;
+}
+
+/** Saves "what the customer wants" (their email / the instructions) on the job. */
+export async function saveJobBrief(jobNumber: string, _prev: JobBriefState, formData: FormData): Promise<JobBriefState> {
+  const user = await requireNotInstaller();
+  const text = String(formData.get("description") ?? "").replace(/\r/g, "").trim().slice(0, 20000);
+  const job = await prisma.job.findUnique({ where: { number: jobNumber }, select: { number: true } });
+  if (!job) return { error: `Job ${jobNumber} not found.` };
+  await prisma.job.update({ where: { number: jobNumber }, data: { description: text || null } });
+  await logAudit({ userId: user.id, action: "job_brief_saved", entityType: "Job", entityId: jobNumber });
+  revalidatePath(`/jobs/${jobNumber}`);
+  return { saved: "Saved." };
+}
+
 export interface JobEditState {
   error?: string;
 }

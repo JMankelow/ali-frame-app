@@ -10,6 +10,7 @@ import { ScheduledTasksSection, type ScheduledTaskRow } from "./ScheduledTasksSe
 import { JobNotesSection, type JobFeedItem } from "./JobNotesSection";
 import { JobChecklistSection, type ChecklistItem } from "./JobChecklistSection";
 import { ScheduleUpload } from "./ScheduleUpload";
+import { JobBrief } from "./JobBrief";
 import { PhotosSection } from "./PhotosSection";
 import { BookCheckMeasureForm } from "../../email-client/BookCheckMeasureForm";
 import { SendTemplateEmailForm } from "./SendTemplateEmailForm";
@@ -57,7 +58,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
       where: { number },
       include: { client: true, assignedUser: true, costing: true },
     }),
-    prisma.user.findMany({ where: { isActive: true, role: "SALES" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { isActive: true, OR: [{ role: "SALES" }, { name: { contains: "dwayne", mode: "insensitive" } }, { name: { contains: "kere", mode: "insensitive" } }, { name: { contains: "tristam", mode: "insensitive" } }] }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.user.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.supplier.findMany({ orderBy: { companyName: "asc" }, select: { id: true, companyName: true } }),
   ]);
@@ -184,12 +185,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         readOnly={installer}
       />
 
-      {job.description && (
-        <details className="card" style={{ marginTop: 16 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Enquiry / job notes</summary>
-          <div style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>{job.description}</div>
-        </details>
-      )}
+      <JobBrief jobNumber={job.number} description={job.description ?? ""} readOnly={installer} />
 
       {installer && (
         <div className="card" style={{ marginTop: 16 }}>

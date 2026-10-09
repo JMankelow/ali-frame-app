@@ -29,7 +29,7 @@ export default async function JobsPage({
   const [numbers, supplierRows, salesStaff] = await Promise.all([
     prisma.job.findMany({ select: { number: true } }),
     prisma.supplier.findMany({ select: { companyName: true }, where: { NOT: { companyName: { startsWith: "Ali-Frame (internal" } } } }),
-    prisma.user.findMany({ where: { isActive: true, role: "SALES" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.user.findMany({ where: { isActive: true, OR: [{ role: "SALES" }, { name: { contains: "dwayne", mode: "insensitive" } }, { name: { contains: "kere", mode: "insensitive" } }, { name: { contains: "tristam", mode: "insensitive" } }] }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   const highest = numbers.reduce((max, j) => (/^\d{4,6}$/.test(j.number) ? Math.max(max, Number(j.number)) : max), 0); // 4-6 digits only, so a test number like 1000000001 can't skew it
   const nextNumber = highest ? String(highest + 1) : "";

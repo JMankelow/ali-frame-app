@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { createJob, searchClients, type ClientHit, type JobFormState } from "./actions";
 import { JOB_STATUS_OPTIONS, JOB_LEAD_SOURCES, JOB_PRICE_TYPES } from "@/lib/jobStatus";
+import { AddressInput } from "@/components/AddressInput";
 
 const initialState: JobFormState = {};
 
@@ -111,7 +112,7 @@ export function JobForm({ nextNumber, suppliers, staff }: { nextNumber: string; 
         </div>
         <div className="full">
           <label htmlFor="address">Address</label>
-          <input id="address" name="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <AddressInput id="address" name="address" value={address} onChange={setAddress} />
         </div>
 
         <div className="full label" style={{ marginTop: 8 }}>Job</div>

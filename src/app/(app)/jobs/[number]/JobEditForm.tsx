@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updateJobDetails, type JobEditState } from "../actions";
 import { JOB_STATUS_OPTIONS, JOB_PRICE_TYPES, JOB_LEAD_SOURCES } from "@/lib/jobStatus";
 import { useCloseOnSuccess } from "@/lib/useCloseOnSuccess";
+import { AddressInput } from "@/components/AddressInput";
 
 const initialState: JobEditState = {};
 
@@ -111,7 +112,7 @@ export function JobEditForm({
         </div>
         <div className="full">
           <label>Address</label>
-          <input name="address" defaultValue={address} />
+          <AddressInput name="address" defaultValue={address} />
         </div>
         <div>
           <label>Assigned To (Sales)</label>
