@@ -1,4 +1,4 @@
 // Split out of actions.ts: a "use server" file may only export async functions,
 // so this shared constant (needed by both the server action and client forms)
 // lives in its own plain module.
-export const FILE_TYPES = ["Plan", "Photos", "Supplier Quote", "Supplier Schedule", "Site Measure", "Correspondence", "Repricing", "Other"] as const;
+export const FILE_TYPES = ["Plan", "Photos", "Supplier Quote", "Supplier Schedule", "Warranty", "Site Measure", "Correspondence", "Repricing", "Other"] as const;

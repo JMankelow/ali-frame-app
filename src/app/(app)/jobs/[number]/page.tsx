@@ -550,6 +550,11 @@ export default async function JobDetailPage({ params }: { params: Promise<{ numb
         </div>
         <div className="actions">
           {!installer && (
+            <Link href={`/jobs/${job.number}/warranty`} className="btn light">
+              Create warranty
+            </Link>
+          )}
+          {!installer && (
             <a href={buildSharePointSearchUrl(job.number)} target="_blank" rel="noopener noreferrer" className="btn light">
               Find in SharePoint ↗
             </a>
