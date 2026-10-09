@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireNotInstaller } from "@/lib/session";
 import { logAudit } from "@/lib/audit";
+import { emailBookingToCrew } from "@/lib/bookingEmail";
 import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
 export interface BookAppointmentState {
@@ -59,7 +60,7 @@ export async function bookAppointment(_prev: BookAppointmentState, formData: For
   const onlyOne = team.length === 1 ? MEASURE_STAFF.find((n) => team[0].name.toLowerCase().includes(n)) : undefined;
   const status = type === "Check Measure" ? "Check Measure Booked" : onlyOne ? `Sales Rep Booked - ${onlyOne[0].toUpperCase()}${onlyOne.slice(1)}` : "Booked in";
 
-  await prisma.jobScheduledTask.create({
+  const booking = await prisma.jobScheduledTask.create({
     data: {
       jobNumber,
       type,
@@ -72,6 +73,7 @@ export async function bookAppointment(_prev: BookAppointmentState, formData: For
       assignees: { connect: team.map((t) => ({ id: t.id })) },
     },
   });
+  await emailBookingToCrew(booking.id, user); // the people doing the appointment get their own copy
   if (type === "Sales Measure" && ["New", "Tentative Sales Booking Awaiting"].includes(job.status)) {
     await prisma.job.update({ where: { number: jobNumber }, data: { status: "Measure & Quoted Booked" } });
   }

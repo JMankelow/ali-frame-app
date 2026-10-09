@@ -10,6 +10,8 @@ import { CalendarFilters } from "./CalendarFilters";
 import { ALL_TYPES, FIELD_TYPES } from "./types";
 import { taskStatusHex, textOn } from "@/lib/statusColors";
 import { AddLeaveForm } from "./AddLeaveForm";
+import { AddBookingDialog, AddOnDay, SlotLayer } from "./AddBooking";
+import { byNumberDesc } from "@/lib/jobSort";
 
 // ---------- model ----------
 
@@ -37,7 +39,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const GRID_START_HOUR = 7;
 const GRID_END_HOUR = 19;
 const HOUR_PX = 60;
-const GUTTER = 56;
+const GUTTER = 76;
 
 const BADGE_COLORS = ["#16a34a", "#f97316", "#374151", "#eab308", "#2563eb", "#6b7280", "#ea580c", "#1d4ed8", "#111827", "#dc2626", "#0d9488", "#b91c1c", "#7c3aed", "#db2777"];
 
@@ -174,6 +176,9 @@ export default async function CalendarPage({
   const wantVehicles = activeTypes.includes("Vehicle Maintenance");
   const taskTypeFilter = ["Installation", "Check Measure", "Sales Measure", "Remedial"].filter((t) => activeTypes.includes(t));
 
+  // for the click-to-add booking pop-up (office only)
+  const bookableJobs = readOnly ? [] : byNumberDesc((await prisma.job.findMany({ where: { archived: false }, select: { number: true, title: true, client: { select: { name: true } } } })).map((j) => ({ number: j.number, title: j.client?.name ?? j.title })));
+
   const [scheduledTasks, leave, vehicles, checklists, staff] = await Promise.all([
     taskTypeFilter.length === 0
       ? Promise.resolve([])
@@ -294,7 +299,7 @@ export default async function CalendarPage({
 
   const todayStr = new Date().toISOString().slice(0, 10);
   const dParam = anchor.toISOString().slice(0, 10);
-  const typesParam = activeTypes.length === availableTypes.length ? "" : `&types=${encodeURIComponent(activeTypes.join(","))}`;
+  const typesParam = activeTypes.length === availableTypes.length ? "" : `&types=${activeTypes.length === 0 ? "none" : encodeURIComponent(activeTypes.join(","))}`;
   const qParam = q ? `&q=${encodeURIComponent(q)}` : "";
   const viewLink = (v: string) => `/calendar?view=${v}&date=${dParam}${typesParam}${qParam}`;
   const navLink = (d: Date) => `/calendar?view=${view}&date=${d.toISOString().slice(0, 10)}${typesParam}${qParam}`;
@@ -417,7 +422,7 @@ export default async function CalendarPage({
         <form method="get" className="actions">
           <input type="hidden" name="view" value={view} />
           <input type="hidden" name="date" value={dParam} />
-          {typesParam && <input type="hidden" name="types" value={activeTypes.join(",")} />}
+          {typesParam && <input type="hidden" name="types" value={activeTypes.length === 0 ? "none" : activeTypes.join(",")} />}
           <input type="search" name="q" defaultValue={qRaw ?? ""} placeholder="Search job, client, person…" style={{ minWidth: 220 }} />
           <button type="submit" className="btn light">Search</button>
           {q && <Link href={`/calendar?view=${view}&date=${dParam}${typesParam}`} className="btn light">Clear</Link>}
@@ -453,6 +458,7 @@ export default async function CalendarPage({
           <AddLeaveForm staff={staff} />
         </div>
       )}
+      {!readOnly && <AddBookingDialog jobs={bookableJobs} staff={staff} />}
 
       <div className="hint" style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 8 }}>
         {legend.map(([name, color]) => (
@@ -505,7 +511,7 @@ export default async function CalendarPage({
             <div style={{ display: "grid", gridTemplateColumns: colTemplate }}>
               <div>
                 {hours.map((h) => (
-                  <div key={h} style={{ height: HOUR_PX, fontSize: 12, fontWeight: 700, textAlign: "right", paddingRight: 6, paddingTop: 4, boxSizing: "border-box" }}>{hourLabel(h)}</div>
+                  <div key={h} style={{ height: HOUR_PX, fontSize: 11, fontWeight: 600, textAlign: "right", paddingRight: 8, paddingTop: 2, boxSizing: "border-box", whiteSpace: "nowrap", color: "#475467" }}>{hourLabel(h)}</div>
                 ))}
               </div>
               {days.map((d, i) => (
@@ -519,6 +525,7 @@ export default async function CalendarPage({
                     backgroundImage: `repeating-linear-gradient(to bottom, #d1d5db 0, #d1d5db 1px, transparent 1px, transparent ${HOUR_PX / 2}px)`,
                   }}
                 >
+                  {!readOnly && <SlotLayer date={dayStr(d)} startHour={GRID_START_HOUR} hourPx={HOUR_PX} />}
                   {timedByDay[i].map(({ e, col, cols, top, height }) => (
                     <Link
                       key={e.key}
@@ -577,7 +584,7 @@ export default async function CalendarPage({
                   minWidth: 0,
                 }}
               >
-                <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 3 }}>{d.getDate()}</div>
+                <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 3 }}>{d.getDate()}{!readOnly && <AddOnDay date={dayStr(d)} />}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {list.slice(0, 5).map((e) => pill(e, { fontSize: 11, padding: "1px 5px" }))}
                   {list.length > 5 && (

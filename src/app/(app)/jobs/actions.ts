@@ -7,6 +7,7 @@ import { logAudit } from "@/lib/audit";
 import { installEndDate } from "@/lib/installDates";
 import { ensureQaSheet } from "@/lib/qaAuto";
 import { crewOnJob, notifyUsers } from "@/lib/notify";
+import { emailBookingToCrew } from "@/lib/bookingEmail";
 import { getObjectBuffer } from "@/lib/storage";
 import { sendPlainNotificationEmail, profileSigner } from "@/lib/email";
 
@@ -359,6 +360,7 @@ export async function createScheduledTask(
     entityId: jobNumber,
     metadata: { type, scheduledDate: task.scheduledDate, assignees: task.assignees.map((a) => a.name) },
   });
+  await emailBookingToCrew(task.id, user);
   if (type === "Installation") await ensureQaSheet(jobNumber, user.id).catch((e) => console.error("[qa] auto-create failed", e));
   if (type === "Installation") await notifySalesRepBookedIn(jobNumber, user, { start: task.scheduledDate, end: task.endDate, crew: task.assignees.map((a) => a.name) });
   revalidatePath(`/jobs/${jobNumber}`);
@@ -373,7 +375,7 @@ export async function updateScheduledTask(
 ): Promise<ScheduledTaskState> {
   const user = await requireNotInstaller();
 
-  const existing = await prisma.jobScheduledTask.findUnique({ where: { id } });
+  const existing = await prisma.jobScheduledTask.findUnique({ where: { id }, include: { assignees: { select: { id: true } } } });
   if (!existing) return { error: "Booking not found." };
 
   const type = String(formData.get("type") ?? "").trim();
@@ -404,6 +406,8 @@ export async function updateScheduledTask(
     },
   });
 
+  const added = assigneeIds.filter((aid) => !existing.assignees.some((a) => a.id === aid));
+  if (added.length) await emailBookingToCrew(id, user, added);
   if (daysRequired(formData) && type === "Installation") await prisma.job.update({ where: { number: existing.jobNumber }, data: { installDays: daysRequired(formData) } });
 
   await logAudit({

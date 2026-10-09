@@ -118,6 +118,26 @@ export interface EmailAttachment {
   content: Buffer;
 }
 
+/** Sends an already-designed HTML email (with a plain-text twin) from the app's sender address. */
+export async function sendHtmlEmail(params: { to: string | string[]; subject: string; html: string; text: string; replyTo?: string; attachments?: EmailAttachment[] }) {
+  const from = process.env.EMAIL_FROM;
+  if (!process.env.RESEND_API_KEY || !from) {
+    if (process.env.NODE_ENV === "production") throw new Error("RESEND_API_KEY / EMAIL_FROM must be set in production");
+    console.log(`[DEV ONLY — no email sent] "${params.subject}" would go to ${params.to}`);
+    return;
+  }
+  const result = await sendMail({
+    from,
+    to: params.to,
+    subject: params.subject,
+    html: params.html,
+    text: params.text,
+    ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+    ...(params.attachments?.length ? { attachments: params.attachments } : {}),
+  });
+  if (result.error) throw new Error(`Failed to send email: ${result.error.message}`);
+}
+
 export async function sendSiteMeasureEmail(params: {
   to: string;
   jobNumber: string;
