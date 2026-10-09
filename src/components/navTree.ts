@@ -95,6 +95,7 @@ export const NAV_TREE: NavGroup[] = [
     label: "Jobs",
     items: [
       { label: "Overview", href: "/jobs" },
+      { label: "New Job", href: "/jobs#add-job", officeOnly: true },
       { label: "Residential", href: "/jobs?type=Residential" },
       { label: "Commercial", href: "/jobs?type=Commercial" },
       { label: "Inactive", href: "/jobs?archived=1" },
